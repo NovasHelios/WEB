@@ -14,7 +14,7 @@ function App() {
       <Background>
         <Routes>
           <Route path="/" element={<BusinessSignIn1 />} />
-          <Route path="/business2" element={<BusinessSignIn2 />} />
+          <Route path="/2" element={<BusinessSignIn2 />} />
         </Routes>
       </Background>
     </BrowserRouter>
