@@ -58,7 +58,7 @@ const LoginForm = () => {
 
     } catch (err) {
       // 에러 메시지 표시
-      setError(err.message);
+      setError("이메일 또는 비밀번호를 확인해주세요.");
     } finally {
       // 요청 종료 - 로딩 OFF
       setIsLoading(false);
@@ -73,12 +73,12 @@ const LoginForm = () => {
   return (
     <LoginSigninBox>
       <h1 className="mb-8 text-3xl font-bold text-center">Login</h1>
-      <LoginError message={error} />
       <LoginEmailInput
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={isLoading}
+        error={error}
       />
       <LoginPasswordInput
         value={password}
