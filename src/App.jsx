@@ -1,8 +1,7 @@
 import { useState } from "react"
 import { Route, BrowserRouter, Routes } from "react-router-dom"
 import Background from "./pages/Background"
-import BusinessSignIn1 from "./pages/SignIn/business1"
-import BusinessSignIn2 from "./pages/SignIn/business2.jsx"
+import BusinessSignIn from "./pages/SignIn/BusinessSignIn.jsx"
 
 
 
@@ -13,8 +12,7 @@ function App() {
     <BrowserRouter>
       <Background>
         <Routes>
-          <Route path="/" element={<BusinessSignIn1 />} />
-          <Route path="/2" element={<BusinessSignIn2 />} />
+          <Route path="/" element={<BusinessSignIn />} />
         </Routes>
       </Background>
     </BrowserRouter>
