@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
+import { Api } from "../../context/apiEndPoints";
 
-const VerificationCodeModal = ({ onClose, onVerify, onResend }) => {
+const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
   const [codes, setCodes] = useState(Array(6).fill(""));
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
   const inputs = useRef([]);
 
   // 카운트다운 타이머
@@ -31,19 +33,49 @@ const VerificationCodeModal = ({ onClose, onVerify, onResend }) => {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = codes.join("");
     if (code.length < 6) {
       setError("인증코드를 모두 입력해주세요.");
       return;
     }
-    onVerify?.(code);
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${Api.EmailVarify}?email=${encodeURIComponent(email)}&code=${code}`,
+        { method: "POST" }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "인증에 실패했습니다.");
+      }
+
+      onVerify?.(code);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setCodes(Array(6).fill(""));
     setError("");
     setTimeLeft(60);
+
+    try {
+      await fetch(`${Api.EmailSend}?email=${encodeURIComponent(email)}`, {
+        method: "POST",
+      });
+    } catch {
+      setError("재전송에 실패했습니다.");
+    }
+
     onResend?.();
   };
 
@@ -93,9 +125,10 @@ const VerificationCodeModal = ({ onClose, onVerify, onResend }) => {
         {/* 버튼 */}
         <button
           onClick={handleVerify}
-          className="w-full py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold text-lg rounded-2xl transition-colors mb-4"
+          disabled={isLoading}
+          className="w-full py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold text-lg rounded-2xl transition-colors mb-4 disabled:opacity-60"
         >
-          Verify Code
+          {isLoading ? "확인 중..." : "Verify Code"}
         </button>
 
         {/* 재전송 */}

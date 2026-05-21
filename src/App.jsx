@@ -5,6 +5,7 @@ import NormalSignIn from "./pages/SignIn/normal";
 import BusinessSignIn1 from "./pages/SignIn/business1";
 import BusinessSignIn2 from "./pages/SignIn/business2";
 import VerificationCodeModal from "./components/ui/VerificationCodeModal";
+import Company from "./pages/Company/Company";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Route path="/signup/business" element={<BusinessSignIn1 />} />
       <Route path="/signup/business/2" element={<BusinessSignIn2 />} />
       <Route path="/admin" element={<VerificationCodeModal />} />
+      <Route path="/company" element={<Company />} />
     </Routes>
   );
 }

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginSigninBox from "../../../components/layout/box/LoginSigninBox";
-import LoginError from "./LoginError";
 import LoginEmailInput from "./LoginInputEmail";
 import LoginPasswordInput from "./LoginInputPassword";
 import LoginButton from "./LoginButton";
+import { Api } from "../../../context/apiEndPoints";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ const LoginForm = () => {
 
     try {
       // 로그인 API 요청
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(Api.Login, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -47,13 +47,18 @@ const LoginForm = () => {
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
 
-      // JWT payload 디코딩 후 role 추출
-      const payload = JSON.parse(atob(data.accessToken.split(".")[1]));
-      const role = payload.role;
+      // JWT payload 디코딩 후 role 추출 (base64url 대응)
+      const base64 = data.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(atob(base64));
+      const { role, sub } = payload;
+
+      // 유저 ID 저장
+      localStorage.setItem("userId", sub);
 
       // role 기반 페이지 분기
       if (role === "ADMIN") navigate("/admin");
       else if (role === "COMPANY") navigate("/company");
+      else if (role === "USER") navigate("/");
       else navigate("/");
 
     } catch (err) {
