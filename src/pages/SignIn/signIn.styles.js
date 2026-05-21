@@ -9,6 +9,7 @@ export const Container = styled.div`
   flex-direction: column;
   background-color: #f0f0f0;
   transform: scale(0.75); /* 추가 */
+
   border-radius: 40px;
 `;
 
@@ -69,6 +70,31 @@ export const SignButton = styled.button`
   margin-top: 40px;
 `;
 
+
+export const ErrorMessage = styled.p`
+  color: #b91c1c;
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+`;
+
+export const SubmitButton = styled.button`
+  width: 567px;
+  height: 100px;
+  border-radius: 20px;
+  font-size: 32px;
+  font-weight: 900;
+  background-color: #FFAB03;
+  color: #F0F0F0;
+  border: none;
+  cursor: pointer;
+  margin-top: 40px;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
 export const BottomText = styled.div`
   justify-content: center;
   display: flex;
@@ -95,5 +121,3 @@ export const Dot = styled.div`
   background-color: ${({ $active }) => ($active ? "#FFAB03" : "#C0C0C0")};
   cursor: pointer;
 `;
-
-
