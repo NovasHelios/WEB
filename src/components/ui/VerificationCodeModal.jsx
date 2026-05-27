@@ -8,6 +8,20 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
   const [isLoading, setIsLoading] = useState(false);
   const inputs = useRef([]);
 
+  // 마운트 시 이메일 코드 자동 전송
+  useEffect(() => {
+    const sendCode = async () => {
+      try {
+        await fetch(`${Api.EmailSend}?email=${encodeURIComponent(email)}`, {
+          method: "POST",
+        });
+      } catch {
+        setError("코드 전송에 실패했습니다.");
+      }
+    };
+    if (email) sendCode();
+  }, []);
+
   // 카운트다운 타이머
   useEffect(() => {
     if (timeLeft <= 0) return;

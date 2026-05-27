@@ -1,6 +1,7 @@
 import useSignForm from "./useSignForm.js";
 import * as S from "./signIn.styles.js";
 import React, { useState } from "react";
+import EmailVerifyButton from "../../components/ui/EmailVerifyButton";
 
 
 
@@ -74,14 +75,18 @@ function BusinessSignIn() {
           <>
             <S.InputGroup>
               <S.Label>Company Email</S.Label>
-              <S.Input
-                type="text"
-                name="cEmail"
-                value={form.cEmail}
-                onChange={handleOnChange}
-                placeholder="Enter Your Email"
-                $error={!!error.cEmail}
-              />
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <S.Input
+                  type="text"
+                  name="cEmail"
+                  value={form.cEmail}
+                  onChange={handleOnChange}
+                  placeholder="Enter Your Email"
+                  $error={!!error.cEmail}
+                  style={{ width: "500px" }}
+                />
+                <EmailVerifyButton email={form.cEmail} />
+              </div>
               <S.ErrorText $visible={!!error.cEmail}>
                 {error.cEmail || ""}
               </S.ErrorText>

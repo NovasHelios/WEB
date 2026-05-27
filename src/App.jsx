@@ -6,11 +6,7 @@ import Login from "./pages/Login/Login";
 import Main from "./pages/Main";
 
 
-
-
 function App() {
-
-  const [page, setPage] = useState("business1")
   return (
       <Background>
         <Routes>

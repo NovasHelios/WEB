@@ -37,9 +37,10 @@ const LoginForm = () => {
       });
 
       const data = await response.json();
+      console.log("Login response:", data);
 
       // 응답 실패 시 에러 throw
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(data.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
       }
 
@@ -48,12 +49,14 @@ const LoginForm = () => {
       localStorage.setItem("refreshToken", data.refreshToken);
 
       // JWT payload 디코딩 후 role 추출 (base64url 대응)
-      const base64 = data.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(atob(base64));
-      const { role, sub } = payload;
+      // const base64 = data.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      // const payload = JSON.parse(atob(base64));
+      // const { role, sub } = payload;
 
       // 유저 ID 저장
-      localStorage.setItem("userId", sub);
+      // localStorage.setItem("userId", sub);
+
+      const role = data.role; // API에서 role이 직접 제공된다고 가정
 
       // role 기반 페이지 분기
       if (role === "ADMIN") navigate("/admin");
@@ -63,6 +66,7 @@ const LoginForm = () => {
 
     } catch (err) {
       // 에러 메시지 표시
+      console.log("Login error:", err);
       setError("이메일 또는 비밀번호를 확인해주세요.");
     } finally {
       // 요청 종료 - 로딩 OFF
