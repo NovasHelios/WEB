@@ -12,15 +12,13 @@ function App() {
 
   const [page, setPage] = useState("business1")
   return (
-    <BrowserRouter>
       <Background>
         <Routes>
-          <Route path="/" element={<BusinessSignIn />} />
-          <Route path="/" element={<Main />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<BusinessSignIn />} />
+          <Route path="/main" element={<Main />} />
+          <Route path="/" element={<Login />} />
         </Routes>
       </Background>
-    </BrowserRouter>
   );
 }
 
