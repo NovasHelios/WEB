@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 export const Container = styled.div`
   width: 700px;
-  height: 900px;
+  height: 960px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -33,15 +33,30 @@ export const Input = styled.input`
   height: 88px;
   font-size: 20px;
   font-weight: 600;
-  border: #f0f0f0;
   padding-left: 26px;
+  color: ${({ $error }) => ($error ? "#E24B4A" : "inherit")};
+  border: 2px solid ${({ $error }) => ($error ? "#E24B4A" : "#f0f0f0")};
+
   &::placeholder {
     font-size: 20px;
     font-weight: 900;
+    color: ${({ $error }) => ($error ? "#ef9a9a" : "#b6b6b6")};
   }
   &:focus {
     background-color: #ffffff;
+    border: 2px solid ${({ $error }) => ($error ? "#E24B4A" : "#FFAB03")};
+    outline: none;
   }
+`;
+
+
+
+export const ErrorText = styled.p`
+  margin: 8px 0 0 20px;
+  min-height: 16px; /* 자리 고정 */
+  font-size: 20px;
+  color: #e24b4a;
+  visibility: ${({ $visible }) => ($visible ? "visible" : "hidden")};
 `;
 
 export const Label = styled.label`

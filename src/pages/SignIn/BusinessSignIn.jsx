@@ -1,14 +1,14 @@
 import useSignForm from "./useSignForm.js";
 import * as S from "./signIn.styles.js";
 import React, { useState } from "react";
-import { required, format,  } from "./signUtil.js";
+
 
 
 function BusinessSignIn() {
   // 1: name/number/company, 2: email/password/businessNo
   const [step, setStep] = useState(1);
 
-  const { form, setForm, error, isLoading, handleOnChange, handleSubmit } = useSignForm({
+  const { form, setForm, error, isLoading, handleOnChange, handleSubmit, onTabChange } = useSignForm({
     name: "",
     pNumber: "",
     cName: "",
@@ -31,7 +31,11 @@ function BusinessSignIn() {
                 value={form.name}
                 onChange={handleOnChange}
                 placeholder="Enter Your Name"
+                $error={!!error.name}
               />
+              <S.ErrorText $visible={!!error.name}>
+                {error.name || ""}
+              </S.ErrorText>
             </S.InputGroup>
 
             <S.InputGroup>
@@ -42,7 +46,11 @@ function BusinessSignIn() {
                 value={form.pNumber}
                 onChange={handleOnChange}
                 placeholder="Enter Your Phone Number"
+                $error={!!error.pNumber}
               />
+              <S.ErrorText $visible={!!error.pNumber}>
+                {error.pNumber || ""}
+              </S.ErrorText>
             </S.InputGroup>
 
             <S.InputGroup>
@@ -53,7 +61,11 @@ function BusinessSignIn() {
                 value={form.cName}
                 onChange={handleOnChange}
                 placeholder="Enter Your Company"
+                $error={!!error.cName}
               />
+              <S.ErrorText $visible={!!error.cName}>
+                {error.cName || ""}
+              </S.ErrorText>
             </S.InputGroup>
           </>
         )}
@@ -68,7 +80,11 @@ function BusinessSignIn() {
                 value={form.cEmail}
                 onChange={handleOnChange}
                 placeholder="Enter Your Email"
+                $error={!!error.cEmail}
               />
+              <S.ErrorText $visible={!!error.cEmail}>
+                {error.cEmail || ""}
+              </S.ErrorText>
             </S.InputGroup>
 
             <S.InputGroup>
@@ -79,7 +95,11 @@ function BusinessSignIn() {
                 value={form.password}
                 onChange={handleOnChange}
                 placeholder="Enter Your Password"
+                $error={!!error.password}
               />
+              <S.ErrorText $visible={!!error.password}>
+                {error.password || ""}
+              </S.ErrorText>
             </S.InputGroup>
 
             <S.InputGroup>
@@ -90,14 +110,18 @@ function BusinessSignIn() {
                 value={form.businessNumber}
                 onChange={handleOnChange}
                 placeholder="Enter Your Business Number"
+                $error={!!error.businessNumber}
               />
+              <S.ErrorText $visible={!!error.businessNumber}>
+                {error.businessNumber || ""}
+              </S.ErrorText>
             </S.InputGroup>
           </>
         )}
 
         <S.DotWrapper>
           <S.Dot onClick={() => setStep(1)} $active={step === 1} />
-          <S.Dot onClick={() => setStep(2)} $active={step === 2}/>
+          <S.Dot onClick={() => setStep(2)} $active={step === 2} />
         </S.DotWrapper>
 
         <S.SignButton
@@ -112,7 +136,7 @@ function BusinessSignIn() {
 
         <S.BottomText>
           already have an account?{" "}
-          <span onClick={() => onTabChange("login")}>Log In →</span>
+          <S.Span onClick={() => onTabChange("/")}>Log In →</S.Span>
         </S.BottomText>
       </S.Form>
     </S.Container>
