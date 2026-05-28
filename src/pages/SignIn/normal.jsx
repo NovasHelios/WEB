@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as S from "./signIn.styles.js";
+import EmailVerifyButton from "../../components/ui/EmailVerifyButton";
 
 function NormalSignIn() {
     const navigate = useNavigate();
@@ -63,13 +64,17 @@ function NormalSignIn() {
         <S.Form onSubmit={handleSubmit}>
           <S.InputGroup>
             <S.Label>Email</S.Label>
-            <S.Input
-              type="text"
-              name="email"
-              value={form.email}
-              onChange={handleOnChange}
-              placeholder="example@email.com"
-            />
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <S.Input
+                type="text"
+                name="email"
+                value={form.email}
+                onChange={handleOnChange}
+                placeholder="example@email.com"
+                style={{ width: "500px" }}
+              />
+              <EmailVerifyButton email={form.email} />
+            </div>
           </S.InputGroup>
 
           <S.InputGroup>

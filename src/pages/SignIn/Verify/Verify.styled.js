@@ -1,4 +1,5 @@
-// styled-components
+import styled from "styled-components"; // import 없드라
+
 export const CodeRow = styled.div`
   display: flex;
   gap: 16px;
