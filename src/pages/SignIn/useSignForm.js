@@ -1,6 +1,7 @@
-import axios from "axios";
+// import axios from "axios";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Api } from "@/contents/apiEndpoints";
 
 
 export default function useSignForm(initalForm) {
@@ -69,7 +70,7 @@ export default function useSignForm(initalForm) {
       }
     };
 
-    const handleSubmit = async (e, url) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
 
       if (!validateForm()) return;
@@ -77,9 +78,12 @@ export default function useSignForm(initalForm) {
       setIsLoading(true);
 
       try {
-        const response = await axios.post(url, form); // form으로 통일
+        // form: 요청하는 본문(서버로 보내는 데이터)
+        const response = await axios.post(Api.SignUp, form); // form으로 통일
+
         if (response.status === 200 || response.status === 201) {
           alert("signup successful");
+          navigate('/main')
         }
       } catch (error) {
         console.error(

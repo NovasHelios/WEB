@@ -120,7 +120,9 @@ export const BottomText = styled.div`
 export const Span = styled.span`
     color: black;
     font-weight: 900;
+    margin: 0 0 0 10px;
 `;
+// 마진 없어서 딱 붙어있어서 수정함
 
 export const DotWrapper = styled.div`
   display: flex;
