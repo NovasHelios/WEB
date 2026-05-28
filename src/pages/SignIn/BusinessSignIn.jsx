@@ -1,7 +1,7 @@
 import useSignForm from "./useSignForm.js";
 import * as S from "./signIn.styles.js";
 import React, { useState } from "react";
-import EmailVerifyButton from "../../components/ui/EmailVerifyButton";
+import EmailVerifyButton from "@/components/ui/EmailVerifyButton.jsx";
 
 
 
@@ -85,7 +85,7 @@ function BusinessSignIn() {
                   $error={!!error.cEmail}
                   style={{ width: "500px" }}
                 />
-                <EmailVerifyButton email={form.cEmail} />
+                <EmailVerifyButton />
               </div>
               <S.ErrorText $visible={!!error.cEmail}>
                 {error.cEmail || ""}

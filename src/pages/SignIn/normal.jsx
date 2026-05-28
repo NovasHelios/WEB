@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as S from "./signIn.styles.js";
-import EmailVerifyButton from "../../components/ui/EmailVerifyButton";
+
 
 function NormalSignIn() {
     const navigate = useNavigate();
@@ -73,7 +73,6 @@ function NormalSignIn() {
                 placeholder="example@email.com"
                 style={{ width: "500px" }}
               />
-              <EmailVerifyButton email={form.email} />
             </div>
           </S.InputGroup>
 

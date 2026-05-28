@@ -4,7 +4,7 @@ import LoginSigninBox from "../../../components/layout/box/LoginSigninBox";
 import LoginEmailInput from "./LoginInputEmail";
 import LoginPasswordInput from "./LoginInputPassword";
 import LoginButton from "./LoginButton";
-import { Api } from "../../../context/apiEndPoints";
+import { Api } from "@/contents/apiEndpoints";
 
 const LoginForm = () => {
   const navigate = useNavigate();

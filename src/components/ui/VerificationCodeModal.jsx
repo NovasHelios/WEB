@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Api } from "../../context/apiEndPoints";
+import { Api } from "@/contents/apiEndpoints";
 
 const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
   const [codes, setCodes] = useState(Array(6).fill(""));

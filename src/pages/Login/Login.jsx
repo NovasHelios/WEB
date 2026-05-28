@@ -1,5 +1,5 @@
 import LoginForm from "./components/LoginForm";
-import bgimg from "../../images/HeliosBackground.png";
+import bgimg from "@/images/HeliosBackground.png"
 
 function Login() {
   return (

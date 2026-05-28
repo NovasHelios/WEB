@@ -15,7 +15,7 @@ function App() {
           <Route path="/signup/business" element={<BusinessSignIn />} />
           <Route path="/signup/individual" element={<NormalSignIn />} />
           <Route path="/main" element={<Main />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
         </Routes>
       </Background>
   );
