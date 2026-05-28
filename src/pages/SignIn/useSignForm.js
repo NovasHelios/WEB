@@ -91,7 +91,6 @@ export default function useSignForm(initalForm) {
           error.response?.data?.message || error.message
         );
         alert("signup failed");
-        navigate("/");
       } finally {
         setIsLoading(false);
       }
