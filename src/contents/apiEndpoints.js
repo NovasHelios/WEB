@@ -1,6 +1,7 @@
 export const Api = {
-  SignUp: "http://http://10.80.163.133:8080/api/auth/signup",
-  Login: "http://http://10.80.163.133:8080/api/auth/login",
-  EmailVarify: "http://10.80.163.133:8080/api/auth/email/verify",
-  EmailSend: "http:/10.80.163.133:8080/api/auth/email/send",
+  SignUp: "https://www.helioss.site/api/auth/signup",
+  Login: "https://www.helioss.site/api/auth/login",
+  EmailVarify: "https://www.helioss.site/api/auth/email/verify",
+  EmailSend: "https://www.helioss.site/api/auth/email/send",
+  EmailResend: "https://www.helioss.site/api/auth/email/resend",
 };
