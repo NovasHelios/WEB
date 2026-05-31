@@ -25,48 +25,7 @@ function BusinessSignIn() {
         {step === 1 && (
           <>
             <S.InputGroup>
-              <S.Label>Name</S.Label>
-              <S.Input
-                type="name"
-                name="name"
-                value={form.name}
-                onChange={handleOnChange}
-                placeholder="Enter Your Name"
-                $error={!!error.name}
-              />
-              <S.ErrorText $visible={!!error.name}>
-                {error.name || ""}
-              </S.ErrorText>
-            </S.InputGroup>
-
-            <S.InputGroup>
-              <S.Label>Phone Number</S.Label>
-              <S.Input
-                type="pNumber"
-                name="pNumber"
-                value={form.pNumber}
-                onChange={handleOnChange}
-                placeholder="Enter Your Phone Number"
-                $error={!!error.pNumber}
-              />
-              <S.ErrorText $visible={!!error.pNumber}>
-                {error.pNumber || ""}
-              </S.ErrorText>
-            </S.InputGroup>
-
-            <S.InputGroup>
-              <S.Label>Company</S.Label>
-              <S.Input
-                type="cName"
-                name="cName"
-                value={form.cName}
-                onChange={handleOnChange}
-                placeholder="Enter Your Company"
-                $error={!!error.cName}
-              />
-              <S.ErrorText $visible={!!error.cName}>
-                {error.cName || ""}
-              </S.ErrorText>
+              
             </S.InputGroup>
           </>
         )}

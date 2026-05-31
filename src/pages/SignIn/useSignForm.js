@@ -8,9 +8,9 @@ export default function useSignForm(initalForm) {
     const [form, setForm] = useState(initalForm);
     const [error, setError] = useState({
       name: "",
-      pNumber: "",
-      cName: "",
-      cEmail: "",
+      phone: "",
+      companyName: "",
+      email: "",
       password: "",
       businessNumber: "",
     });
@@ -18,9 +18,9 @@ export default function useSignForm(initalForm) {
     const validateForm = () => {
       const nextError = {
         name: "",
-        pNumber: "",
-        cName: "",
-        cEmail: "",
+        phone: "",
+        companyName: "",
+        email: "",
         password: "",
         businessNumber: "",
       };
@@ -31,8 +31,8 @@ export default function useSignForm(initalForm) {
         }
       });
 
-      if (form.cEmail.trim() && !isValidEmail(form.cEmail.trim())) {
-        nextError.cEmail = "Invalid email format.";
+      if (form.email.trim() && !isValidEmail(form.email.trim())) {
+        nextError.email = "Invalid email format.";
       }
 
       setError(nextError);
@@ -57,7 +57,7 @@ export default function useSignForm(initalForm) {
       setForm((prev) => ({ ...prev, [name]: value }));
       setError((prev) => ({ ...prev, [name]: "" }));
 
-      if (name === "cEmail") {
+      if (name === "email") {
         const v = value.trim();
         if (!v) return;
 
