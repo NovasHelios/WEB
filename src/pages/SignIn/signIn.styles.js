@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 export const Container = styled.div`
   width: 700px;
-  height: 960px;
+  height: 1060px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -23,14 +23,14 @@ export const Form = styled.form`
 export const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 `;
 
 export const Input = styled.input`
   background-color: #ffffff;
   border-radius: 25px;
   width: 622px;
-  height: 88px;
+  height: 44px;
   font-size: 20px;
   font-weight: 600;
   padding-left: 26px;
@@ -68,7 +68,6 @@ export const Label = styled.label`
 
 export const HeaderTag = styled.div`
   font-size: 40px;
-  padding-bottom: 79px;
   font-weight: 600;
 `;
 
@@ -82,7 +81,7 @@ export const SignButton = styled.button`
   color: ${({ $textColor }) => $textColor};
   border: none;
   cursor: pointer;
-  margin-top: 40px;
+  
 `;
 
 
