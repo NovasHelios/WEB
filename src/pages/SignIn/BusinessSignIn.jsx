@@ -11,9 +11,9 @@ function BusinessSignIn() {
 
   const { form, setForm, error, isLoading, handleOnChange, handleSubmit, onTabChange } = useSignForm({
     name: "",
-    pNumber: "",
-    cName: "",
-    cEmail: "",
+    phone: "",
+    companyName: "",
+    email: "",
     password: "",
     businessNumber: "",
   });
@@ -42,30 +42,30 @@ function BusinessSignIn() {
             <S.InputGroup>
               <S.Label>Phone Number</S.Label>
               <S.Input
-                type="pNumber"
-                name="pNumber"
-                value={form.pNumber}
+                type="phone"
+                name="phone"
+                value={form.phone}
                 onChange={handleOnChange}
                 placeholder="Enter Your Phone Number"
-                $error={!!error.pNumber}
+                $error={!!error.phone}
               />
-              <S.ErrorText $visible={!!error.pNumber}>
-                {error.pNumber || ""}
+              <S.ErrorText $visible={!!error.phone}>
+                {error.phone || ""}
               </S.ErrorText>
             </S.InputGroup>
 
             <S.InputGroup>
               <S.Label>Company</S.Label>
               <S.Input
-                type="cName"
-                name="cName"
-                value={form.cName}
+                type="companyName"
+                name="companyName"
+                value={form.companyName}
                 onChange={handleOnChange}
                 placeholder="Enter Your Company"
-                $error={!!error.cName}
+                $error={!!error.companyName}
               />
-              <S.ErrorText $visible={!!error.cName}>
-                {error.cName || ""}
+              <S.ErrorText $visible={!!error.companyName}>
+                {error.companyName || ""}
               </S.ErrorText>
             </S.InputGroup>
           </>
@@ -78,17 +78,17 @@ function BusinessSignIn() {
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <S.Input
                   type="text"
-                  name="cEmail"
-                  value={form.cEmail}
+                  name="email"
+                  value={form.email}
                   onChange={handleOnChange}
                   placeholder="Enter Your Email"
-                  $error={!!error.cEmail}
+                  $error={!!error.email}
                   style={{ width: "500px" }}
                 />
-                <EmailVerifyButton />
+                <EmailVerifyButton email={form.email} />
               </div>
-              <S.ErrorText $visible={!!error.cEmail}>
-                {error.cEmail || ""}
+              <S.ErrorText $visible={!!error.email}>
+                {error.email || ""}
               </S.ErrorText>
             </S.InputGroup>
 
