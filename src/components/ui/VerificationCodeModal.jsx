@@ -83,7 +83,7 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
     setTimeLeft(60);
 
     try {
-      await fetch(`${Api.EmailSend}?email=${encodeURIComponent(email)}`, {
+      await fetch(`${Api.EmailResend}?email=${encodeURIComponent(email)}`, {
         method: "POST",
       });
     } catch {

@@ -1,4 +1,4 @@
-// import axios from "axios";
+import axios from "axios";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Api } from "@/contents/apiEndpoints";
@@ -6,6 +6,8 @@ import { Api } from "@/contents/apiEndpoints";
 
 export default function useSignForm(initalForm) {
     const [form, setForm] = useState(initalForm);
+    const location = useLocation();
+    const role = location.state?.role;
     const [error, setError] = useState({
       name: "",
       phone: "",
@@ -64,7 +66,7 @@ export default function useSignForm(initalForm) {
         if (!isValidEmail(v)) {
           setError((prev) => ({
             ...prev,
-            cEmail: "Invalid email format.",
+            email: "Invalid email format.",
           }));
         }
       }
@@ -79,11 +81,13 @@ export default function useSignForm(initalForm) {
 
       try {
         // form: 요청하는 본문(서버로 보내는 데이터)
-        const response = await axios.post(Api.SignUp, form); // form으로 통일
+        const response = await axios.post(Api.SignUp, { ...form, role });
 
         if (response.status === 200 || response.status === 201) {
           alert("signup successful");
           navigate('/main')
+        } else {
+          alert(response.data?.data || "signup failed");
         }
       } catch (error) {
         console.error(
