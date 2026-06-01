@@ -8,6 +8,7 @@ const EmailVerifyButton = ({ email }) => {
   return (
     <>
       <button
+        type="button"
         onClick={() => {
           if (!email) return;
           setShowModal(true);
