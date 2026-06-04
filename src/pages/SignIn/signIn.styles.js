@@ -9,7 +9,18 @@ export const Container = styled.div`
   flex-direction: column;
   background-color: #f0f0f0;
   transform: scale(0.75); /* 추가 */
+  border-radius: 40px;
+`;
 
+export const Container2 = styled.div`
+  width: 700px;
+  height: 860px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: #f0f0f0;
+  transform: scale(0.75); /* 추가 */
   border-radius: 40px;
 `;
 
