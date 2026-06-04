@@ -4,7 +4,7 @@ import LoginSigninBox from "../../../components/layout/box/LoginSigninBox";
 import LoginEmailInput from "./LoginInputEmail";
 import LoginPasswordInput from "./LoginInputPassword";
 import LoginButton from "./LoginButton";
-import { Api } from "../../../context/apiEndPoints";
+import { Api } from "@/contents/apiEndpoints";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -39,30 +39,19 @@ const LoginForm = () => {
       const data = await response.json();
       console.log("Login response:", data);
 
-      // 응답 실패 시 에러 throw
       if (response.status !== 200) {
-        throw new Error(data.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
+        throw new Error(data.data?.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
       }
 
-      // 토큰 로컬스토리지 저장
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("accessToken", data.data.accessToken);
 
-      // JWT payload 디코딩 후 role 추출 (base64url 대응)
-      // const base64 = data.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      // const payload = JSON.parse(atob(base64));
-      // const { role, sub } = payload;
+      const role = data.data.role;
 
-      // 유저 ID 저장
-      // localStorage.setItem("userId", sub);
-
-      const role = data.role; // API에서 role이 직접 제공된다고 가정
-
-      // role 기반 페이지 분기
-      if (role === "ADMIN") navigate("/admin");
-      else if (role === "COMPANY") navigate("/company");
-      else if (role === "USER") navigate("/");
-      else navigate("/");
+      if (role === "ADMIN") navigate("/main");
+      else if (role === "COMPANY") navigate("/main");
+      else if (role === "USER") navigate("/main");
+      else navigate("/main");
+      
 
     } catch (err) {
       // 에러 메시지 표시

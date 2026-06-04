@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as S from "./signIn.styles.js";
-import EmailVerifyButton from "../../components/ui/EmailVerifyButton";
+import EmailVerifyButton from "@/components/ui/EmailVerifyButton.jsx";
 
 function NormalSignIn() {
     const navigate = useNavigate();
     const [form, setForm] = useState({
+        name: "", 
+        phone: "", 
+        username: "", 
         email: "",
         password: "",
-        confirmPassword: "",
         businessNumber:""
     })
 
@@ -26,11 +28,6 @@ function NormalSignIn() {
 
       if (form.email.includes("@") === false) {
         setError("email 형식에 맞지 않습니다.");
-        return;
-      }
-
-      if (form.password !== form.confirmPassword) {
-        setError("비밀번호가 일치하지 않습니다.");
         return;
       }
 
@@ -59,9 +56,33 @@ function NormalSignIn() {
     };
 
     return (
-      <S.Container>
+      <S.Container2>
         <S.HeaderTag>Sign up</S.HeaderTag>
         <S.Form onSubmit={handleSubmit}>
+          <S.InputGroup>
+            <S.Label>Name</S.Label>
+            <S.Input
+              type="name"
+              name="name"
+              value={form.name}
+              onChange={handleOnChange}
+              placeholder="Enter Your Name"
+              $error={!!error.name}
+            />
+          </S.InputGroup>
+
+          <S.InputGroup>
+            <S.Label>Phone Number</S.Label>
+              <S.Input
+                type="phone"
+                name="phone"
+                value={form.phone}
+                onChange={handleOnChange}
+                placeholder="Enter Your Phone Number"
+                $error={!!error.phone}
+              />
+          </S.InputGroup>
+
           <S.InputGroup>
             <S.Label>Email</S.Label>
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -73,7 +94,7 @@ function NormalSignIn() {
                 placeholder="example@email.com"
                 style={{ width: "500px" }}
               />
-              <EmailVerifyButton email={form.email} />
+              <EmailVerifyButton email={form.email ??  ""} />
             </div>
           </S.InputGroup>
 
@@ -99,17 +120,6 @@ function NormalSignIn() {
             />
           </S.InputGroup>
 
-          <S.InputGroup>
-            <S.Label>비밀번호 확인</S.Label>
-            <S.Input
-              type="password"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleOnChange}
-              placeholder="비밀번호를 다시 입력해주세요"
-            />
-          </S.InputGroup>
-
           {error && <S.ErrorMessage>{error}</S.ErrorMessage>}
 
           <S.SubmitButton type="submit" disabled={isLoading}>
@@ -121,7 +131,7 @@ function NormalSignIn() {
             <span style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>로그인 →</span>
           </S.BottomText>
         </S.Form>
-      </S.Container>
+      </S.Container2>
     );
 }
 

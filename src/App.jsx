@@ -1,4 +1,4 @@
-import { Route,  Routes } from "react-router-dom"
+import { Route, Routes } from "react-router-dom"
 import Background from "./pages/Background"
 import BusinessSignIn from "./pages/SignIn/BusinessSignIn.jsx"
 import Login from "./pages/Login/Login";

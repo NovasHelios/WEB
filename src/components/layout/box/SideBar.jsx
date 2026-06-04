@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import homeIcon from "../../../images/icon/Home.png";
+import homeIcon from "@/images/icon/Home.png";
 import businessIcon from "../../../images/icon/Search.png";
 import landIcon from "../../../images/icon/Field.png";
 import settingIcon from "../../../images/icon/Settings.png";
@@ -38,7 +38,7 @@ const SideBar = () => {
       <div className="flex flex-col gap-3">
         <NavItem icon={homeIcon} label="Home" onClick={() => navigate("/main")} />
         <NavItem icon={businessIcon} label="Business" onClick={() => navigate("/business")} />
-        <NavItem icon={landIcon} label="Land Search" onClick={() => navigate("/land")} />
+        <NavItem icon={landIcon} label="Land" onClick={() => navigate("/land")} />
         <div className="mt-16 flex flex-col gap-3">
           <NavItem icon={settingIcon} label="Setting" onClick={() => navigate("/setting")} />
           <NavItem icon={chatIcon} label="Chating" onClick={() => navigate("/chat")} />
