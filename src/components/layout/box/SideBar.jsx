@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import homeIcon from "@/images/icon/Home.png";
-import businessIcon from "../../../images/icon/Search.png";
-import landIcon from "../../../images/icon/Field.png";
-import settingIcon from "../../../images/icon/Settings.png";
-import logoutIcon from "../../../images/icon/Logout.png";
-import chatIcon from "../../../images/icon/Chat.png";
+import businessIcon from "@/images/icon/Search.png";
+import landIcon from "@/images/icon/Field.png";
+import settingIcon from "@/images/icon/Settings.png";
+import logoutIcon from "@/images/icon/Logout.png";
+import chatIcon from "@/images/icon/Chat.png";
 
 const NavItem = ({ icon, label, onClick }) => (
   <button
