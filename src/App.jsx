@@ -14,10 +14,7 @@ function App() {
         <Route path="/signup" element={<SignUpSelect />} />
         <Route path="/signup/business" element={<BusinessSignIn />} />
         <Route path="/signup/individual" element={<NormalSignIn />} />
-        <Route path="/map" element={<Map />}>
-          
-        </Route>
-        <Route path="/" element={<Login />} />
+        <Route path="/map" element={<Map />} />
       </Routes>
     </Background>
   );

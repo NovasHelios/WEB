@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import SideBar from "@/components/layout/box/SideBar";
+import NavBar from "@/components/layout/box/NavBar";
 
 function Map() {
   const mapElementRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!window.vw || !window.vw.ol3 || !window.ol) {
@@ -51,25 +53,17 @@ function Map() {
 
     view.on("change:resolution", () => {
       const zoom = view.getZoom();
-
-      if (zoom < 9) {
-        view.setZoom(9);
-      }
-
-      if (zoom > 21) {
-        view.setZoom(21);
-      }
+      if (zoom < 9) view.setZoom(9);
+      if (zoom > 21) view.setZoom(21);
     });
 
     view.on("change:center", () => {
       const center = view.getCenter();
       if (!center) return;
-
       const clampedCenter = [
         Math.min(Math.max(center[0], koreaExtent[0]), koreaExtent[2]),
         Math.min(Math.max(center[1], koreaExtent[1]), koreaExtent[3]),
       ];
-
       if (center[0] !== clampedCenter[0] || center[1] !== clampedCenter[1]) {
         view.setCenter(clampedCenter);
       }
@@ -77,33 +71,16 @@ function Map() {
   }, []);
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        id="vworld-map"
-        ref={mapElementRef}
-        style={{
-          width: "100%",
-          height: "100%",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          height: "100%",
-          zIndex: 10,
-        }}
-      >
-        <SideBar />
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw" }}>
+      <NavBar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+      <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+        <div id="vworld-map" ref={mapElementRef} style={{ width: "100%", height: "100%" }} />
+        <div style={{
+          position: "absolute", top: 0, left: 0, height: "100%", zIndex: 10,
+          width: sidebarOpen ? "180px" : "0px", transition: "width 0.3s", overflow: "hidden"
+        }}>
+          <SideBar expanded={true} />
+        </div>
       </div>
     </div>
   );
