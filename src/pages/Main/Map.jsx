@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import SideBar from "@/components/layout/box/SideBar";
 
 function Map() {
   const mapElementRef = useRef(null);
@@ -55,8 +56,8 @@ function Map() {
         view.setZoom(9);
       }
 
-      if (zoom > 18) {
-        view.setZoom(18);
+      if (zoom > 21) {
+        view.setZoom(21);
       }
     });
 
@@ -77,13 +78,34 @@ function Map() {
 
   return (
     <div
-      id="vworld-map"
-      ref={mapElementRef}
       style={{
+        position: "relative",
         width: "100%",
         height: "100vh",
+        overflow: "hidden",
       }}
-    />
+    >
+      <div
+        id="vworld-map"
+        ref={mapElementRef}
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          height: "100%",
+          zIndex: 10,
+        }}
+      >
+        <SideBar />
+      </div>
+    </div>
   );
 }
 
