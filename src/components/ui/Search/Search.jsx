@@ -9,7 +9,6 @@ import {
   SearchButton,
 } from "./Map.styles";
 
-
 function Map() {
   // 지도 DOM 요소 참조 ref
   const mapElementRef = useRef(null);
@@ -89,13 +88,19 @@ function Map() {
     );
 
     // 지도 중심을 서울 한강 근방으로 설정
+    // setCenter: 현재 지도 중심 좌표 변경
     view.setCenter(seoulCenter);
 
     // 시작 줌 레벨 설정
+    // setZoom: 줌 레벨 변경
     view.setZoom(12);
 
     // 줌 변경 이벤트
+    // "change:resolution": OpenLayers에서 정해둔 이벤트 이름.
+    // 줌/해상도 변화가 생길 때 발생
     view.on("change:resolution", () => {
+        
+    // 현재 줌 레벨 가져오기
       const zoom = view.getZoom();
 
       // 너무 멀리 축소하지 못하게 제한
