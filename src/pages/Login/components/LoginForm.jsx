@@ -40,7 +40,9 @@ const LoginForm = () => {
       console.log("Login response:", data);
 
       if (response.status !== 200) {
-        throw new Error(data.data?.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
+        throw new Error(
+          data.data?.message || "이메일 또는 비밀번호가 올바르지 않습니다."
+        );
       }
 
       localStorage.setItem("accessToken", data.data.accessToken);
@@ -51,8 +53,6 @@ const LoginForm = () => {
       else if (role === "COMPANY") navigate("/main");
       else if (role === "USER") navigate("/main");
       else navigate("/main");
-      
-
     } catch (err) {
       // 에러 메시지 표시
       console.log("Login error:", err);
@@ -87,7 +87,10 @@ const LoginForm = () => {
       <LoginButton onClick={handleLogin} isLoading={isLoading} />
       <p className="text-sm text-center text-gray-600">
         Don't have an account?{" "}
-        <a href="/signup" className="font-semibold text-black underline hover:text-gray-700">
+        <a
+          href="/signup"
+          className="font-semibold text-black underline hover:text-gray-700"
+        >
           Sign up
         </a>
       </p>
