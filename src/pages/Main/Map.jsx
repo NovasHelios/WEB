@@ -76,10 +76,10 @@ function Map() {
       <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
         <div id="vworld-map" ref={mapElementRef} style={{ width: "100%", height: "100%" }} />
         <div style={{
-          position: "absolute", top: 0, left: 0, height: "100%", zIndex: 10,
-          width: sidebarOpen ? "180px" : "0px", transition: "width 0.3s", overflow: "hidden"
+          position: "absolute", top: 0, left: 0, height: "100%", zIndex: 10, width: sidebarOpen ? "180px" : "72px", transition: "width 0.3s",
+          overflow: "hidden"
         }}>
-          <SideBar expanded={true} />
+          <SideBar expanded={sidebarOpen} />
         </div>
       </div>
     </div>
