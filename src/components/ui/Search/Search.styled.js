@@ -1,41 +1,31 @@
 import styled from "styled-components";
 
-export const MapPage = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-`;
-
-export const MapContainer = styled.div`
-  width: 100%;
-  height: 100%;
-`;
-
-export const SideBarArea = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  z-index: 10;
-`;
-
-export const SearchBox = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 280px;
-  z-index: 20;
+// 검색창 전체 form
+export const SearchForm = styled.form`
+  display: flex;
+  align-items: center;
+  width: 438px;
+  height: 65px;
+  padding: 0 24px;
+  border-radius: 999px;
   background: white;
-  padding: 8px;
 `;
 
+// 돋보기 아이콘 버튼
+export const SearchIconButton = styled.button`
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin-right: 16px;
+  font-size: 22px;
+  cursor: pointer;
+`;
+
+// 실제 주소 입력 input
 export const SearchInput = styled.input`
-  width: 320px;
-  height: 36px;
-  padding: 0 10px;
-`;
-
-export const SearchButton = styled.button`
-  height: 38px;
-  margin-left: 8px;
+  flex: 1;
+  border: 0;
+  outline: none;
+  font-size: 24px;
+  background: transparent;
 `;

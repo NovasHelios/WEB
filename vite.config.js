@@ -12,4 +12,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-})
+  server: {
+    proxy: {
+      "/vworld-api": {
+        target: "https://api.vworld.kr",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/vworld-api/, ""),
+      },
+    },
+  },
+});
