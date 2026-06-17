@@ -28,11 +28,12 @@ const SideBar = ({ expanded }) => {
         <NavItem icon={homeIcon} label="Home" onClick={() => navigate("/map")} expanded={expanded} />
         <NavItem icon={businessIcon} label="Business" onClick={() => navigate("/business")} expanded={expanded} />
         <NavItem icon={landIcon} label="Land" onClick={() => navigate("/land")} expanded={expanded} />
-        <div className="mt-16 flex flex-col gap-3">
-          <NavItem icon={settingIcon} label="Setting" onClick={() => navigate("/setting")} expanded={expanded} />
-          <NavItem icon={chatIcon} label="Chating" onClick={() => navigate("/chat")} expanded={expanded} />
-            <NavItem icon={profileIcon} label="Profile" onClick={() => navigate("/profile")} expanded={expanded} />
-        </div>
+        <NavItem icon={chatIcon} label="Chating" onClick={() => navigate("/chat")} expanded={expanded} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <NavItem icon={settingIcon} label="Setting" onClick={() => navigate("/setting")} expanded={expanded} />
+        <NavItem icon={profileIcon} label="Profile" onClick={() => navigate("/profile")} expanded={expanded} />
       </div>
     </div>
   );
