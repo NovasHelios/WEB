@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import Search from "@/components/ui/Search/Search";
-import { MapPage, MapContainer, SideBarArea, SearchArea, NavBarArea } from "./Map.styled";
+import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
 
 function Map() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
@@ -129,13 +129,135 @@ function Map() {
     });
   }, []);
 
-  // 주소 검색 함수
+  // 입력된 시도 축약명을 VWorld 행정구역 데이터에서 사용하는 정식 명칭으로 변환
+  const normalizeSido = (keyword) => {
+    // 앞뒤 공백 제거
+    const value = keyword.trim();
+
+    // 사용자가 흔히 입력하는 축약 시도명과 정식 행정구역명 매핑
+    const aliases = {
+      경기도: "경기도",
+      서울특별시: "서울특별시",
+      인천광역시: "인천광역시",
+      부산광역시: "부산광역시",
+      대구광역시: "대구광역시",
+      대전광역시: "대전광역시",
+      광주광역시: "광주광역시",
+      울산광역시: "울산광역시",
+      세종특별자치시: "세종특별자치시",
+      제주특별자치도: "제주특별자치도",
+      강원: "강원특별자치도",
+      충북: "충청북도",
+      충남: "충청남도",
+      전북: "전북특별자치도",
+      전남: "전라남도",
+      경북: "경상북도",
+      경남: "경상남도",
+    };
+
+    // 축약명이 있으면 정식 명칭을 반환하고, 없으면 원래 입력값 반환
+    return aliases[value] || value;
+  };
+
+  // 입력된 지역명으로 VWorld 행정구역 경계를 조회한 뒤 지도 화면을 해당 영역에 맞춤
+  const fitArea = async (keyword) => {
+
+    if (!keyword.trim()) return false;
+    // VWorld API 키 가져오기
+    const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
+    if (!apiKey) return false;
+
+    
+
+    // 입력값을 공백 기준으로 나누고, 마지막 단어를 시군구 검색어로 사용
+    // 예: "경기도 성남시" -> "성남시"
+    const words = keyword.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+    const sidoName = normalizeSido(keyword);
+
+    // 먼저 시군구 데이터에서 검색하고, 실패하면 시도 데이터에서 검색
+    const normalizedSido = normalizeSido(keyword);
+
+    const targets = [
+      ["LT_C_ADSIDO_INFO", "ctp_kor_nm", sidoName],
+      ["LT_C_ADSIGG_INFO", "sig_kor_nm", lastWord],
+    ];
+
+    // 검색 대상 데이터셋을 순서대로 조회
+    for (const [data, field, value] of targets) {
+      // VWorld 행정구역 경계 조회 URL 생성
+      const url =
+        `/vworld-api/req/data?service=data` +
+        `&request=GetFeature` +
+        `&data=${data}` +
+        `&attrFilter=${field}:=:${encodeURIComponent(value)}` +
+        `&geometry=true` +
+        `crs=EPSG:4326` +
+        `&format=json` +
+        `&key=${apiKey}`;
+
+      // VWorld API 호출
+      let result;
+      
+      try {
+        const response = await fetch(url);
+        result = await response.json();
+      } catch (error) {
+        const geojson = result.response?.result?.featureCollection;
+        console.log("행정구역 검색 결과:", data, field, value, result);
+        if (!geojson) continue;
+      }
+
+      // 응답에서 GeoJSON FeatureCollection 추출
+      const geojson = result.response?.result?.featureCollection;
+
+      // 조회 결과가 없으면 다음 대상 검색
+      if (!geojson) continue;
+
+      // GeoJSON 좌표계(EPSG:4326)를 현재 지도 좌표계(EPSG:900913)로 변환해 Feature 생성
+      const features = new window.ol.format.GeoJSON().readFeatures(geojson, {
+        dataProjection: "EPSG:4326",
+        featureProjection: "EPSG:900913",
+      });
+
+      // 변환된 Feature가 없으면 다음 대상 검색
+      if (!features.length) continue;
+
+      // 여러 Feature가 있을 수 있으므로 전체 영역을 담을 빈 extent 생성
+      const extent = window.ol.extent.createEmpty();
+
+      // 모든 Feature의 geometry extent를 하나의 extent로 합침
+      features.forEach((feature) => {
+        window.ol.extent.extend(extent, feature.getGeometry().getExtent());
+      });
+
+      // 계산된 행정구역 영역에 맞게 지도 화면 이동/확대
+      mapInstanceRef.current.getView().fit(extent, {
+        padding: [90, 40, 40, 220],
+        duration: 500,
+        maxZoom: 10,
+      });
+
+      // 하나라도 성공하면 true 반환
+      return true;
+    }
+
+    // 시군구/시도 검색 모두 실패한 경우
+    return false;
+  };
+
+  // === 주소 검색 함수 ===
   const searchAddress = async () => {
     // 검색어 확인용 로그
     console.log("검색 실행:", keyword);
 
     // 검색어가 비어 있으면 실행하지 않음
     if (!keyword.trim()) return;
+
+    // 1. 서울, 경기도, 영등포구 같은 행정구역이면 여기서 처리
+    const areaFound = await fitArea(keyword);
+
+    if (areaFound) return;
 
     // .env 파일에 저장한 VWorld API 키 가져오기
     const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
@@ -205,7 +327,7 @@ function Map() {
     view.setCenter(coordinate);
 
     // 검색된 위치가 잘 보이도록 확대
-    view.setZoom(19);
+    view.setZoom(11);
   };
 
   return (
@@ -226,7 +348,6 @@ function Map() {
       <SideBarArea>
         <SideBar />
       </SideBarArea>
-
     </MapPage>
   );
 }
