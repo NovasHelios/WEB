@@ -34,175 +34,141 @@ function Map() {
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
 
   useEffect(() => {
-    // VWorld API와 OpenLayers API가 정상적으로 로드되었는지 확인
-    if (!window.vw || !window.vw.ol3 || !window.ol) {
-      console.error("VWorld 또는 OpenLayers API가 로드되지 않았습니다.");
-      return;
-    }
+    const initMap = () => {
+      // 이미 지도가 생성되어 있으면 다시 만들지 않음
+      if (mapInstanceRef.current) return;
 
-    // 이미 지도가 생성되어 있으면 다시 만들지 않음
-    if (mapInstanceRef.current) return;
+      // 서울 한강 근방 좌표
+      const seoulCenter = window.ol.proj.transform(
+        [126.995, 37.52],
+        "EPSG:4326",
+        "EPSG:900913"
+      );
 
-    // 서울 한강 근방 좌표
-    // EPSG:4326은 일반 위도/경도 좌표계
-    // EPSG:900913은 VWorld/OpenLayers 지도에서 사용하는 좌표계
-    const seoulCenter = window.ol.proj.transform(
-      [126.995, 37.52],
-      "EPSG:4326",
-      "EPSG:900913"
-    );
+      // VWorld 지도의 초기 중심 좌표 설정
+      window.vw.ol3.CameraPosition.center = seoulCenter;
 
-    // VWorld 지도의 초기 중심 좌표 설정
-    window.vw.ol3.CameraPosition.center = seoulCenter;
+      // VWorld 지도의 초기 줌 레벨 설정
+      window.vw.ol3.CameraPosition.zoom = 12;
 
-    // VWorld 지도의 초기 줌 레벨 설정
-    window.vw.ol3.CameraPosition.zoom = 12;
+      // VWorld 지도 생성 옵션
+      const options = {
+        basemapType: window.vw.ol3.BasemapType.GRAPHIC,
+        controlDensity: window.vw.ol3.DensityType.EMPTY,
+        interactionDensity: window.vw.ol3.DensityType.BASIC,
+        controlsAutoArrange: true,
+        homePosition: window.vw.ol3.CameraPosition,
+        initPosition: window.vw.ol3.CameraPosition,
+      };
 
-    // VWorld 지도 생성 옵션
-    const options = {
-      // 일반 그래픽 지도 사용
-      basemapType: window.vw.ol3.BasemapType.GRAPHIC,
+      // id가 vworld-map인 DOM 요소에 VWorld 지도 생성
+      const map = new window.vw.ol3.Map("vworld-map", options);
 
-      // 기본 컨트롤 UI 밀도 설정
-      controlDensity: window.vw.ol3.DensityType.EMPTY,
+      // 생성한 지도 객체를 ref에 저장
+      mapInstanceRef.current = map;
 
-      // 지도 드래그/줌 같은 기본 상호작용 설정
-      interactionDensity: window.vw.ol3.DensityType.BASIC,
+      // 등록된 토지 필지 경계를 표시할 벡터 소스
+      const landBoundarySource = new window.ol.source.Vector();
 
-      // 지도 컨트롤 자동 정렬
-      controlsAutoArrange: true,
-
-      // 홈 버튼을 눌렀을 때 이동할 위치
-      homePosition: window.vw.ol3.CameraPosition,
-
-      // 지도 처음 로딩 시 위치
-      initPosition: window.vw.ol3.CameraPosition,
-    };
-
-    // id가 vworld-map인 DOM 요소에 VWorld 지도 생성
-    const map = new window.vw.ol3.Map("vworld-map", options);
-
-    // 생성한 지도 객체를 ref에 저장
-    mapInstanceRef.current = map;
-
-    // 필지 GeoJSON을 지도에 파란색 경계로 표시
-    const renderLandBoundary = (geojson, landId) => {
-      if (!landBoundaryLayerRef.current || !geojson) return;
-
-      const source = landMarkerLayerRef.current.getSource();
-      const boundarySource = landBoundaryLayerRef.current?.getSource();
-
-      source.clear();
-      boundarySource?.clear();
-
-      const features = new window.ol.format.GeoJSON().readFeatures(geojson, {
-        dataProjection: "EPSG:4326",
-        featureProjection: "EPSG:900913",
+      // 등록된 토지 필지 경계를 표시할 벡터 레이어
+      const landBoundaryLayer = new window.ol.layer.Vector({
+        source: landBoundarySource,
+        style: new window.ol.style.Style({
+          stroke: new window.ol.style.Stroke({
+            color: "#168BFF",
+            width: 3,
+          }),
+          fill: new window.ol.style.Fill({
+            color: "rgba(22, 139, 255, 0.18)",
+          }),
+        }),
       });
 
-      features.forEach((feature) => {
-        feature.set("landId", landId);
-        source.addFeature(feature);
+      // 필지 경계 레이어를 먼저 추가
+      map.addLayer(landBoundaryLayer);
+      landBoundaryLayerRef.current = landBoundaryLayer;
+
+      // 등록된 토지 마커를 표시할 벡터 소스 생성
+      const landMarkerSource = new window.ol.source.Vector();
+
+      // 등록된 토지 마커를 표시할 벡터 레이어 생성
+      const landMarkerLayer = new window.ol.layer.Vector({
+        source: landMarkerSource,
+      });
+
+      // 마커 레이어는 경계 레이어 뒤에 추가해서 위에 보이게 함
+      map.addLayer(landMarkerLayer);
+      landMarkerLayerRef.current = landMarkerLayer;
+
+      // 지도와 레이어가 준비된 뒤 등록된 토지 목록 조회
+      fetchRegisteredLands();
+
+      // 지도 컨테이너 크기를 다시 계산
+      setTimeout(() => {
+        map.updateSize();
+      }, 100);
+
+      // VWorld 지도 내부의 OpenLayers View 객체 가져오기
+      const view = map.getView();
+
+      // 남한 주변으로 지도 이동 가능 범위 제한
+      const koreaExtent = window.ol.proj.transformExtent(
+        [125.0, 33.0, 130.0, 38.3],
+        "EPSG:4326",
+        "EPSG:900913"
+      );
+
+      // 지도 중심을 서울 한강 근방으로 설정
+      view.setCenter(seoulCenter);
+
+      // 시작 줌 레벨 설정
+      view.setZoom(12);
+
+      // 줌 변경 이벤트 등록
+      view.on("change:resolution", () => {
+        const zoom = view.getZoom();
+
+        if (zoom < 9) {
+          view.setZoom(9);
+        }
+
+        if (zoom > 20) {
+          view.setZoom(20);
+        }
+      });
+
+      // 지도 중심 이동 이벤트 등록
+      view.on("change:center", () => {
+        const center = view.getCenter();
+
+        if (!center) return;
+
+        const clampedCenter = [
+          Math.min(Math.max(center[0], koreaExtent[0]), koreaExtent[2]),
+          Math.min(Math.max(center[1], koreaExtent[1]), koreaExtent[3]),
+        ];
+
+        if (center[0] !== clampedCenter[0] || center[1] !== clampedCenter[1]) {
+          view.setCenter(clampedCenter);
+        }
       });
     };
 
-    // 등록된 토지 마커를 표시할 벡터 소스 생성
-    const landMarkerSource = new window.ol.source.Vector();
+    // VWorld/OpenLayers가 로드될 때까지 기다림
+    const waitForVWorld = setInterval(() => {
+      if (!window.vw || !window.vw.ol3 || !window.ol) {
+        console.log("VWorld 또는 OpenLayers API 로드 대기 중...");
+        return;
+      }
 
-    // 등록된 토지 마커를 표시할 벡터 레이어 생성
-    const landMarkerLayer = new window.ol.layer.Vector({
-      source: landMarkerSource,
-    });
-
-    // 지도와 마커 레이어가 준비된 뒤 등록된 토지 목록 조회
-    map.addLayer(landMarkerLayer);
-    landMarkerLayerRef.current = landMarkerLayer;
-
-    // 등록된 토지 필지 경계를 표시할 벡터 소스
-    const landBoundarySource = new window.ol.source.Vector();
-
-    // 등록된 토지 필지 경계를 표시할 벡터 레이어
-    const landBoundaryLayer = new window.ol.layer.Vector({
-      source: landBoundarySource,
-      style: new window.ol.style.Style({
-        stroke: new window.ol.style.Stroke({
-          color: "#168BFF",
-          width: 3,
-        }),
-        fill: new window.ol.style.Fill({
-          color: "rgba(22, 139, 255, 0.18)",
-        }),
-      }),
-    });
-
-    // 지도에 필지 경계 레이어 추가
-    map.addLayer(landBoundaryLayer);
-
-    // 나중에 필지 경계를 추가/삭제할 수 있도록 ref에 저장
-    landBoundaryLayerRef.current = landBoundaryLayer;
-
-    fetchRegisteredLands();
-
-    // 지도 컨테이너 크기를 다시 계산
-    // 레이아웃 위에 사이드바/검색창이 올라갈 때 지도 타일 깨짐을 줄이기 위함
-    setTimeout(() => {
-      map.updateSize();
+      clearInterval(waitForVWorld);
+      initMap();
     }, 100);
 
-    // VWorld 지도 내부의 OpenLayers View 객체 가져오기
-    // View는 지도 중심, 줌 레벨 같은 화면 상태를 관리함
-    const view = map.getView();
-
-    // 남한 주변으로 지도 이동 가능 범위 제한
-    // [최소 경도, 최소 위도, 최대 경도, 최대 위도]
-    const koreaExtent = window.ol.proj.transformExtent(
-      [125.0, 33.0, 130.0, 38.3],
-      "EPSG:4326",
-      "EPSG:900913"
-    );
-
-    // 지도 중심을 서울 한강 근방으로 설정
-    view.setCenter(seoulCenter);
-
-    // 시작 줌 레벨 설정
-    view.setZoom(12);
-
-    // 줌 변경 이벤트 등록
-    // OpenLayers에서는 줌 변경이 resolution 변경으로 감지됨
-    view.on("change:resolution", () => {
-      // 현재 줌 레벨 가져오기
-      const zoom = view.getZoom();
-
-      // 너무 멀리 축소하지 못하게 제한
-      if (zoom < 9) {
-        view.setZoom(9);
-      }
-
-      // 너무 많이 확대하지 못하게 제한
-      if (zoom > 20) {
-        view.setZoom(20);
-      }
-    });
-
-    // 지도 중심 이동 이벤트 등록
-    view.on("change:center", () => {
-      // 현재 지도 중심 좌표 가져오기
-      const center = view.getCenter();
-
-      // 중심 좌표가 없으면 종료
-      if (!center) return;
-
-      // 현재 중심 좌표가 남한 범위를 벗어나지 않도록 보정
-      const clampedCenter = [
-        Math.min(Math.max(center[0], koreaExtent[0]), koreaExtent[2]),
-        Math.min(Math.max(center[1], koreaExtent[1]), koreaExtent[3]),
-      ];
-
-      // 중심 좌표가 범위 밖이면 범위 안 좌표로 다시 이동
-      if (center[0] !== clampedCenter[0] || center[1] !== clampedCenter[1]) {
-        view.setCenter(clampedCenter);
-      }
-    });
+    // 컴포넌트가 사라질 때 interval 정리
+    return () => {
+      clearInterval(waitForVWorld);
+    };
   }, []);
 
   // 입력된 시도 축약명 또는 정식명을 VWorld/내부 로직에서 사용할 정식 시도명으로 변환
