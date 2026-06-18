@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 8500,
     proxy: {
       "/vworld-api": {
         target: "https://api.vworld.kr",
