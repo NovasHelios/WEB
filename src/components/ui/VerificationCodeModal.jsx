@@ -33,12 +33,35 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const handleChange = (index, value) => {
+    if (value.length > 1) {
+      const digits = value.replace(/\D/g, "").slice(0, 6).split("");
+      const next = [...codes];
+      digits.forEach((d, i) => {
+        if (index + i < 6) next[index + i] = d;
+      });
+      setCodes(next);
+      setError("");
+      const nextIdx = Math.min(index + digits.length, 5);
+      inputs.current[nextIdx]?.focus();
+      return;
+    }
     if (!/^\d?$/.test(value)) return;
     const next = [...codes];
     next[index] = value;
     setCodes(next);
     setError("");
-    if (value && index < 5) inputs.current[index + 1]?.focus();
+  }
+
+  const handlePaste = (e, index) => {
+    e.preventDefault();
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6).split("");
+    const next = [...codes];
+    digits.forEach((d, i) => {
+      if (index + i < 6) next[index + i] = d;
+    });
+    setCodes(next);
+    const nextIdx = Math.min(index + digits.length, 5);
+    inputs.current[nextIdx]?.focus();
   };
 
   const handleKeyDown = (index, e) => {
@@ -111,9 +134,9 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
               ref={(el) => (inputs.current[i] = el)}
               type="text"
               inputMode="numeric"
-              maxLength={1}
               value={val}
               onChange={(e) => handleChange(i, e.target.value)}
+              onPaste={(e) => handlePaste(e, i)}
               onKeyDown={(e) => handleKeyDown(i, e)}
               className={`w-12 h-12 text-center text-lg font-semibold rounded-xl bg-gray-100 focus:outline-none focus:ring-2 ${error ? "ring-2 ring-red-400" : "focus:ring-yellow-400"}`}
             />
