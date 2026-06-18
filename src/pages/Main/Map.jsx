@@ -1,16 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
-import {
-  MapPage,
-  MapContainer,
-  SideBarArea,
-  NavBarArea,
-} from "./Map.styled";
+import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
 import markupImage from "@/images/markup.png";
 
-
-function Map() {
+function MainMap() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
   const mapElementRef = useRef(null);
 
@@ -23,6 +17,12 @@ function Map() {
 
   // 등록된 토지 경계선을 표시할 OpenLayers 레이어
   const landBoundaryLayerRef = useRef(null);
+
+  // 읍면동 단위 집계 마커를 표시할 레이어
+  const landGroupLayerRef = useRef(null);
+
+  // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
+  const landDisplayDataRef = useRef([]);
 
   // 검색창에 입력한 주소 값을 저장하는 state
   const [keyword, setKeyword] = useState("");
@@ -100,6 +100,23 @@ function Map() {
       map.addLayer(landMarkerLayer);
       landMarkerLayerRef.current = landMarkerLayer;
 
+      // 축소 시 읍면동 단위 집계 마커를 표시할 벡터 소스
+      const landGroupSource = new window.ol.source.Vector();
+
+      // 축소 시 읍면동 단위 집계 마커를 표시할 벡터 레이어
+      const landGroupLayer = new window.ol.layer.Vector({
+        source: landGroupSource,
+      });
+
+      // 처음에는 확대 상태의 개별 마커를 보여줄 것이므로 집계 레이어는 숨김
+      landGroupLayer.setVisible(false);
+
+      // 지도에 집계 레이어 추가
+      map.addLayer(landGroupLayer);
+
+      // 나중에 줌 레벨에 따라 표시/숨김을 바꿀 수 있도록 ref에 저장
+      landGroupLayerRef.current = landGroupLayer;
+
       // 지도와 레이어가 준비된 뒤 등록된 토지 목록 조회
       fetchRegisteredLands();
 
@@ -128,6 +145,7 @@ function Map() {
       view.on("change:resolution", () => {
         const zoom = view.getZoom();
 
+        // 더 넓은 범위까지 볼 수 있도록 최소 줌을 낮춤
         if (zoom < 9) {
           view.setZoom(9);
         }
@@ -135,6 +153,9 @@ function Map() {
         if (zoom > 20) {
           view.setZoom(20);
         }
+
+        // 줌 레벨에 따라 개별 마커/읍면동 집계 마커 전환
+        updateLandLayerByZoom();
       });
 
       // 지도 중심 이동 이벤트 등록
@@ -312,6 +333,26 @@ function Map() {
     }
   };
 
+  // 주소에서 지도 축소 시 묶어서 보여줄 지역 단위를 추출
+  // 우선순위: 구/군 > 시 > 읍/면/동/리/가
+  const getGroupNameFromAddress = (address) => {
+    const words = address.trim().split(/\s+/);
+
+    // 예: 성북구, 중구, 달성군
+    const district = words.find((word) => /(구|군)$/.test(word));
+    if (district) return district;
+
+    // 예: 수원시, 성남시, 고양시
+    const city = words.find((word) => /시$/.test(word));
+    if (city) return city;
+
+    // 예: 구지면, 역삼동, 창리, 성수동1가
+    const town = words.find((word) => /(읍|면|동|가|리)$/.test(word));
+    if (town) return town;
+
+    return "기타";
+  };
+
   // PNU를 이용해 VWorld 연속지적도에서 필지 경계 polygon을 가져옴
   const fetchLandBoundaryByPnu = async (pnu) => {
     const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
@@ -347,11 +388,132 @@ function Map() {
     }
   };
 
+  // 축소 상태에서 읍면동 단위로 등록 토지 수를 묶어 표시
+  const renderLandGroups = (lands) => {
+    if (!landGroupLayerRef.current) return;
+
+    const source = landGroupLayerRef.current.getSource();
+
+    // 기존 집계 마커 제거
+    source.clear();
+
+    const groupMap = new Map();
+
+    lands.forEach((land) => {
+      // 주소에서 읍면동 이름 추출
+      const groupName = getGroupNameFromAddress(land.address);
+
+      if (!groupMap.has(groupName)) {
+        groupMap.set(groupName, {
+          groupName,
+          count: 0,
+          x: 0,
+          y: 0,
+        });
+      }
+
+      const group = groupMap.get(groupName);
+
+      group.count += 1;
+
+      // 같은 읍면동 안 여러 토지가 있으면 좌표 평균을 대표 위치로 사용
+      group.x += land.coordinate[0];
+      group.y += land.coordinate[1];
+    });
+
+    groupMap.forEach((group) => {
+      const center = [group.x / group.count, group.y / group.count];
+
+      const feature = new window.ol.Feature({
+        geometry: new window.ol.geom.Point(center),
+        groupName: group.groupName,
+        count: group.count,
+      });
+
+      feature.setStyle(
+        new window.ol.style.Style({
+          text: new window.ol.style.Text({
+            text: `${group.groupName}\n매물 ${group.count.toLocaleString()}`,
+            font: "700 13px sans-serif",
+            textAlign: "center",
+            offsetY: -8,
+            padding: [8, 10, 8, 10],
+            fill: new window.ol.style.Fill({
+              color: "#111111",
+            }),
+            backgroundFill: new window.ol.style.Fill({
+              color: "#ffffff",
+            }),
+            backgroundStroke: new window.ol.style.Stroke({
+              color: "#777777",
+              width: 1.5,
+            }),
+          }),
+        })
+      );
+
+      source.addFeature(feature);
+    });
+  };
+
+  // 줌 레벨에 따라 개별 마커와 읍면동 집계 마커를 전환
+  const updateLandLayerByZoom = () => {
+    const map = mapInstanceRef.current;
+
+    if (!map) return;
+
+    const zoom = map.getView().getZoom();
+    const hasDisplayLands = landDisplayDataRef.current.length > 0;
+
+    // 서울특별시 정도가 보이는 축소 상태부터 집계 마커 표시
+    const shouldGroup = false;
+    // 확대 상태에서는 개별 마커/필지 경계 표시
+    landMarkerLayerRef.current?.setVisible(!shouldGroup);
+    landBoundaryLayerRef.current?.setVisible(!shouldGroup);
+
+    // 축소 상태에서는 구/시/동 집계 마커 표시
+    landGroupLayerRef.current?.setVisible(shouldGroup);
+
+    if (shouldGroup) {
+      renderLandGroups(landDisplayDataRef.current);
+    } else {
+      landGroupLayerRef.current?.getSource().clear();
+    }
+  };
+
+  // 가격을 억 단위로 축약해서 표시
+  // 예: 350,000,000 -> 3.5억
+  // 예: 354,000,000 -> 3.5억
+  // 예: 1,000,000,000 -> 10억
+  const formatPrice = (price) => {
+    if (!price) return "가격 없음";
+
+    // 원 단위를 억 단위 숫자로 변환
+    const eokValue = Number(price) / 100000000;
+
+    // 1억 이상이면 억 단위로 표시
+    if (eokValue >= 1) {
+      // 소수점 둘째 자리까지 버림
+      // 3.54 -> 3.5, 3.59 -> 3.5
+      const floored = Math.floor(eokValue * 10) / 10;
+
+      // 3.0억처럼 보이지 않도록 정수면 소수점 제거
+      return `${Number.isInteger(floored) ? floored : floored.toFixed(1)}억`;
+    }
+
+    // 1억 미만은 만원 단위로 표시
+    const manValue = Math.floor(Number(price) / 10000);
+    return `${manValue.toLocaleString()}만원`;
+  };
+
   // 등록된 토지 목록을 OpenLayers 마커로 지도에 표시
   const renderLandMarkers = async (lands) => {
     if (!landMarkerLayerRef.current) return;
 
     const source = landMarkerLayerRef.current.getSource();
+
+    // 줌 변경 시 집계 마커를 다시 만들기 위해 좌표 변환된 토지 목록 저장
+    const displayLands = [];
 
     // 기존 마커 제거
     source.clear();
@@ -374,6 +536,12 @@ function Map() {
         "EPSG:900913"
       );
 
+      // 집계 표시용으로 좌표 변환 완료된 토지 데이터 저장
+      displayLands.push({
+        ...land,
+        coordinate,
+      });
+
       const feature = new window.ol.Feature({
         geometry: new window.ol.geom.Point(coordinate),
         landId: land.id,
@@ -383,30 +551,52 @@ function Map() {
         status: land.status,
       });
 
-      feature.setStyle(
+      // 평수를 제곱미터로 변환
+      const areaSquareMeter = Math.round(Number(land.area) * 3.3058);
+
+      feature.setStyle([
+        // 마커 배경 이미지
         new window.ol.style.Style({
           image: new window.ol.style.Icon({
             src: markupImage,
             anchor: [0.5, 1],
-            scale: 0.7,
+            scale: 0.28,
           }),
+        }),
+
+        // 상단 가격
+        new window.ol.style.Style({
           text: new window.ol.style.Text({
-            // 서버 area 값을 임시로 평수처럼 표시
-            text: `${land.area}평`,
-            offsetY: -28,
-            font: "700 13px sans-serif",
+            text: formatPrice(land.desiredPrice),
+            offsetY: -47,
+            font: "900 15px sans-serif",
             fill: new window.ol.style.Fill({
-              color: "#111111",
-            }),
-            stroke: new window.ol.style.Stroke({
-              color: "#ffffff",
-              width: 3,
+              color: "#000000",
             }),
           }),
-        })
-      );
+        }),
+
+        // 하단 검은 박스 중앙에 제곱미터 표시
+        new window.ol.style.Style({
+          text: new window.ol.style.Text({
+            text: `${areaSquareMeter}㎡`,
+            offsetX: 0,
+            offsetY: -26,
+            font: "900 13px sans-serif",
+            fill: new window.ol.style.Fill({
+              color: "#ffffff",
+            }),
+          }),
+        }),
+      ]);
       source.addFeature(feature);
     }
+
+    // 줌 레벨 전환에 사용할 토지 목록 저장
+    landDisplayDataRef.current = displayLands;
+
+    // 현재 줌 레벨 기준으로 개별 마커/집계 마커 표시 상태 갱신
+    updateLandLayerByZoom();
   };
 
   // 시도 단위 검색어를 입력했을 때 VWorld에서 하위 시군구 목록을 가져옴
@@ -762,4 +952,4 @@ function Map() {
   );
 }
 
-export default Map;
+export default MainMap;

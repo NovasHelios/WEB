@@ -25,7 +25,7 @@ const SideBar = ({ expanded }) => {
       style={{ backgroundColor: "#FFAB03", width: expanded ? "180px" : "72px", transition: "width 0.3s" }}
     >
       <div className="flex flex-col gap-3">
-        <NavItem icon={homeIcon} label="Home" onClick={() => navigate("/map")} expanded={expanded} />
+        <NavItem icon={homeIcon} label="Home" onClick={() => navigate("/")} expanded={expanded} />
         <NavItem icon={businessIcon} label="Business" onClick={() => navigate("/business")} expanded={expanded} />
         <NavItem icon={landIcon} label="Land" onClick={() => navigate("/land")} expanded={expanded} />
         <div className="mt-16 flex flex-col gap-3">
