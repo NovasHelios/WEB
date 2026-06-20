@@ -14,6 +14,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      "/api": {
+        target: "https://www.helioss.site",
+        changeOrigin: true,
+        secure: true,
+      },
       "/vworld-api": {
         target: "https://api.vworld.kr",
         changeOrigin: true,
