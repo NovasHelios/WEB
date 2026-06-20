@@ -7,7 +7,7 @@ const NavBar = ({
 
   return (
     <div
-      className="flex items-center px-4 gap-4 h-14 flex-shrink-0"
+      className="flex items-center flex-shrink-0 gap-4 px-4 h-14"
       style={{ backgroundColor: "#FFAB03" }}
     >
       {/* 햄버거 */}
@@ -18,7 +18,7 @@ const NavBar = ({
       </button>
 
       {/* 로고 */}
-      <span className="font-bold text-xl">Helios</span>
+      <span className="text-xl font-bold">Helios</span>
 
       {/* 검색창 */}
       <form
@@ -46,7 +46,7 @@ const NavBar = ({
         <input
           type="text"
           placeholder="주소 검색"
-          className="outline-none w-full text-sm"
+          className="w-full text-sm outline-none"
           value={keyword}
           onChange={(event) => onChangeKeyword(event.target.value)}
         />
@@ -55,7 +55,11 @@ const NavBar = ({
       <div className="flex-1" />
 
       {/* 로그인 버튼 */}
-      <button className="border border-black rounded-lg px-4 py-1 font-semibold text-sm">
+      <button className="px-4 py-1 text-sm font-semibold border border-black rounded-lg"
+        onClick={() => {
+          window.location.href = "/login";
+        }}
+      >
         로그인
       </button>
     </div>
