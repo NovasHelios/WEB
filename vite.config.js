@@ -15,6 +15,11 @@ export default defineConfig({
   server: {
     port: 8500,
     proxy: {
+      "/api": {
+        target: "https://www.helioss.site",
+        changeOrigin: true,
+        secure: true,
+      },
       "/vworld-api": {
         target: "https://api.vworld.kr",
         changeOrigin: true,

@@ -4,4 +4,5 @@ export const Api = {
   EmailVarify: "https://www.helioss.site/api/auth/email/verify",
   EmailSend: "https://www.helioss.site/api/auth/email/send",
   EmailResend: "https://www.helioss.site/api/auth/email/resend",
+  Lands: "/api/lands",
 };

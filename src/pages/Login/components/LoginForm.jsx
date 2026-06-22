@@ -49,10 +49,10 @@ const LoginForm = () => {
 
       const role = data.data.role;
 
-      if (role === "ADMIN") navigate("/main");
-      else if (role === "COMPANY") navigate("/main");
-      else if (role === "USER") navigate("/main");
-      else navigate("/main");
+      if (role === "ADMIN") navigate("/");
+      else if (role === "COMPANY") navigate("/");
+      else if (role === "USER") navigate("/");
+      else navigate("/");
     } catch (err) {
       // 에러 메시지 표시
       console.log("Login error:", err);

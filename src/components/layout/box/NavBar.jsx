@@ -15,7 +15,7 @@ const NavBar = ({
 
   return (
     <div
-      className="flex items-center px-4 gap-4 h-14 flex-shrink-0"
+      className="flex items-center flex-shrink-0 gap-4 px-4 h-14"
       style={{ backgroundColor: "#FFAB03" }}
     >
       <button onClick={onToggleSidebar} className="flex flex-col gap-1.5 p-1">
@@ -24,7 +24,9 @@ const NavBar = ({
         <span className="block w-6 h-0.5 bg-black" />
       </button>
 
+
       <span className="font-bold text-xl">Helios</span>
+
 
       {/* 검색창과 추천 리스트를 같은 relative 박스 안에 넣어야 서로 붙음 */}
       <div className="relative flex-1 max-w-md">
