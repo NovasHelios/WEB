@@ -15,6 +15,14 @@ function Map() {
   // 검색창에 입력한 주소 값을 저장하는 state
   const [keyword, setKeyword] = useState("");
 
+  // 좌측 사이드바 열림/닫힘 상태
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // 검색 결과 패널에 보여줄 지역 추천 목록
+  const [regionSuggestions, setRegionSuggestions] = useState([]);
+
+  // 지역 추천 패널 표시 여부
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   useEffect(() => {
     // VWorld API와 OpenLayers API가 정상적으로 로드되었는지 확인
     if (!window.vw || !window.vw.ol3 || !window.ol) {
@@ -338,6 +346,7 @@ function Map() {
       {/* 지도 위 왼쪽에 표시할 네비게이트바 */}
       <NavBarArea>
         <NavBar
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           keyword={keyword}
           onChangeKeyword={setKeyword}
           onSearch={searchAddress}
@@ -345,8 +354,8 @@ function Map() {
       </NavBarArea>
 
       {/* 지도 위 왼쪽에 표시할 사이드바 */}
-      <SideBarArea>
-        <SideBar />
+      <SideBarArea style={{ width: sidebarOpen ? "184px" : "72px" }}>
+        <SideBar expanded={sidebarOpen} />
       </SideBarArea>
     </MapPage>
   );
