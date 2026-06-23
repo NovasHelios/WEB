@@ -38,18 +38,18 @@ function MainMap() {
       // 이미 지도가 생성되어 있으면 다시 만들지 않음
       if (mapInstanceRef.current) return;
 
-      // 서울 한강 근방 좌표
-      const seoulCenter = window.ol.proj.transform(
-        [126.995, 37.52],
+      // 대구소프트웨어마이스터고등학교 근방 좌표
+      const startingPoint = window.ol.proj.transform(
+        [128.415, 35.664],
         "EPSG:4326",
         "EPSG:900913"
       );
 
       // VWorld 지도의 초기 중심 좌표 설정
-      window.vw.ol3.CameraPosition.center = seoulCenter;
+      window.vw.ol3.CameraPosition.center = startingPoint;
 
       // VWorld 지도의 초기 줌 레벨 설정
-      window.vw.ol3.CameraPosition.zoom = 12;
+      window.vw.ol3.CameraPosition.zoom = 14;
 
       // VWorld 지도 생성 옵션
       const options = {
@@ -63,6 +63,22 @@ function MainMap() {
 
       // id가 vworld-map인 DOM 요소에 VWorld 지도 생성
       const map = new window.vw.ol3.Map("vworld-map", options);
+
+      // 기존 마우스 휠 줌 interaction 제거
+      map.getInteractions().forEach((interaction) => {
+        if (interaction instanceof window.ol.interaction.MouseWheelZoom) {
+          map.removeInteraction(interaction);
+        }
+      });
+
+      // 감도를 낮춘 마우스 휠 줌 interaction 추가
+      map.addInteraction(
+        new window.ol.interaction.MouseWheelZoom({
+          duration: 250,
+          timeout: 120,
+          maxDelta: 0.35,
+        })
+      );
 
       // 생성한 지도 객체를 ref에 저장
       mapInstanceRef.current = map;
@@ -135,11 +151,11 @@ function MainMap() {
         "EPSG:900913"
       );
 
-      // 지도 중심을 서울 한강 근방으로 설정
-      view.setCenter(seoulCenter);
+      // 지도 시작 지점
+      view.setCenter(startingPoint);
 
       // 시작 줌 레벨 설정
-      view.setZoom(12);
+      view.setZoom(17);
 
       // 줌 변경 이벤트 등록
       view.on("change:resolution", () => {
@@ -172,6 +188,30 @@ function MainMap() {
         if (center[0] !== clampedCenter[0] || center[1] !== clampedCenter[1]) {
           view.setCenter(clampedCenter);
         }
+      });
+
+      // 등록된 토지 마커 클릭 시 해당 위치로 최대 확대
+      map.on("singleclick", (event) => {
+        const markerFeature = map.forEachFeatureAtPixel(
+          event.pixel,
+          (feature) => feature,
+          {
+            layerFilter: (layer) => layer === landMarkerLayerRef.current,
+          }
+        );
+
+        if (!markerFeature) return;
+
+        const geometry = markerFeature.getGeometry();
+        if (!geometry) return;
+
+        const coordinate = geometry.getCoordinates();
+
+        map.getView().animate({
+          center: coordinate,
+          zoom: 18,
+          duration: 450,
+        });
       });
     };
 
@@ -333,59 +373,67 @@ function MainMap() {
     }
   };
 
-  // 주소에서 지도 축소 시 묶어서 보여줄 지역 단위를 추출
-  // 우선순위: 구/군 > 시 > 읍/면/동/리/가
+  // 주소에서 축소 시 묶어서 보여줄 동 단위 이름을 추출
   const getGroupNameFromAddress = (address) => {
     const words = address.trim().split(/\s+/);
 
-    // 예: 성북구, 중구, 달성군
+    // 예: 역삼동, 상계동, 구지면, 화도읍, 창리
+    const town = words.find((word) => /(읍|면|동|리)$/.test(word));
+    if (town) return town;
+
+    // 상세 주소에 동이 없을 때 임시 fallback
     const district = words.find((word) => /(구|군)$/.test(word));
     if (district) return district;
 
-    // 예: 수원시, 성남시, 고양시
     const city = words.find((word) => /시$/.test(word));
     if (city) return city;
-
-    // 예: 구지면, 역삼동, 창리, 성수동1가
-    const town = words.find((word) => /(읍|면|동|가|리)$/.test(word));
-    if (town) return town;
 
     return "기타";
   };
 
-  // PNU를 이용해 VWorld 연속지적도에서 필지 경계 polygon을 가져옴
-  const fetchLandBoundaryByPnu = async (pnu) => {
-    const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
+  const createGroupMarkerImage = (groupName, count) => {
+    const canvas = document.createElement("canvas");
+    const width = 96;
+    const height = 64;
+    const radius = 10;
 
-    if (!apiKey || !pnu) return null;
+    canvas.width = width * 2;
+    canvas.height = height * 2;
 
-    const url =
-      `/vworld-api/req/data?service=data` +
-      `&request=GetFeature` +
-      // VWorld 연속지적도 데이터셋
-      `&data=LT_C_LHBLPN` +
-      // PNU가 정확히 일치하는 필지 조회
-      `&attrFilter=pnu:=:${encodeURIComponent(pnu)}` +
-      `&geometry=true` +
-      `&crs=EPSG:4326` +
-      `&format=json` +
-      `&key=${apiKey}`;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(2, 2);
 
-    try {
-      const response = await fetch(url);
-      const result = await response.json();
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#777777";
+    ctx.lineWidth = 1.5;
 
-      const geojson = result.response?.result?.featureCollection;
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(width - radius, 0);
+    ctx.quadraticCurveTo(width, 0, width, radius);
+    ctx.lineTo(width, height - radius);
+    ctx.quadraticCurveTo(width, height, width - radius, height);
+    ctx.lineTo(radius, height);
+    ctx.quadraticCurveTo(0, height, 0, height - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 
-      console.log("필지 경계 조회:", pnu, result);
+    ctx.fillStyle = "#111111";
+    ctx.font = "700 16px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(groupName, 12, 9);
 
-      if (!geojson) return null;
+    ctx.font = "700 14px sans-serif";
+    ctx.fillText("매물", 12, 34);
 
-      return geojson;
-    } catch (error) {
-      console.error("필지 경계 조회 실패:", pnu, error);
-      return null;
-    }
+    ctx.fillStyle = "#10a64a";
+    ctx.fillText(count.toLocaleString(), 48, 34);
+
+    return canvas.toDataURL();
   };
 
   // 축소 상태에서 읍면동 단위로 등록 토지 수를 묶어 표시
@@ -401,8 +449,8 @@ function MainMap() {
 
     lands.forEach((land) => {
       // 주소에서 읍면동 이름 추출
-      const groupName = getGroupNameFromAddress(land.address);
-
+      const groupName = land.lcCodeNm || getGroupNameFromAddress(land.address);
+      
       if (!groupMap.has(groupName)) {
         groupMap.set(groupName, {
           groupName,
@@ -432,22 +480,10 @@ function MainMap() {
 
       feature.setStyle(
         new window.ol.style.Style({
-          text: new window.ol.style.Text({
-            text: `${group.groupName}\n매물 ${group.count.toLocaleString()}`,
-            font: "700 13px sans-serif",
-            textAlign: "center",
-            offsetY: -8,
-            padding: [8, 10, 8, 10],
-            fill: new window.ol.style.Fill({
-              color: "#111111",
-            }),
-            backgroundFill: new window.ol.style.Fill({
-              color: "#ffffff",
-            }),
-            backgroundStroke: new window.ol.style.Stroke({
-              color: "#777777",
-              width: 1.5,
-            }),
+          image: new window.ol.style.Icon({
+            src: createGroupMarkerImage(group.groupName, group.count),
+            anchor: [0.5, 0.5],
+            scale: 0.36,
           }),
         })
       );
@@ -466,7 +502,8 @@ function MainMap() {
     const hasDisplayLands = landDisplayDataRef.current.length > 0;
 
     // 서울특별시 정도가 보이는 축소 상태부터 집계 마커 표시
-    const shouldGroup = false;
+    const shouldGroup = zoom <= 12 && hasDisplayLands;
+
     // 확대 상태에서는 개별 마커/필지 경계 표시
     landMarkerLayerRef.current?.setVisible(!shouldGroup);
     landBoundaryLayerRef.current?.setVisible(!shouldGroup);
@@ -545,14 +582,19 @@ function MainMap() {
       const feature = new window.ol.Feature({
         geometry: new window.ol.geom.Point(coordinate),
         landId: land.id,
+        ownerEmail: land.ownerEmail,
         address: land.address,
         area: land.area,
+        lcCode: land.lcCode,
+        lcCodeNm: land.lcCodeNm,
         desiredPrice: land.desiredPrice,
+        description: land.description,
         status: land.status,
+        landImagePath: land.landImagePath,
       });
 
-      // 평수를 제곱미터로 변환
-      const areaSquareMeter = Math.round(Number(land.area) * 3.3058);
+      // 서버에서 보내주는 제곱 M 평수로 바꾸는 함수
+      const areaPyeong = Math.round(Number(land.area) / 3.3058);
 
       feature.setStyle([
         // 마커 배경 이미지
@@ -579,7 +621,7 @@ function MainMap() {
         // 하단 검은 박스 중앙에 제곱미터 표시
         new window.ol.style.Style({
           text: new window.ol.style.Text({
-            text: `${areaSquareMeter}㎡`,
+            text: `${areaPyeong}평`,
             offsetX: 0,
             offsetY: -26,
             font: "900 13px sans-serif",
@@ -644,55 +686,19 @@ function MainMap() {
     }
   };
 
-  // // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
-  // const fetchRegisteredLands = async () => {
-  //   try {
-  //     const response = await fetch("/api/lands");
-  //     const result = await response.json();
-
-  //     // 서버 응답 구조에서 실제 토지 배열만 꺼냄
-  //     const lands = result.data || [];
-
-  //     await renderLandMarkers(lands);
-  //   } catch (error) {
-  //     console.error("등록된 토지 목록 조회 실패:", error);
-  //   }
-  // };
-
-  // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시 === 임시
+  // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
-    // TODO: 서버 연동 전 임시 목 데이터
-    const mockLands = [
-      {
-        id: 1,
-        ownerEmail: "test1@example.com",
-        address: "서울특별시 중구 세종대로 110",
-        area: 120,
-        desiredPrice: 300000000,
-        description: "서울 테스트 토지",
-        status: "AVAILABLE",
-      },
-      {
-        id: 2,
-        ownerEmail: "test2@example.com",
-        address: "경기도 수원시 팔달구 효원로 241",
-        area: 85,
-        desiredPrice: 210000000,
-        description: "수원 테스트 토지",
-        status: "AVAILABLE",
-      },
-      {
-        id: 3,
-        ownerEmail: "test3@example.com",
-        address: "대구광역시 달성군 구지면 창리로11길 93",
-        area: 240,
-        desiredPrice: 500000000,
-        description: "대구 테스트 토지",
-        status: "AVAILABLE",
-      },
-    ];
+    try {
+      const response = await fetch("/api/lands");
+      const result = await response.json();
 
-    await renderLandMarkers(mockLands);
+      // 서버 응답 구조에서 실제 토지 배열만 꺼냄
+      const lands = result.data || [];
+
+      await renderLandMarkers(lands);
+    } catch (error) {
+      console.error("등록된 토지 목록 조회 실패:", error);
+    }
   };
 
   // 입력된 지역명으로 VWorld 행정구역 경계를 조회한 뒤 지도 화면을 해당 영역에 맞춤
