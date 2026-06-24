@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Api } from "@/contents/apiEndpoints";
 import ImageUploadButton from "@/components/ui/ImageUploadButton";
+import {
+  authFetch,
+  getFriendlyApiErrorMessage,
+  getValidAccessToken,
+} from "@/lib/auth";
 
 const Overlay = styled.div`
   position: fixed;
@@ -221,23 +226,20 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     return null;
   };
 
-  const uploadSelectedImage = async (landId, accessToken) => {
+  const uploadSelectedImage = async (landId) => {
     if (!selectedImage) return null;
 
     const formData = new FormData();
     formData.append("image", selectedImage);
 
-    const response = await fetch(Api.LandImage(landId), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+    const response = await authFetch(Api.LandImage(landId), {
+      method: "PATCH",
       redirect: "manual",
       body: formData,
     });
 
     if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
-      throw new Error("인증이 필요해 이미지 업로드가 로그인 화면으로 이동했습니다.");
+      throw new Error("로그인이 필요하거나 인증이 만료됐어요. 다시 로그인해 주세요.");
     }
 
     const contentType = response.headers.get("content-type") || "";
@@ -255,7 +257,7 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = getValidAccessToken();
     if (!accessToken) {
       setError("로그인 후 토지 등록을 이용할 수 있습니다.");
       return;
@@ -276,11 +278,10 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     setError("");
 
     try {
-      const response = await fetch(Api.Lands, {
+      const response = await authFetch(Api.Lands, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           address: form.address.trim(),
@@ -301,12 +302,19 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
 
       if (selectedImage && landId) {
         try {
-          await uploadSelectedImage(landId, accessToken);
-        } catch (uploadError) {
+          await uploadSelectedImage(landId);
+    } catch (uploadError) {
           console.warn("토지 이미지는 등록 후 업로드하지 못했습니다.", uploadError);
+          setError(
+            `토지는 등록됐지만 이미지 업로드는 실패했어요. ${getFriendlyApiErrorMessage(
+              uploadError,
+              "이미지를 다시 등록해 주세요."
+            )}`
+          );
         }
       } else if (selectedImage && !landId) {
         console.warn("토지 등록 응답에서 landId를 찾지 못해 이미지 업로드를 건너뜁니다.");
+        setError("토지는 등록됐지만 이미지 업로드는 건너뛰어졌어요. 나중에 이미지를 다시 등록해 주세요.");
       }
 
       onSuccess(data);

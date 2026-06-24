@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { clearAccessToken, getValidAccessToken } from "@/lib/auth";
 
 const NavBar = ({
   onToggleSidebar,
@@ -15,6 +16,17 @@ const NavBar = ({
 }) => {
   const navigate = useNavigate();
   const sidoName = normalizeSido?.(keyword) || keyword;
+  const isLoggedIn = Boolean(getValidAccessToken());
+
+  const handleAuthClick = () => {
+    if (isLoggedIn) {
+      clearAccessToken();
+      navigate("/login");
+      return;
+    }
+
+    navigate("/login");
+  };
 
   return (
     <div
@@ -112,9 +124,9 @@ const NavBar = ({
       <button
         type="button"
         className="px-4 py-1 text-sm font-semibold border border-black rounded-lg"
-        onClick={() => navigate("/login")}
+        onClick={handleAuthClick}
       >
-        로그인
+        {isLoggedIn ? "로그아웃" : "로그인"}
       </button>
     </div>
   );

@@ -6,6 +6,11 @@ import ImageUploadButton from "@/components/ui/ImageUploadButton";
 import { Api } from "@/contents/apiEndpoints";
 import useSidebarOpen from "@/hooks/useSidebarOpen";
 import {
+  authFetch,
+  getFriendlyApiErrorMessage,
+  getValidAccessToken,
+} from "@/lib/auth";
+import {
   LandAddButton,
   LandCard,
   LandCardBody,
@@ -68,11 +73,23 @@ const normalizeLand = (land, index) => ({
   landImagePath: land.landImagePath ?? "",
 });
 
+const normalizeBaseUrl = (value) => {
+  const rawValue = value || "https://www.helioss.site";
+  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
+    return rawValue.replace(/\/$/, "");
+  }
+
+  return `https://${rawValue.replace(/\/$/, "")}`;
+};
+
+const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
 const resolveImageUrl = (path) => {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `https://www.helioss.site${path}`;
-  return `https://www.helioss.site/${path}`;
+  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
+  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
+  return `${API_BASE_URL}/uploads/lands/${path}`;
 };
 
 const fallbackLands = [
@@ -126,7 +143,7 @@ function Land() {
     setIsFallback(false);
 
     try {
-      const response = await fetch(Api.Lands, {
+      const response = await authFetch(Api.Lands, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +187,7 @@ function Land() {
   }, [editingLand]);
 
   const uploadLandImage = async (landId, file) => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = getValidAccessToken();
     if (!accessToken) {
       throw new Error("로그인 후 이미지를 수정할 수 있습니다.");
     }
@@ -178,17 +195,14 @@ function Land() {
     const formData = new FormData();
     formData.append("image", file);
 
-    const response = await fetch(Api.LandImage(landId), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+    const response = await authFetch(Api.LandImage(landId), {
+      method: "PATCH",
       redirect: "manual",
       body: formData,
     });
 
     if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
-      throw new Error("인증이 필요해 이미지 수정이 로그인 화면으로 이동했습니다.");
+      throw new Error("로그인이 필요하거나 인증이 만료됐어요. 다시 로그인해 주세요.");
     }
 
     const contentType = response.headers.get("content-type") || "";
@@ -229,7 +243,9 @@ function Land() {
       await fetchLands();
       handleCloseImageEdit();
     } catch (err) {
-      setImageEditError(err.message || "토지 이미지를 수정하지 못했습니다.");
+      setImageEditError(
+        getFriendlyApiErrorMessage(err, "이미지를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.")
+      );
     } finally {
       setIsEditingImage(false);
     }
@@ -281,7 +297,7 @@ function Land() {
               <LandGrid>
                 {lands.map((land, index) => (
                   <LandCard key={`${land.id}-${index}`}>
-                    {resolveImageUrl(land.landImagePath) ? (
+                    {land.landImagePath ? (
                       <LandThumbImage
                         src={resolveImageUrl(land.landImagePath)}
                         alt={land.address}
