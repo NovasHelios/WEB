@@ -3,6 +3,7 @@ import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import LandAdd from "@/components/ui/LandButton/LandAdd";
 import { Api } from "@/contents/apiEndpoints";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
 import {
   LandAddButton,
   LandCard,
@@ -95,7 +96,7 @@ const fallbackLands = [
 
 function Land() {
   const [keyword, setKeyword] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [lands, setLands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

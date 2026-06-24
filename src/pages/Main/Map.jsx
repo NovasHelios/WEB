@@ -3,6 +3,8 @@ import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import Search from "@/components/ui/Search/Search";
 import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
+import markupImage from "@/images/markup.png";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
 
 function Map() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
@@ -16,7 +18,7 @@ function Map() {
   const [keyword, setKeyword] = useState("");
 
   // 좌측 사이드바 열림/닫힘 상태
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
 
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
