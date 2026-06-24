@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
+import SpecificLand from "@/components/ui/SpecificLand/SpecificLand";
 import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
 import markupImage from "@/images/markup.png";
 import useSidebarOpen from "@/hooks/useSidebarOpen";
@@ -28,8 +29,12 @@ function MainMap() {
   // 검색창에 입력한 주소 값을 저장하는 state
   const [keyword, setKeyword] = useState("");
 
+  // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
+  const [selectedLand, setSelectedLand] = useState(null);
+
   // 좌측 사이드바 열림/닫힘 상태
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
+
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
 
@@ -208,6 +213,14 @@ function MainMap() {
         if (!geometry) return;
 
         const coordinate = geometry.getCoordinates();
+
+        // 클릭한 마커에 저장해둔 토지 원본 데이터 가져오기
+        const land = markerFeature.get("land");
+
+        // 토지 데이터가 있으면 상세 패널에 표시
+        if (land) {
+          setSelectedLand(land);
+        }
 
         map.getView().animate({
           center: coordinate,
@@ -452,7 +465,7 @@ function MainMap() {
     lands.forEach((land) => {
       // 주소에서 읍면동 이름 추출
       const groupName = land.lcCodeNm || getGroupNameFromAddress(land.address);
-      
+
       if (!groupMap.has(groupName)) {
         groupMap.set(groupName, {
           groupName,
@@ -583,6 +596,7 @@ function MainMap() {
 
       const feature = new window.ol.Feature({
         geometry: new window.ol.geom.Point(coordinate),
+        land,
         landId: land.id,
         ownerEmail: land.ownerEmail,
         address: land.address,
@@ -952,6 +966,9 @@ function MainMap() {
           normalizeSido={normalizeSido}
         />
       </NavBarArea>
+
+      {/* 마커 클릭 시 표시되는 특정 토지 상세 패널 */}
+      <SpecificLand land={selectedLand} onClose={() => setSelectedLand(null)} />
 
       {/* 지도 위 왼쪽에 표시할 사이드바 */}
       <SideBarArea style={{ width: sidebarOpen ? "184px" : "72px" }}>
