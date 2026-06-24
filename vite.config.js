@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 8500,
     proxy: {
       "/api": {
         target: "https://www.helioss.site",
