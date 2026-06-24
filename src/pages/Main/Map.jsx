@@ -4,6 +4,7 @@ import NavBar from "@/components/layout/box/NavBar";
 import SpecificLand from "@/components/ui/SpecificLand/SpecificLand";
 import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
 import markupImage from "@/images/markup.png";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
 
 function MainMap() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
@@ -31,12 +32,14 @@ function MainMap() {
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
 
+  // 좌측 사이드바 열림/닫힘 상태
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
+
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
 
   // 지역 추천 패널 표시 여부
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
-
   useEffect(() => {
     const initMap = () => {
       // 이미 지도가 생성되어 있으면 다시 만들지 않음
@@ -949,6 +952,7 @@ function MainMap() {
       {/* 지도 위 왼쪽에 표시할 네비게이트바 */}
       <NavBarArea>
         <NavBar
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           keyword={keyword}
           onChangeKeyword={setKeyword}
           onSearch={searchAddress}
@@ -967,8 +971,8 @@ function MainMap() {
       <SpecificLand land={selectedLand} onClose={() => setSelectedLand(null)} />
 
       {/* 지도 위 왼쪽에 표시할 사이드바 */}
-      <SideBarArea>
-        <SideBar />
+      <SideBarArea style={{ width: sidebarOpen ? "184px" : "72px" }}>
+        <SideBar expanded={sidebarOpen} />
       </SideBarArea>
     </MapPage>
   );

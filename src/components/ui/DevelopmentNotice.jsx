@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Wrench } from "lucide-react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
 
 function DevelopmentNotice() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const sidebarWidth = sidebarOpen ? "180px" : "72px";
 
   return (

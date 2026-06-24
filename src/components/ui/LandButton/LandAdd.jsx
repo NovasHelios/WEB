@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Api } from "@/contents/apiEndpoints";
+import ImageUploadButton from "@/components/ui/ImageUploadButton";
 
 const Overlay = styled.div`
   position: fixed;
@@ -176,8 +177,19 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     amount: "",
     description: "",
   });
+  const [selectedImage, setSelectedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const maxImageSizeBytes = 5 * 1024 * 1024;
+
+  useEffect(() => {
+    if (!open) {
+      setForm({ address: "", amount: "", description: "" });
+      setSelectedImage(null);
+      setError("");
+      setIsLoading(false);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -186,6 +198,58 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
       ...prev,
       [field]: event.target.value,
     }));
+  };
+
+  const extractLandId = (payload) => {
+    const candidates = [
+      payload?.landId,
+      payload?.id,
+      payload?.data?.landId,
+      payload?.data?.id,
+      payload?.result?.landId,
+      payload?.result?.id,
+      payload?.data?.result?.landId,
+      payload?.data?.result?.id,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate !== undefined && candidate !== null && candidate !== "") {
+        return candidate;
+      }
+    }
+
+    return null;
+  };
+
+  const uploadSelectedImage = async (landId, accessToken) => {
+    if (!selectedImage) return null;
+
+    const formData = new FormData();
+    formData.append("image", selectedImage);
+
+    const response = await fetch(Api.LandImage(landId), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      redirect: "manual",
+      body: formData,
+    });
+
+    if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
+      throw new Error("인증이 필요해 이미지 업로드가 로그인 화면으로 이동했습니다.");
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json() : null;
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message || data?.data?.message || "토지 이미지를 업로드하지 못했습니다."
+      );
+    }
+
+    return data;
   };
 
   const handleSubmit = async (event) => {
@@ -233,9 +297,22 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
         );
       }
 
+      const landId = extractLandId(data);
+
+      if (selectedImage && landId) {
+        try {
+          await uploadSelectedImage(landId, accessToken);
+        } catch (uploadError) {
+          console.warn("토지 이미지는 등록 후 업로드하지 못했습니다.", uploadError);
+        }
+      } else if (selectedImage && !landId) {
+        console.warn("토지 등록 응답에서 landId를 찾지 못해 이미지 업로드를 건너뜁니다.");
+      }
+
       onSuccess(data);
       onClose();
       setForm({ address: "", amount: "", description: "" });
+      setSelectedImage(null);
     } catch (err) {
       setError(err.message || "토지 등록에 실패했습니다.");
     } finally {
@@ -282,6 +359,25 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
               disabled={isLoading}
             />
           </Field>
+
+          <ImageUploadButton
+            label="토지 사진"
+            placeholder="사진 업로드 버튼을 눌러주세요"
+            selectedFileName={selectedImage?.name || ""}
+            helperText="나중에 사진 변경 가능"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={isLoading}
+            onLater={() => setSelectedImage(null)}
+            onFileSelect={(file) => {
+              if (file && file.size > maxImageSizeBytes) {
+                setSelectedImage(null);
+                setError("이미지가 너무 큽니다. 5MB 이하로 선택해주세요.");
+                return;
+              }
+
+              setSelectedImage(file);
+            }}
+          />
 
           {error && <ErrorText>{error}</ErrorText>}
 
