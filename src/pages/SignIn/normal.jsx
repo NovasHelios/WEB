@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as S from "./signIn.styles.js";
 import EmailVerifyButton from "@/components/ui/EmailVerifyButton.jsx";
+import { Api } from "@/contents/apiEndpoints";
 
 function NormalSignIn() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const role = location.state?.role ?? "USER";
     const [form, setForm] = useState({
         name: "", 
         phone: "", 
@@ -34,11 +37,11 @@ function NormalSignIn() {
       setIsLoading(true);
       setError("");
 
-      try {
-        const response = await fetch("http://localhost:8080/api/auth/signup", {
+        try {
+        const response = await fetch(Api.SignUp, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, role }),
         });
 
         const data = await response.json();
