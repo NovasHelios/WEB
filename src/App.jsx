@@ -7,6 +7,7 @@ import Land from "./pages/Land/Land";
 import DevelopmentNotice from "./components/ui/DevelopmentNotice";
 import SignUpSelect from "./components/ui/SignUpSelect";
 import NormalSignIn from "./pages/SignIn/normal.jsx";
+import Profile from "./pages/Profile/Profile.jsx";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/chat" element={<DevelopmentNotice />} />
         <Route path="/setting" element={<DevelopmentNotice />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Background>
   );

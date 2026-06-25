@@ -6,4 +6,6 @@ export const Api = {
   EmailResend: "https://www.helioss.site/api/auth/email/resend",
   Lands: "/api/lands",
   LandImage: (landId) => `/api/lands/${landId}/image`,
+  MyProfile: "/api/users/me",
+  MyProfileImage: "/api/users/me/image",
 };
