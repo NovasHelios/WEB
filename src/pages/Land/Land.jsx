@@ -10,6 +10,7 @@ import {
   getFriendlyApiErrorMessage,
   getValidAccessToken,
 } from "@/lib/auth";
+
 import {
   LandAddButton,
   LandCard,
@@ -91,36 +92,6 @@ const resolveImageUrl = (path) => {
   if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
   return `${API_BASE_URL}/uploads/lands/${path}`;
 };
-
-const fallbackLands = [
-  {
-    id: 1,
-    address: "서울특별시 중구 세종대로 110",
-    desiredPrice: 300000000,
-    area: 120,
-    status: "AVAILABLE",
-    description: "서울 테스트 토지",
-    landImagePath: "",
-  },
-  {
-    id: 2,
-    address: "경기도 수원시 팔달구 효원로 241",
-    desiredPrice: 210000000,
-    area: 85,
-    status: "AVAILABLE",
-    description: "수원 테스트 토지",
-    landImagePath: "",
-  },
-  {
-    id: 3,
-    address: "대구광역시 달성군 구지면 창리로11길 93",
-    desiredPrice: 500000000,
-    area: 240,
-    status: "AVAILABLE",
-    description: "대구 테스트 토지",
-    landImagePath: "",
-  },
-];
 
 function Land() {
   const [keyword, setKeyword] = useState("");
