@@ -577,7 +577,7 @@ function MainMap() {
       // 서버 주소를 VWorld로 좌표 변환
       const point = await geocodeAddress(land.address);
 
-      console.log("마커 생성 대상:", land.address, point);
+      // console.log("마커 생성 대상:", land.address, point);
 
       // 좌표 변환 실패 시 건너뜀
       if (!point) continue;
@@ -967,12 +967,15 @@ function MainMap() {
         />
       </NavBarArea>
 
-      {/* 마커 클릭 시 표시되는 특정 토지 상세 패널 */}
-      <SpecificLand land={selectedLand} onClose={() => setSelectedLand(null)} />
-
       {/* 지도 위 왼쪽에 표시할 사이드바 */}
       <SideBarArea style={{ width: sidebarOpen ? "184px" : "72px" }}>
         <SideBar expanded={sidebarOpen} />
+
+        {/* 마커 클릭 시 표시되는 특정 토지 상세 패널 */}
+        <SpecificLand
+          land={selectedLand}
+          onClose={() => setSelectedLand(null)}
+        />
       </SideBarArea>
     </MapPage>
   );

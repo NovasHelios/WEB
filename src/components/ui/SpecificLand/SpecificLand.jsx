@@ -1,51 +1,64 @@
 import {
-  Actions,
+  ActionBar,
   BookmarkButton,
   CloseButton,
   ContactButton,
   Description,
+  DetailGrid,
+  DetailItem,
+  Divider,
   ImagePlaceholder,
   InfoGrid,
   Label,
   LandImage,
   Panel,
+  PanelBody,
   Section,
+  StatusBadge,
+  StatusBadges,
+  UpdatedAt,
   Value,
 } from "./SpecificLand.styled";
 
-// 마커를 클릭했을 때 지도 위에 표시되는 특정 토지 상세 패널
 function SpecificLand({ land, onClose }) {
-  // 선택된 토지가 없으면 패널을 렌더링하지 않음
   if (!land) return null;
 
-  // 희망 가격을 원 단위 콤마 형식으로 표시
+  const address =
+    land.address || `${land.ldCodeNm || ""} ${land.mnnmSlno || ""}`.trim();
+
   const price = Number(land.desiredPrice || 0).toLocaleString();
 
-  // 서버 area가 제곱미터 기준이라고 가정하고 평수로 변환
-  const areaPyeong = Math.round(Number(land.area || 0) / 3.3058);
+  const area = land.lndpclAr ?? land.area;
+
+  const category = land.lndcgrCodeNm || land.lcCodeNm || "-";
+
+  const updatedAt = land.lastUpdtDt || "-";
 
   return (
     <Panel>
-      {/* 상세 패널 닫기 버튼 */}
-      <CloseButton type="button" onClick={onClose}>
+      <CloseButton type="button" onClick={onClose} aria-label="상세 닫기">
         ×
       </CloseButton>
 
-      {/* 서버에서 받은 토지 이미지가 있으면 표시하고, 없으면 빈 이미지 영역 표시 */}
-      {land.landImagePath ? (
-        <LandImage src={land.landImagePath} alt="토지 이미지" />
-      ) : (
-        <ImagePlaceholder />
-      )}
+      <PanelBody>
+        <div>
+          {land.landImagePath ? (
+            <LandImage src={land.landImagePath} alt="토지 이미지" />
+          ) : (
+            <ImagePlaceholder />
+          )}
 
-      {/* 주소 영역 */}
-      <Section>
-        <Label>주소 (ADDRESS)</Label>
-        <Value>{land.address}</Value>
-      </Section>
+          <StatusBadges>
+            <StatusBadge $variant="sale">매매 중</StatusBadge>
+            <StatusBadge $variant="zone">ZONED</StatusBadge>
+          </StatusBadges>
+        </div>
 
-      {/* 가격 / 면적 / 지목 정보 영역 */}
-      <Section>
+        <Section>
+          <Label>주소 (ADDRESS)</Label>
+          <Value>{address || "-"}</Value>
+        </Section>
+
         <InfoGrid>
           <div>
             <Label>금액 (PRICE)</Label>
@@ -54,29 +67,60 @@ function SpecificLand({ land, onClose }) {
 
           <div>
             <Label>면적 (AREA)</Label>
-            <Value>{areaPyeong}평</Value>
-          </div>
-
-          <div>
-            <Label>지목 (CATEGORY)</Label>
-            <Value>{land.lcCodeNm || "-"}</Value>
+            <Value>{area ? `${area}㎡` : "-"}</Value>
           </div>
         </InfoGrid>
-      </Section>
 
-      {/* 설명 영역 */}
-      <Section>
-        <Label>설명 (DESCRIPTION)</Label>
-        <Description>
-          {land.description || "등록된 설명이 없습니다."}
-        </Description>
-      </Section>
+        <Divider />
 
-      {/* 하단 버튼 영역 */}
-      <Actions>
+        <Section>
+          <Label>상세 명세 (SPECIFICATIONS)</Label>
+
+          <DetailGrid>
+            <DetailItem>
+              <Label>지목</Label>
+              <Value>{category}</Value>
+            </DetailItem>
+
+            <DetailItem>
+              <Label>등록대장 종류</Label>
+              <Value>{land.regstrSeCodeNm || "-"}</Value>
+            </DetailItem>
+
+            <DetailItem>
+              <Label>PNU (고유번호)</Label>
+              <Value>{land.pnu || "-"}</Value>
+            </DetailItem>
+
+            <DetailItem>
+              <Label>공유인 수</Label>
+              <Value>
+                {land.cnrsPsnCo !== undefined && land.cnrsPsnCo !== null
+                  ? `${land.cnrsPsnCo}명${
+                      Number(land.cnrsPsnCo) === 1 ? " (단독소유)" : ""
+                    }`
+                  : "-"}
+              </Value>
+            </DetailItem>
+          </DetailGrid>
+        </Section>
+
+        <Divider />
+
+        <Section>
+          <Label>설명 (DESCRIPTION)</Label>
+          <Description>
+            {land.description || "등록된 설명이 없습니다."}
+          </Description>
+        </Section>
+
+        <UpdatedAt>최신 수정일: {updatedAt}</UpdatedAt>
+      </PanelBody>
+
+      <ActionBar>
         <ContactButton type="button">담당자에게 문의하기</ContactButton>
         <BookmarkButton type="button">관심등록</BookmarkButton>
-      </Actions>
+      </ActionBar>
     </Panel>
   );
 }
