@@ -1,113 +1,182 @@
 import styled from "styled-components";
 
-// 지도 위에 뜨는 특정 토지 상세 패널
-// 검색창보다 조금 아래에 위치시키고, 검색 결과 리스트보다는 낮은 z-index로 둠
 export const Panel = styled.aside`
   position: absolute;
-  top: 96px;
-  left: 180px;
+  top: 40px;
+  left: 100%;
   z-index: 15;
-  width: 520px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
+  width: 548px;
+  height: calc(100vh - 120px);
   background: #ffffff;
   border: 2px solid #ffab03;
-  border-radius: 4px;
-  padding: 28px;
+  border-radius: 8px;
   color: #06264a;
+  overflow: hidden;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  transform: translateX(24px);
+  transition: 
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease;
 `;
 
-// 상세 패널 닫기 버튼
+export const PanelBody = styled.div`
+  height: calc(100% - 96px);
+  overflow-y: auto;
+  padding: 28px 30px 24px;
+`;
+
 export const CloseButton = styled.button`
   position: absolute;
-  top: 16px;
+  top: 18px;
   right: 18px;
+  z-index: 3;
+  width: 48px;
+  height: 48px;
   border: 0;
-  background: transparent;
-  font-size: 30px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #111827;
+  font-size: 34px;
   line-height: 1;
   cursor: pointer;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
 `;
 
-// 서버에서 받은 토지 이미지 표시 영역
 export const LandImage = styled.img`
   width: 100%;
-  height: 286px;
+  height: 274px;
   object-fit: cover;
   border-radius: 3px;
   display: block;
 `;
 
-// 이미지가 없을 때 임시로 보여줄 빈 영역
 export const ImagePlaceholder = styled.div`
   width: 100%;
-  height: 286px;
+  height: 274px;
   border-radius: 3px;
   background: #e5e7eb;
 `;
 
-// 상세 정보 한 구역
-export const Section = styled.div`
-  padding: 26px 0;
-  border-bottom: 1px solid #d7dde5;
+export const StatusBadges = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: -48px;
+  padding-left: 22px;
+  position: relative;
+  z-index: 2;
 `;
 
-// ADDRESS, PRICE 같은 라벨 텍스트
+export const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: ${({ $variant }) =>
+    $variant === "sale" ? "#08795f" : "#052a54"};
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+`;
+
+export const Section = styled.section`
+  padding-top: 28px;
+`;
+
 export const Label = styled.p`
   margin: 0 0 8px;
   font-size: 13px;
   font-weight: 800;
-  color: #555b66;
+  color: #4b5563;
   letter-spacing: 0.04em;
 `;
 
-// 실제 상세 값 텍스트
 export const Value = styled.p`
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: #06264a;
+  line-height: 1.35;
 `;
 
-// 가격/면적/지목 같은 정보를 2열로 배치
 export const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 28px;
+  padding-top: 24px;
 `;
 
-// 설명 문단
+export const Divider = styled.hr`
+  border: 0;
+  border-top: 1px solid #d7dde5;
+  margin: 28px 0 0;
+`;
+
+export const DetailGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 44px;
+  row-gap: 24px;
+  padding-top: 18px;
+`;
+
+export const DetailItem = styled.div`
+  ${Label} {
+    margin-bottom: 6px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  ${Value} {
+    font-size: 16px;
+    font-weight: 500;
+    color: #111827;
+    word-break: break-all;
+  }
+`;
+
 export const Description = styled.p`
   margin: 0;
   font-size: 16px;
-  line-height: 1.8;
+  line-height: 1.85;
   color: #1f2937;
 `;
 
-// 하단 액션 버튼 영역
-export const Actions = styled.div`
+export const UpdatedAt = styled.p`
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+`;
+
+export const ActionBar = styled.div`
+  height: 96px;
   display: grid;
   grid-template-columns: 1fr 124px;
   gap: 14px;
-  padding-top: 22px;
+  padding: 18px 30px 22px;
+  background: #ffffff;
+  border-top: 1px solid #d7dde5;
+  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.06);
 
   button {
     height: 54px;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
   }
 `;
 
-// 담당자 문의 버튼
 export const ContactButton = styled.button`
   border: 0;
   background: #06264a;
   color: #ffffff;
+  box-shadow: 0 4px 8px rgba(6, 38, 74, 0.18);
 `;
 
-// 관심등록 버튼
 export const BookmarkButton = styled.button`
   border: 1px solid #06264a;
   background: #ffffff;
