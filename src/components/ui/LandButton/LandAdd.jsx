@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Api } from "@/contents/apiEndpoints";
-import ImageUploadButton from "@/components/ui/ImageUploadButton";
-import {
-  authFetch,
-  getFriendlyApiErrorMessage,
-  getValidAccessToken,
-} from "@/lib/auth";
+import { authFetch, getValidAccessToken } from "@/lib/auth";
 
 const Overlay = styled.div`
   position: fixed;
@@ -182,15 +177,12 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     amount: "",
     description: "",
   });
-  const [selectedImage, setSelectedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const maxImageSizeBytes = 5 * 1024 * 1024;
 
   useEffect(() => {
     if (!open) {
       setForm({ address: "", amount: "", description: "" });
-      setSelectedImage(null);
       setError("");
       setIsLoading(false);
     }
@@ -226,11 +218,33 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     return null;
   };
 
-  const uploadSelectedImage = async (landId) => {
-    if (!selectedImage) return null;
+  const registerLand = async ({ address, desiredPrice, description }) => {
+    const response = await authFetch(Api.Lands, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address,
+        desiredPrice,
+        description,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+    }
+
+    return data;
+  };
+
+  const uploadSelectedImage = async (landId, file) => {
+    if (!file) return null;
 
     const formData = new FormData();
-    formData.append("image", selectedImage);
+    formData.append("image", file);
 
     const response = await authFetch(Api.LandImage(landId), {
       method: "PATCH",
@@ -252,6 +266,14 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     }
 
     return data;
+  };
+
+  const queueImageUpload = (landId, file) => {
+    window.setTimeout(() => {
+      void uploadSelectedImage(landId, file).catch((uploadError) => {
+        console.warn("토지 이미지를 나중에 업로드하지 못했습니다.", uploadError);
+      });
+    }, 3000);
   };
 
   const handleSubmit = async (event) => {
@@ -278,49 +300,20 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     setError("");
 
     try {
-      const response = await authFetch(Api.Lands, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          address: form.address.trim(),
-          desiredPrice,
-          description: form.description.trim(),
-        }),
+      const landResponse = await registerLand({
+        address: form.address.trim(),
+        desiredPrice,
+        description: form.description.trim(),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || data?.data?.message || "토지 등록에 실패했습니다."
-        );
+      const landId = extractLandId(landResponse);
+      if (!landId) {
+        console.warn("토지 등록 응답에서 landId를 찾지 못했습니다.");
       }
 
-      const landId = extractLandId(data);
-
-      if (selectedImage && landId) {
-        try {
-          await uploadSelectedImage(landId);
-    } catch (uploadError) {
-          console.warn("토지 이미지는 등록 후 업로드하지 못했습니다.", uploadError);
-          setError(
-            `토지는 등록됐지만 이미지 업로드는 실패했어요. ${getFriendlyApiErrorMessage(
-              uploadError,
-              "이미지를 다시 등록해 주세요."
-            )}`
-          );
-        }
-      } else if (selectedImage && !landId) {
-        console.warn("토지 등록 응답에서 landId를 찾지 못해 이미지 업로드를 건너뜁니다.");
-        setError("토지는 등록됐지만 이미지 업로드는 건너뛰어졌어요. 나중에 이미지를 다시 등록해 주세요.");
-      }
-
-      onSuccess(data);
+      onSuccess(landResponse);
       onClose();
       setForm({ address: "", amount: "", description: "" });
-      setSelectedImage(null);
     } catch (err) {
       setError(err.message || "토지 등록에 실패했습니다.");
     } finally {
@@ -367,25 +360,6 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
               disabled={isLoading}
             />
           </Field>
-
-          <ImageUploadButton
-            label="토지 사진"
-            placeholder="사진 업로드 버튼을 눌러주세요"
-            selectedFileName={selectedImage?.name || ""}
-            helperText="나중에 사진 변경 가능"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={isLoading}
-            onLater={() => setSelectedImage(null)}
-            onFileSelect={(file) => {
-              if (file && file.size > maxImageSizeBytes) {
-                setSelectedImage(null);
-                setError("이미지가 너무 큽니다. 5MB 이하로 선택해주세요.");
-                return;
-              }
-
-              setSelectedImage(file);
-            }}
-          />
 
           {error && <ErrorText>{error}</ErrorText>}
 

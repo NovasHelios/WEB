@@ -2,33 +2,18 @@ import { useEffect, useState } from "react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import LandAdd from "@/components/ui/LandButton/LandAdd";
-import ImageUploadButton from "@/components/ui/ImageUploadButton";
 import { Api } from "@/contents/apiEndpoints";
 import useSidebarOpen from "@/hooks/useSidebarOpen";
-import {
-  authFetch,
-  getFriendlyApiErrorMessage,
-  getValidAccessToken,
-} from "@/lib/auth";
+import { authFetch } from "@/lib/auth";
 
 import {
   LandAddButton,
   LandCard,
   LandCardBody,
-  LandCardActions,
   LandDescription,
   LandGrid,
   LandInner,
   LandMain,
-  LandEditButton,
-  LandImageModal,
-  LandImageModalClose,
-  LandImageModalError,
-  LandImageModalHeader,
-  LandImageModalMeta,
-  LandImageModalOverlay,
-  LandImageModalSubmit,
-  LandImageModalTitle,
   LandMeta,
   LandNavbarWrap,
   LandPage,
@@ -101,12 +86,7 @@ function Land() {
   const [error, setError] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
-  const [editingLand, setEditingLand] = useState(null);
-  const [editingImage, setEditingImage] = useState(null);
-  const [isEditingImage, setIsEditingImage] = useState(false);
-  const [imageEditError, setImageEditError] = useState("");
   const sidebarWidth = sidebarOpen ? "180px" : "72px";
-  const maxImageSizeBytes = 5 * 1024 * 1024;
 
   const fetchLands = async () => {
     setIsLoading(true);
@@ -148,79 +128,6 @@ function Land() {
   useEffect(() => {
     fetchLands();
   }, []);
-
-  useEffect(() => {
-    if (!editingLand) {
-      setEditingImage(null);
-      setImageEditError("");
-      setIsEditingImage(false);
-    }
-  }, [editingLand]);
-
-  const uploadLandImage = async (landId, file) => {
-    const accessToken = getValidAccessToken();
-    if (!accessToken) {
-      throw new Error("로그인 후 이미지를 수정할 수 있습니다.");
-    }
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    const response = await authFetch(Api.LandImage(landId), {
-      method: "PATCH",
-      redirect: "manual",
-      body: formData,
-    });
-
-    if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
-      throw new Error("로그인이 필요하거나 인증이 만료됐어요. 다시 로그인해 주세요.");
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json") ? await response.json() : null;
-
-    if (!response.ok) {
-      throw new Error(
-        data?.message || data?.data?.message || "토지 이미지를 수정하지 못했습니다."
-      );
-    }
-
-    return data;
-  };
-
-  const handleOpenImageEdit = (land) => {
-    setEditingLand(land);
-    setEditingImage(null);
-    setImageEditError("");
-  };
-
-  const handleCloseImageEdit = () => {
-    setEditingLand(null);
-  };
-
-  const handleSubmitImageEdit = async () => {
-    if (!editingLand) return;
-
-    if (!editingImage) {
-      setImageEditError("변경할 이미지를 선택해주세요.");
-      return;
-    }
-
-    setIsEditingImage(true);
-    setImageEditError("");
-
-    try {
-      await uploadLandImage(editingLand.id, editingImage);
-      await fetchLands();
-      handleCloseImageEdit();
-    } catch (err) {
-      setImageEditError(
-        getFriendlyApiErrorMessage(err, "이미지를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      );
-    } finally {
-      setIsEditingImage(false);
-    }
-  };
 
   return (
     <LandShell>
@@ -291,9 +198,7 @@ function Land() {
                           fontSize: "14px",
                           fontWeight: 700,
                         }}
-                      >
-                        이미지 없음
-                      </div>
+                      />
                     )}
 
                     <LandCardBody>
@@ -319,11 +224,6 @@ function Land() {
 
                       <LandDescription>설명: {land.description}</LandDescription>
 
-                      <LandCardActions>
-                        <LandEditButton type="button" onClick={() => handleOpenImageEdit(land)}>
-                          이미지 수정
-                        </LandEditButton>
-                      </LandCardActions>
                     </LandCardBody>
                   </LandCard>
                 ))}
@@ -342,48 +242,6 @@ function Land() {
         }}
       />
 
-      {editingLand && (
-        <LandImageModalOverlay role="dialog" aria-modal="true" aria-label="토지 이미지 수정">
-          <LandImageModal>
-            <LandImageModalHeader>
-              <LandImageModalTitle>이미지 수정</LandImageModalTitle>
-              <LandImageModalClose type="button" onClick={handleCloseImageEdit} aria-label="닫기">
-                X
-              </LandImageModalClose>
-            </LandImageModalHeader>
-
-            <LandImageModalMeta>
-              {editingLand.address}
-            </LandImageModalMeta>
-
-            <ImageUploadButton
-              label="변경할 이미지"
-              placeholder="이미지를 선택해주세요"
-              helperText="jpg, png, webp, gif 허용"
-              selectedFileName={editingImage?.name || ""}
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              disabled={isEditingImage}
-              showLaterButton={false}
-              onFileSelect={(file) => {
-                if (file && file.size > maxImageSizeBytes) {
-                  setEditingImage(null);
-                  setImageEditError("이미지가 너무 큽니다. 5MB 이하로 선택해주세요.");
-                  return;
-                }
-
-                setEditingImage(file);
-                setImageEditError("");
-              }}
-            />
-
-            {imageEditError && <LandImageModalError>{imageEditError}</LandImageModalError>}
-
-            <LandImageModalSubmit type="button" onClick={handleSubmitImageEdit} disabled={isEditingImage}>
-              {isEditingImage ? "수정 중..." : "이미지 수정"}
-            </LandImageModalSubmit>
-          </LandImageModal>
-        </LandImageModalOverlay>
-      )}
     </LandShell>
   );
 }
