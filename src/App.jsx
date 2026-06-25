@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { Route, BrowserRouter, Routes } from "react-router-dom";
 import Background from "./pages/Background";
 import BusinessSignIn from "./pages/SignIn/BusinessSignIn.jsx";
 import Login from "./pages/Login/Login";
-import Land from "./pages/Land/Land";
 import Map from "./pages/Main/Map";
+import Land from "./pages/Land/Land";
+import DevelopmentNotice from "./components/ui/DevelopmentNotice";
 import SignUpSelect from "./components/ui/SignUpSelect";
 import NormalSignIn from "./pages/SignIn/normal.jsx";
-import Profile from "./pages/Profile/profile.jsx";
 
 function App() {
   return (
@@ -18,8 +17,10 @@ function App() {
         <Route path="/signup/individual" element={<NormalSignIn />} />
         <Route path="/" element={<Map />} />
         <Route path="/land" element={<Land />} />
+        <Route path="/business" element={<DevelopmentNotice />} />
+        <Route path="/chat" element={<DevelopmentNotice />} />
+        <Route path="/setting" element={<DevelopmentNotice />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Background>
   );
