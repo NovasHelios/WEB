@@ -13,10 +13,8 @@ export const Panel = styled.aside`
   color: #06264a;
   overflow: hidden;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
-  transform: translateX(24px);
-  transition: 
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.24s ease;
+  transform: translateX(12px);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
 `;
 
 export const PanelBody = styled.div`
@@ -36,7 +34,7 @@ export const CloseButton = styled.button`
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.88);
   color: #111827;
-  font-size: 34px;
+  font-size: 30px;
   line-height: 1;
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
@@ -55,6 +53,12 @@ export const ImagePlaceholder = styled.div`
   height: 274px;
   border-radius: 3px;
   background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 18px;
+  font-weight: 800;
 `;
 
 export const StatusBadges = styled.div`

@@ -45,7 +45,7 @@ function SpecificLand({ land, onClose }) {
           {land.landImagePath ? (
             <LandImage src={land.landImagePath} alt="토지 이미지" />
           ) : (
-            <ImagePlaceholder />
+            <ImagePlaceholder>이미지는 개발중입니다</ImagePlaceholder>
           )}
 
           <StatusBadges>
