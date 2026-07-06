@@ -361,7 +361,15 @@ function MainMap() {
         `&key=${apiKey}`;
 
       const response = await fetch(url);
-      const result = await response.json();
+      if (!response.ok) return null;
+
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        return null;
+      }
 
       return result.response?.result?.items?.[0] || null;
     };
