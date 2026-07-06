@@ -4,7 +4,7 @@ export const Api = {
   EmailVarify: "https://www.helioss.site/api/auth/email/verify",
   EmailSend: "https://www.helioss.site/api/auth/email/send",
   EmailResend: "https://www.helioss.site/api/auth/email/resend",
-  Lands: "/api/lands",
+  Lands: "https://www.helioss.site/api/lands",
   LandImage: (landId) => `/api/lands/${landId}/image`,
   MyProfile: "/api/users/me",
   MyProfileImage: "/api/users/me/image",
