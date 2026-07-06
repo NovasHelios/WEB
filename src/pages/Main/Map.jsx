@@ -5,6 +5,8 @@ import SpecificLand from "@/components/ui/SpecificLand/SpecificLand";
 import { MapPage, MapContainer, SideBarArea, NavBarArea } from "./Map.styled";
 import markupImage from "@/images/markup.png";
 import useSidebarOpen from "@/hooks/useSidebarOpen";
+import { Api } from "@/contents/apiEndpoints";
+import { authFetch } from "@/lib/auth";   // authFetch 쓰는 게 좋음
 
 function MainMap() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
@@ -704,18 +706,24 @@ function MainMap() {
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
-    try {
-      const response = await fetch("/api/lands");
-      const result = await response.json();
+  try {
+    const response = await authFetch(Api.Lands, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-      // 서버 응답 구조에서 실제 토지 배열만 꺼냄
-      const lands = result.data || [];
+    const result = await response.json();
 
-      await renderLandMarkers(lands);
-    } catch (error) {
-      console.error("등록된 토지 목록 조회 실패:", error);
-    }
-  };
+    // 서버 응답 구조에서 실제 토지 배열만 꺼냄
+    const lands = result.data || [];
+
+    await renderLandMarkers(lands);
+  } catch (error) {
+    console.error("등록된 토지 목록 조회 실패:", error);
+  }
+};
 
   // 입력된 지역명으로 VWorld 행정구역 경계를 조회한 뒤 지도 화면을 해당 영역에 맞춤
   const fitArea = async (keyword) => {
