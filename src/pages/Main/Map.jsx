@@ -707,12 +707,19 @@ function MainMap() {
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
   try {
-    const response = await authFetch(Api.Lands, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await authFetch(Api.Lands);
+    const result = await response.json();
+
+    console.log("✅ API 응답:", result);           // ← 이거 추가
+
+    const lands = result.data || [];
+    console.log("✅ lands 배열 길이:", lands.length); // ← 이거 추가
+
+    await renderLandMarkers(lands);
+  } catch (error) {
+    console.error("❌ 등록된 토지 목록 조회 실패:", error);
+  }
+};
 
     const result = await response.json();
 
