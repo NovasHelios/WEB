@@ -30,8 +30,9 @@ export const SideBarArea = styled.div`
   top: 56px;
   left: 0;
   z-index: 10;
-  width: 184px;
+  width: ${({ $expanded }) => ($expanded ? "180px" : "72px")};
   height: calc(100vh - 56px);
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
 // 지도 위에 올라가는 검색창 위치 영역

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Api } from "@/contents/apiEndpoints";
+import { authFetch, getValidAccessToken } from "@/lib/auth";
 
 const Overlay = styled.div`
   position: fixed;
@@ -179,6 +180,14 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!open) {
+      setForm({ address: "", amount: "", description: "" });
+      setError("");
+      setIsLoading(false);
+    }
+  }, [open]);
+
   if (!open) return null;
 
   const handleChange = (field) => (event) => {
@@ -188,10 +197,89 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     }));
   };
 
+  const extractLandId = (payload) => {
+    const candidates = [
+      payload?.landId,
+      payload?.id,
+      payload?.data?.landId,
+      payload?.data?.id,
+      payload?.result?.landId,
+      payload?.result?.id,
+      payload?.data?.result?.landId,
+      payload?.data?.result?.id,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate !== undefined && candidate !== null && candidate !== "") {
+        return candidate;
+      }
+    }
+
+    return null;
+  };
+
+  const registerLand = async ({ address, desiredPrice, description }) => {
+    const response = await authFetch(Api.Lands, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address,
+        desiredPrice,
+        description,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+    }
+
+    return data;
+  };
+
+  const uploadSelectedImage = async (landId, file) => {
+    if (!file) return null;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await authFetch(Api.LandImage(landId), {
+      method: "PATCH",
+      redirect: "manual",
+      body: formData,
+    });
+
+    if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
+      throw new Error("로그인이 필요하거나 인증이 만료됐어요. 다시 로그인해 주세요.");
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json() : null;
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message || data?.data?.message || "토지 이미지를 업로드하지 못했습니다."
+      );
+    }
+
+    return data;
+  };
+
+  const queueImageUpload = (landId, file) => {
+    window.setTimeout(() => {
+      void uploadSelectedImage(landId, file).catch((uploadError) => {
+        console.warn("토지 이미지를 나중에 업로드하지 못했습니다.", uploadError);
+      });
+    }, 3000);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = getValidAccessToken();
     if (!accessToken) {
       setError("로그인 후 토지 등록을 이용할 수 있습니다.");
       return;
@@ -212,28 +300,18 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
     setError("");
 
     try {
-      const response = await fetch(Api.Lands, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          address: form.address.trim(),
-          desiredPrice,
-          description: form.description.trim(),
-        }),
+      const landResponse = await registerLand({
+        address: form.address.trim(),
+        desiredPrice,
+        description: form.description.trim(),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || data?.data?.message || "토지 등록에 실패했습니다."
-        );
+      const landId = extractLandId(landResponse);
+      if (!landId) {
+        console.warn("토지 등록 응답에서 landId를 찾지 못했습니다.");
       }
 
-      onSuccess(data);
+      onSuccess(landResponse);
       onClose();
       setForm({ address: "", amount: "", description: "" });
     } catch (err) {

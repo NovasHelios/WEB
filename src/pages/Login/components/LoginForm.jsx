@@ -5,6 +5,7 @@ import LoginEmailInput from "./LoginInputEmail";
 import LoginPasswordInput from "./LoginInputPassword";
 import LoginButton from "./LoginButton";
 import { Api } from "@/contents/apiEndpoints";
+import { setAccessToken } from "@/lib/auth";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const LoginForm = () => {
         );
       }
 
-      localStorage.setItem("accessToken", data.data.accessToken);
+      setAccessToken(data.data.accessToken);
 
       const role = data.data.role;
 

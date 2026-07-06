@@ -3,6 +3,9 @@ import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import LandAdd from "@/components/ui/LandButton/LandAdd";
 import { Api } from "@/contents/apiEndpoints";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
+import { authFetch } from "@/lib/auth";
+
 import {
   LandAddButton,
   LandCard,
@@ -56,46 +59,28 @@ const normalizeLand = (land, index) => ({
   landImagePath: land.landImagePath ?? "",
 });
 
+const normalizeBaseUrl = (value) => {
+  const rawValue = value || "https://www.helioss.site";
+  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
+    return rawValue.replace(/\/$/, "");
+  }
+
+  return `https://${rawValue.replace(/\/$/, "")}`;
+};
+
+const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
 const resolveImageUrl = (path) => {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `https://www.helioss.site${path}`;
-  return `https://www.helioss.site/${path}`;
+  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
+  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
+  return `${API_BASE_URL}/uploads/lands/${path}`;
 };
-
-const fallbackLands = [
-  {
-    id: 1,
-    address: "서울특별시 중구 세종대로 110",
-    desiredPrice: 300000000,
-    area: 120,
-    status: "AVAILABLE",
-    description: "서울 테스트 토지",
-    landImagePath: "",
-  },
-  {
-    id: 2,
-    address: "경기도 수원시 팔달구 효원로 241",
-    desiredPrice: 210000000,
-    area: 85,
-    status: "AVAILABLE",
-    description: "수원 테스트 토지",
-    landImagePath: "",
-  },
-  {
-    id: 3,
-    address: "대구광역시 달성군 구지면 창리로11길 93",
-    desiredPrice: 500000000,
-    area: 240,
-    status: "AVAILABLE",
-    description: "대구 테스트 토지",
-    landImagePath: "",
-  },
-];
 
 function Land() {
   const [keyword, setKeyword] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [lands, setLands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -109,7 +94,7 @@ function Land() {
     setIsFallback(false);
 
     try {
-      const response = await fetch(Api.Lands, {
+      const response = await authFetch(Api.Lands, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -190,14 +175,31 @@ function Land() {
               <LandGrid>
                 {lands.map((land, index) => (
                   <LandCard key={`${land.id}-${index}`}>
-                    <LandThumbImage
-                      src={resolveImageUrl(land.landImagePath)}
-                      alt={land.address}
-                      onError={(event) => {
-                        event.currentTarget.src = "";
-                        event.currentTarget.style.background = "#f3f3f3";
-                      }}
-                    />
+                    {land.landImagePath ? (
+                      <LandThumbImage
+                        src={resolveImageUrl(land.landImagePath)}
+                        alt={land.address}
+                        onError={(event) => {
+                          event.currentTarget.removeAttribute("src");
+                          event.currentTarget.style.background = "#f3f3f3";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          minHeight: "204px",
+                          borderRadius: "10px",
+                          border: "3px solid #222",
+                          background: "#f3f3f3",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#6b7280",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                        }}
+                      />
+                    )}
 
                     <LandCardBody>
                       <LandMeta>
@@ -221,6 +223,7 @@ function Land() {
                       </LandMeta>
 
                       <LandDescription>설명: {land.description}</LandDescription>
+
                     </LandCardBody>
                   </LandCard>
                 ))}
@@ -238,6 +241,7 @@ function Land() {
           await fetchLands();
         }}
       />
+
     </LandShell>
   );
 }

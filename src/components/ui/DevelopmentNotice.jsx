@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Wrench } from "lucide-react";
 import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
+import useSidebarOpen from "@/hooks/useSidebarOpen";
 
 function DevelopmentNotice() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const sidebarWidth = sidebarOpen ? "180px" : "72px";
 
   return (
@@ -44,7 +45,7 @@ function DevelopmentNotice() {
 
       <main
         style={{
-          width: `calc(100vw - ${sidebarWidth})`,
+          width: "100%",
           height: "calc(100vh - 56px)",
           marginLeft: sidebarWidth,
           display: "flex",
@@ -69,22 +70,14 @@ function DevelopmentNotice() {
               width: "120px",
               height: "120px",
               border: "none",
-              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: "#fff",
               boxSizing: "border-box",
             }}
           >
-            <Wrench
-              size={76}
-              strokeWidth={2.2}
-              color="#000"
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-              }}
-            />
+            <Wrench size={76} strokeWidth={2.2} color="#000" />
           </div>
 
           <h1

@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { clearAccessToken, getValidAccessToken } from "@/lib/auth";
+
 const NavBar = ({
   onToggleSidebar,
   keyword,
@@ -11,7 +14,19 @@ const NavBar = ({
   onSuggestionClick,
   normalizeSido,
 }) => {
+  const navigate = useNavigate();
   const sidoName = normalizeSido?.(keyword) || keyword;
+  const isLoggedIn = Boolean(getValidAccessToken());
+
+  const handleAuthClick = () => {
+    if (isLoggedIn) {
+      clearAccessToken();
+      navigate("/login");
+      return;
+    }
+
+    navigate("/login");
+  };
 
   return (
     <div
@@ -25,7 +40,7 @@ const NavBar = ({
       </button>
 
 
-      <span className="font-bold text-xl">Helios</span>
+      <span className="text-xl font-bold">Helios</span>
 
 
       {/* 검색창과 추천 리스트를 같은 relative 박스 안에 넣어야 서로 붙음 */}
@@ -57,7 +72,7 @@ const NavBar = ({
           <input
             type="text"
             placeholder="주소 검색"
-            className="outline-none w-full text-sm"
+            className="w-full text-sm outline-none"
             value={keyword}
             onChange={(event) => onChangeKeyword(event.target.value)}
           />
@@ -66,7 +81,7 @@ const NavBar = ({
             <button
               type="button"
               onClick={onCloseSuggestions}
-              className="text-gray-400 text-lg leading-none"
+              className="text-lg leading-none text-gray-400"
             >
               ×
             </button>
@@ -75,7 +90,7 @@ const NavBar = ({
 
         {/* 검색창 바로 아래에 붙는 자동완성 리스트 */}
         {isSuggestionOpen && (
-          <div className="absolute left-0 right-0 top-full z-50 bg-white border-t border-gray-100 rounded-b-2xl shadow-lg overflow-hidden">
+          <div className="absolute left-0 right-0 z-50 overflow-hidden bg-white border-t border-gray-100 shadow-lg top-full rounded-b-2xl">
             <div className="px-4 py-2 text-sm text-gray-900">
               지역{" "}
               <strong className="text-green-600">
@@ -83,13 +98,13 @@ const NavBar = ({
               </strong>
             </div>
 
-            <div className="max-h-72 overflow-y-auto">
+            <div className="overflow-y-auto max-h-72">
               {regionSuggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
                   onClick={() => onSuggestionClick(suggestion)}
-                  className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+                  className="block w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
                 >
                   <span className="font-semibold text-green-600">
                     {sidoName}
@@ -106,8 +121,12 @@ const NavBar = ({
 
       <div className="flex-1" />
 
-      <button className="border border-black rounded-lg px-4 py-1 font-semibold text-sm">
-        로그인
+      <button
+        type="button"
+        className="px-4 py-1 text-sm font-semibold border border-black rounded-lg"
+        onClick={handleAuthClick}
+      >
+        {isLoggedIn ? "로그아웃" : "로그인"}
       </button>
     </div>
   );
