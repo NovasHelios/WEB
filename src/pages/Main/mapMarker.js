@@ -114,63 +114,31 @@ export const renderLandGroups = ({ lands, groupLayerRef }) => {
   });
 };
 
-// 현재 줌 레벨에 따라 개별 마커, 가까운 묶음 마커, 시군구 묶음 마커를 전환
+// 현재 지도 레벨에 따라 Kakao 마커 표시 상태를 갱신합니다.
 export const updateLandLayerByZoom = ({
+  // Kakao 지도 객체를 담은 ref입니다.
   mapRef,
+
+  // Kakao 마커 배열을 담은 ref입니다.
   markerLayerRef,
-  boundaryLayerRef,
-  groupLayerRef,
-  displayDataRef,
 }) => {
-  // 지도가 아직 준비되지 않았으면 중단
+  // Kakao 지도 객체가 없으면 중단합니다.
   if (!mapRef.current) return;
 
-  // 현재 지도 줌 레벨 가져오기
-  const zoom = mapRef.current.getView().getZoom();
+  // Kakao 마커 배열이 아직 없으면 중단합니다.
+  if (!Array.isArray(markerLayerRef.current)) return;
 
-  // 지도에 표시할 토지 데이터가 있는지 확인
-  const hasDisplayLands = displayDataRef.current.length > 0;
+  // 현재 Kakao 지도 레벨을 가져옵니다.
+  const level = mapRef.current.getLevel();
 
-  // 3단계: 많이 축소된 상태에서는 시/군/구 단위로 묶기
-  const shouldDistrictGroup = zoom <= 11 && hasDisplayLands;
+  // 너무 멀리 축소된 경우에는 마커를 숨깁니다.
+  const shouldShowMarkers = level <= 8;
 
-  // 2단계: 중간 축소 상태에서는 가까이 겹치는 마커를 원형 개수 마커로 묶기
-  const shouldNearbyGroup = zoom > 11 && zoom <= 14 && hasDisplayLands;
-
-  // 1단계: 충분히 확대된 상태에서는 개별 토지 마커 그대로 표시
-  const shouldShowIndividual = zoom > 14 && hasDisplayLands;
-
-  // 개별 토지 마커 레이어 표시 여부
-  markerLayerRef.current?.setVisible(shouldShowIndividual);
-
-  // 필지 경계 레이어는 개별 마커 상태에서만 표시
-  boundaryLayerRef.current?.setVisible(shouldShowIndividual);
-
-  // 그룹 레이어는 가까운 묶음 또는 시군구 묶음 상태에서만 표시
-  groupLayerRef.current?.setVisible(shouldDistrictGroup || shouldNearbyGroup);
-
-  // 많이 축소된 상태면 기존 시군구 묶음 표시
-  if (shouldDistrictGroup) {
-    renderLandGroups({
-      lands: displayDataRef.current,
-      groupLayerRef,
-    });
-
-    return;
-  }
-
-  // 중간 축소 상태면 가까운 마커끼리 원형 개수 마커로 묶음
-  if (shouldNearbyGroup) {
-    renderNearbyLandGroups({
-      lands: displayDataRef.current,
-      groupLayerRef,
-    });
-
-    return;
-  }
-
-  // 개별 마커 상태에서는 그룹 레이어 비우기
-  groupLayerRef.current?.getSource().clear();
+  // Kakao 마커마다 지도 표시 여부를 갱신합니다.
+  markerLayerRef.current.forEach((marker) => {
+    // 보여줄 때는 현재 지도에 붙이고, 숨길 때는 지도에서 제거합니다.
+    marker.setMap(shouldShowMarkers ? mapRef.current : null);
+  });
 };
 
 // 가격을 억 단위로 축약해서 표시
@@ -476,56 +444,136 @@ export const renderNearbyLandGroups = ({ lands, groupLayerRef }) => {
   });
 };
 
-// 등록된 토지 목록을 OpenLayers 마커로 지도에 표시
+// 등록된 토지 목록을 Kakao 마커로 지도에 표시합니다.
 export const renderLandMarkers = async ({
+  // Kakao 지도 객체를 담은 ref입니다.
+  mapRef,
+
+  // 서버에서 받아온 토지 목록입니다.
   lands,
+
+  // 생성된 Kakao 마커 목록을 저장할 ref입니다.
   markerLayerRef,
+
+  // 지오코딩까지 끝난 토지 데이터를 저장할 ref입니다.
   displayDataRef,
+
+  // 주소를 위도/경도로 바꾸는 함수입니다.
   geocodeAddress,
+
+  // 마커 클릭 시 실행할 함수입니다.
+  onMarkerClick,
+
+  // 렌더링 이후 줌 레벨에 맞춰 표시 상태를 갱신하는 함수입니다.
   onAfterRender,
 }) => {
-  if (!markerLayerRef.current) return;
+  // Kakao 지도 객체가 없으면 마커를 표시하지 않습니다.
+  if (!mapRef.current) return;
 
-  const source = markerLayerRef.current.getSource();
+  // 이전에 생성한 Kakao 마커들이 있으면 지도에서 제거합니다.
+  if (Array.isArray(markerLayerRef.current)) {
+    markerLayerRef.current.forEach((marker) => {
+      // 기존 마커를 지도에서 제거합니다.
+      marker.setMap(null);
+    });
+  }
 
-  // 기존 마커 제거
-  source.clear();
+  // 새 마커 목록을 저장할 배열을 만듭니다.
+  const markers = [];
 
+  // 주소를 좌표로 변환한 토지 목록을 만듭니다.
   const geocodedLands = await Promise.all(
     lands.map(async (land) => {
+      // 주소가 없으면 지도에 표시할 수 없으므로 제외합니다.
       if (!land.address) return null;
 
+      // 주소를 Kakao 주소 검색으로 좌표 변환합니다.
       const point = await geocodeAddress(land.address);
+
+      // 좌표 변환에 실패하면 제외합니다.
       if (!point) return null;
 
-      const coordinate = window.ol.proj.transform(
-        [point.lon, point.lat],
-        "EPSG:4326",
-        "EPSG:900913"
-      );
+      // Kakao 지도에서 사용할 위도/경도 좌표 객체를 만듭니다.
+      const position = new window.kakao.maps.LatLng(point.lat, point.lon);
 
+      // 지도 표시용 좌표 정보를 토지 데이터에 함께 저장합니다.
       return {
         ...land,
 
-        // 서버에서 pnu가 오면 그 값을 쓰고,
-        // 없으면 VWorld 주소 검색 결과의 item.id를 pnu로 사용
+        // Kakao 검색 결과에는 PNU가 없을 수 있으므로 기존 값 또는 null을 유지합니다.
         pnu: land.pnu || point.pnu,
 
-        coordinate,
+        // Kakao 지도 표시용 좌표 객체입니다.
+        position,
+
+        // 그룹 계산이나 추후 처리를 위해 숫자 좌표도 저장합니다.
+        lat: point.lat,
+        lon: point.lon,
       };
     })
   );
 
+  // 좌표 변환에 성공한 토지만 남깁니다.
   const displayLands = geocodedLands.filter(Boolean);
 
-  // 좌표 변환이 끝난 토지들을 각각 개별 마커로 표시
+  // 좌표 변환이 끝난 토지를 Kakao 마커로 표시합니다.
   displayLands.forEach((land) => {
-    source.addFeature(createLandFeature(land));
+    // 가격과 면적이 들어간 기존 canvas 마커 이미지를 생성합니다.
+    const markerImageUrl = createLandMarkerImage({
+      priceText: formatPrice(land.desiredPrice),
+      areaText: `${Math.round(Number(land.area) / 3.3058)}평`,
+    });
+
+    // Kakao 마커 이미지 크기를 설정합니다.
+    const imageSize = new window.kakao.maps.Size(78, 58);
+
+    // Kakao 마커 이미지 옵션을 설정합니다.
+    const imageOption = {
+      // 마커의 하단 중앙이 좌표에 닿도록 기준점을 설정합니다.
+      offset: new window.kakao.maps.Point(39, 58),
+    };
+
+    // Kakao 마커 이미지를 생성합니다.
+    const markerImage = new window.kakao.maps.MarkerImage(
+      markerImageUrl,
+      imageSize,
+      imageOption
+    );
+
+    // Kakao 마커를 생성합니다.
+    const marker = new window.kakao.maps.Marker({
+      // 마커가 표시될 지도입니다.
+      map: mapRef.current,
+
+      // 마커 위치입니다.
+      position: land.position,
+
+      // 마커 이미지입니다.
+      image: markerImage,
+    });
+
+    // 마커 클릭 시 상세 패널을 열 수 있도록 이벤트를 등록합니다.
+    window.kakao.maps.event.addListener(marker, "click", () => {
+      // 클릭된 토지 정보를 상위 컴포넌트로 전달합니다.
+      onMarkerClick?.(land);
+
+      // 클릭된 위치로 지도 중심을 이동합니다.
+      mapRef.current.setCenter(land.position);
+
+      // 클릭된 토지가 잘 보이도록 확대합니다.
+      mapRef.current.setLevel(3);
+    });
+
+    // 나중에 제거하거나 표시 상태를 바꾸기 위해 마커를 배열에 저장합니다.
+    markers.push(marker);
   });
 
-  // 줌 레벨 전환에 사용할 토지 목록 저장
+  // 생성된 Kakao 마커 목록을 ref에 저장합니다.
+  markerLayerRef.current = markers;
+
+  // 줌 레벨 전환에 사용할 토지 목록을 저장합니다.
   displayDataRef.current = displayLands;
 
-  // 현재 줌 레벨 기준으로 개별 마커/집계 마커 표시 상태 갱신
-  onAfterRender();
+  // 렌더링 후 필요한 후처리를 실행합니다.
+  onAfterRender?.();
 };
