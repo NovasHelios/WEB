@@ -137,9 +137,9 @@ function Preview({ land, onClose, onOpenSpecific }) {
   if (!land) return null;
 
   // 상세 패널 상단에 표시할 주소입니다.
-  const address = land.address || land.ldCodeNm || "전라남도 해남군 산이면";
+  const address = land.address || "토지 주소";
 
-  // 서버에서 받을 수 있는 여러 이미지 배열 후보를 모읍니다.
+  // 서버에서 받은 이미지 경로 목록을 구성합니다.
   const rawImageList =
     land.landImagePaths ||
     land.imagePaths ||
@@ -162,6 +162,12 @@ function Preview({ land, onClose, onOpenSpecific }) {
     ? landImages.map((src) => ({ type: "image", src }))
     : fallbackImages.map((color) => ({ type: "placeholder", color }));
 
+  // 지목 또는 용도 정보를 서버 필드 기준으로 표시합니다.
+  const category = land.lcCodeNm || land.regstrSeCodeNm || "정보 없음";
+
+  // 거래 유형을 서버 필드 기준으로 표시합니다.
+  const transactionType = land.transactionType || "매매";
+
   // 현재 선택된 대표 이미지 번호를 저장합니다.
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -173,9 +179,6 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
   // 현재 대표 이미지로 보여줄 항목입니다.
   const selectedImage = detailImages[selectedImageIndex] || detailImages[0];
-
-  // 지목 또는 용도 정보를 표시합니다.
-  const category = land.lndcgrCodeNm || land.lcCodeNm || "전 / 계획관리지역";
 
   return (
     // 마커 클릭 시 우측에 뜨는 상세 패널입니다.

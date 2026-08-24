@@ -22,21 +22,14 @@ import filterIcon from "@/images/filter.png";
 import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
 
 function Map() {
-  // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
+  // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
   const mapElementRef = useRef(null);
 
-  // 생성된 VWorld 지도 객체를 저장하기 위한 ref
-  // useRef를 쓰면 컴포넌트가 리렌더링되어도 값이 유지됨
+  // 생성된 Kakao 지도 객체를 저장하기 위한 ref입니다.
   const mapInstanceRef = useRef(null);
 
-  // 등록된 토지 마커를 담을 OpenLayers 레이어
+  // 등록된 토지 Kakao 마커 목록을 담는 ref입니다.
   const landMarkerLayerRef = useRef(null);
-
-  // 등록된 토지 경계선을 표시할 OpenLayers 레이어
-  const landBoundaryLayerRef = useRef(null);
-
-  // 구 단위 집계 마커를 표시할 레이어
-  const landGroupLayerRef = useRef(null);
 
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
@@ -109,9 +102,6 @@ function Map() {
         updateLandLayerByZoom({
           mapRef: mapInstanceRef,
           markerLayerRef: landMarkerLayerRef,
-          boundaryLayerRef: landBoundaryLayerRef,
-          groupLayerRef: landGroupLayerRef,
-          displayDataRef: landDisplayDataRef,
         });
       });
 
@@ -122,9 +112,6 @@ function Map() {
 
         // 상세보기 팝업도 닫습니다.
         setIsSpecificOpen(false);
-
-        // 지도 위 붉은색 경계 레이아웃을 제거합니다.
-        clearSelectedLandBoundary();
       });
 
       // 지도 초기화가 끝났음을 반환합니다.
@@ -208,28 +195,6 @@ function Map() {
     return aliases[value] || value;
   };
 
-  // VWorld 행정구역 코드에서 시도 앞 2자리 코드
-  // LT_C_ADSIGG_INFO의 sig_cd는 이 코드로 시작함
-  const sidoCodeMap = {
-    서울특별시: "11",
-    부산광역시: "26",
-    대구광역시: "27",
-    인천광역시: "28",
-    광주광역시: "29",
-    대전광역시: "30",
-    울산광역시: "31",
-    세종특별자치시: "36",
-    경기도: "41",
-    강원특별자치도: "51",
-    충청북도: "43",
-    충청남도: "44",
-    전북특별자치도: "52",
-    전라남도: "46",
-    경상북도: "47",
-    경상남도: "48",
-    제주특별자치도: "50",
-  };
-
   // 주소 문자열을 Kakao 주소 검색 API로 위도/경도 좌표로 변환합니다.
   const geocodeAddress = async (address) => {
     // 주소가 없으면 좌표 변환을 하지 않습니다.
@@ -261,9 +226,6 @@ function Map() {
 
           // Kakao result.y는 위도입니다.
           lat: Number(result[0].y),
-
-          // Kakao 주소 검색 결과에는 VWorld PNU가 없으므로 null로 둡니다.
-          pnu: null,
         });
       });
     });
@@ -281,137 +243,35 @@ function Map() {
     landBoundaryLayerRef.current = null;
   };
 
-  // PNU를 기준으로 VWorld에서 토지 경계 좌표를 조회합니다.
-  const fetchLandBoundaryByPnu = async (pnu) => {
-    // PNU가 없으면 경계 조회를 할 수 없으므로 null을 반환합니다.
-    if (!pnu) return null;
-
-    // VWorld API 키를 환경변수에서 가져옵니다.
-    const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
-
-    // API 키가 없으면 경계 조회를 할 수 없으므로 null을 반환합니다.
-    if (!apiKey) {
-      console.error(
-        "VWorld API 키가 없습니다. VITE_VWORLD_API_KEY를 확인하세요."
-      );
-      return null;
-    }
-
-    // PNU로 지적도 경계 데이터를 조회하는 VWorld API URL입니다.
-    const url =
-      `/vworld-api/req/data?service=data` +
-      `&request=GetFeature` +
-      `&data=LP_PA_CBND_BUBUN` +
-      `&attrFilter=pnu:=:${encodeURIComponent(pnu)}` +
-      `&geometry=true` +
-      `&crs=EPSG:4326` +
-      `&format=json` +
-      `&key=${apiKey}`;
-
+  // 서버에서 단일 토지 상세 정보를 가져오는 함수입니다.
+  const fetchLandDetail = async (landId) => {
     try {
-      // VWorld API에 경계 데이터를 요청합니다.
-      const response = await fetch(url);
+      // landId가 없으면 상세 조회를 하지 않습니다.
+      if (!landId) return null;
 
-      // 응답을 JSON으로 변환합니다.
+      // 서버의 단일 토지 상세 조회 API를 호출합니다.
+      const response = await fetch(`/api/lands/${landId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      // 서버 응답이 실패하면 에러를 발생시킵니다.
+      if (!response.ok) {
+        throw new Error("토지 상세 정보 조회에 실패했습니다.");
+      }
+
+      // 서버 응답 JSON을 파싱합니다.
       const result = await response.json();
 
-      // 응답에서 GeoJSON FeatureCollection을 꺼냅니다.
-      const geojson = result.response?.result?.featureCollection;
-
-      // 경계 데이터가 없으면 null을 반환합니다.
-      if (!geojson?.features?.length) return null;
-
-      // 첫 번째 필지 경계 geometry를 반환합니다.
-      return geojson.features[0].geometry;
+      // 서버 응답의 data만 상세 정보로 사용합니다.
+      return result.data || null;
     } catch (error) {
-      // 경계 조회 실패 원인을 콘솔에 남깁니다.
-      console.error("PNU 기반 토지 경계 조회 실패:", error);
-
-      // 실패 시 null을 반환합니다.
+      // 상세 조회 실패 시 기존 마커 정보를 사용할 수 있도록 null을 반환합니다.
+      console.error("토지 상세 정보 조회 실패:", error);
       return null;
     }
-  };
-
-  // GeoJSON 좌표를 Kakao Polygon path 형식으로 변환합니다.
-  const convertGeoJsonToKakaoPath = (geometry) => {
-    // geometry가 없으면 빈 배열을 반환합니다.
-    if (!geometry) return [];
-
-    // Polygon이면 첫 번째 외곽 링 좌표를 사용합니다.
-    if (geometry.type === "Polygon") {
-      return geometry.coordinates[0].map(
-        ([lon, lat]) => new window.kakao.maps.LatLng(lat, lon)
-      );
-    }
-
-    // MultiPolygon이면 첫 번째 Polygon의 첫 번째 외곽 링 좌표를 사용합니다.
-    if (geometry.type === "MultiPolygon") {
-      return geometry.coordinates[0][0].map(
-        ([lon, lat]) => new window.kakao.maps.LatLng(lat, lon)
-      );
-    }
-
-    // 지원하지 않는 geometry 타입이면 빈 배열을 반환합니다.
-    return [];
-  };
-
-  // 선택된 토지의 PNU를 기준으로 붉은색 경계 레이아웃을 표시합니다.
-  const renderSelectedLandBoundary = async (land) => {
-    // 기존에 표시된 경계 레이아웃을 먼저 제거합니다.
-    clearSelectedLandBoundary();
-
-    // 지도 객체가 없으면 경계를 그릴 수 없으므로 종료합니다.
-    if (!mapInstanceRef.current) return;
-
-    // 선택한 토지의 PNU로 경계 geometry를 조회합니다.
-    const geometry = await fetchLandBoundaryByPnu(land?.pnu);
-
-    // GeoJSON geometry를 Kakao Polygon path로 변환합니다.
-    const path = convertGeoJsonToKakaoPath(geometry);
-
-    // 좌표가 부족하면 Polygon을 만들 수 없으므로 종료합니다.
-    if (path.length < 3) return;
-
-    // 붉은색 토지 경계 Polygon을 생성합니다.
-    const polygon = new window.kakao.maps.Polygon({
-      // Polygon이 표시될 지도입니다.
-      map: mapInstanceRef.current,
-
-      // Polygon 경계 좌표입니다.
-      path,
-
-      // 붉은색 선 두께입니다.
-      strokeWeight: 3,
-
-      // 붉은색 선 색상입니다.
-      strokeColor: "#ff2b2b",
-
-      // 선 투명도입니다.
-      strokeOpacity: 0.95,
-
-      // 실선 스타일입니다.
-      strokeStyle: "solid",
-
-      // 내부 채움 색상입니다.
-      fillColor: "#ff2b2b",
-
-      // 내부 채움 투명도입니다.
-      fillOpacity: 0.22,
-    });
-
-    // 나중에 제거할 수 있도록 Polygon을 ref에 저장합니다.
-    landBoundaryLayerRef.current = polygon;
-
-    // Polygon 전체 영역을 계산하기 위한 bounds를 생성합니다.
-    const bounds = new window.kakao.maps.LatLngBounds();
-
-    // Polygon의 모든 좌표를 bounds에 포함합니다.
-    path.forEach((position) => {
-      bounds.extend(position);
-    });
-
-    // 선택된 토지 경계가 잘 보이도록 지도를 해당 영역으로 이동합니다.
-    mapInstanceRef.current.setBounds(bounds);
   };
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
@@ -442,25 +302,33 @@ function Map() {
         // 기존 인자를 유지하되, Kakao 마커에서는 사용하지 않을 수 있습니다.
         markupImage,
 
-        onMarkerClick: async (land) => {
-          // 클릭된 토지 정보를 미리보기 패널에 표시합니다.
-          setSelectedLand(land);
+        // 위치: renderLandMarkers({ ... }) 안의 onMarkerClick 부분
 
-          // 상세보기 팝업은 마커 변경 시 닫습니다.
+        onMarkerClick: async (land) => {
+          // 마커를 새로 클릭하면 상세보기 팝업은 닫습니다.
           setIsSpecificOpen(false);
 
-          // 클릭된 토지의 PNU를 기준으로 붉은색 경계 레이아웃을 표시합니다.
-          await renderSelectedLandBoundary(land);
+          // 서버에서 landId 기준 단일 상세 정보를 조회합니다.
+          const landDetail = await fetchLandDetail(land.id);
+
+          // 상세 API 정보와 마커 좌표 정보를 합쳐 미리보기에 전달합니다.
+          setSelectedLand({
+            ...land,
+            ...(landDetail || {}),
+            position: land.position,
+            lat: land.lat,
+            lon: land.lon,
+          });
         },
 
         // 마커 렌더링 후 현재 지도 레벨에 맞춰 표시 상태를 갱신합니다.
         onAfterRender: () =>
           updateLandLayerByZoom({
+            // Kakao 지도 객체 ref입니다.
             mapRef: mapInstanceRef,
+
+            // Kakao 마커 목록 ref입니다.
             markerLayerRef: landMarkerLayerRef,
-            boundaryLayerRef: landBoundaryLayerRef,
-            groupLayerRef: landGroupLayerRef,
-            displayDataRef: landDisplayDataRef,
           }),
       });
     } catch (error) {
