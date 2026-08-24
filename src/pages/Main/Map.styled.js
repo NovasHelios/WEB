@@ -127,12 +127,8 @@ export const FilterRangeLabels = styled.div`
   font-weight: 800;
 `;
 
-// 상세 토지 패널을 지도 위에 띄우기 위한 기준 영역입니다.
+// 상세 토지 패널 컴포넌트를 렌더링하기 위한 래퍼입니다.
 export const DetailPanelArea = styled.div`
-  position: absolute;
-  top: 72px;
-  left: 16px;
-  z-index: 25;
-  width: 0;
-  height: 0;
+  position: relative;
+  z-index: 35;
 `;
