@@ -233,63 +233,91 @@ export const getLatestLand = (lands) => {
   return [...lands].sort((a, b) => Number(b.id) - Number(a.id))[0];
 };
 
-// 가격/면적 텍스트까지 포함한 하나의 마커 이미지를 canvas로 생성
-export const createLandMarkerImage = ({ priceText, areaText }) => {
+// 가격/면적 텍스트를 markup.png 마커 디자인 위에 얹어서 canvas 이미지로 생성합니다.
+export const createLandMarkerImage = ({ priceText, areaText, markupImage }) => {
+  // 마커 배경 이미지가 아직 없으면 기존 방식 대신 빈 값을 반환하지 않도록 방어합니다.
+  if (!markupImage) return "";
+
+  // 마커 이미지를 그릴 canvas를 생성합니다.
   const canvas = document.createElement("canvas");
 
-  // 원본 디자인 기준 크기
-  const baseWidth = 160;
-  const baseHeight = 120;
+  // markup.png 원본 크기 기준으로 canvas 크기를 맞춥니다.
+  const markerWidth = 90;
+  const markerHeight = 56;
 
-  // 실제 화면에 보일 축소 비율
-  const markerScale = 0.65;
-
-  // 선명도 보정
+  // 고해상도 화면에서도 선명하게 보이도록 배율을 적용합니다.
   const pixelRatio = 2;
 
-  canvas.width = baseWidth * markerScale * pixelRatio;
-  canvas.height = baseHeight * markerScale * pixelRatio;
+  // canvas 실제 픽셀 크기를 설정합니다.
+  canvas.width = markerWidth * pixelRatio;
+  canvas.height = markerHeight * pixelRatio;
 
+  // canvas에 그릴 2D context를 가져옵니다.
   const ctx = canvas.getContext("2d");
 
-  // 핵심: 캔버스를 줄이는 게 아니라, 그리는 내용 전체를 축소
-  ctx.scale(markerScale * pixelRatio, markerScale * pixelRatio);
+  // 이후 그리는 요소들이 CSS 기준 크기처럼 동작하도록 배율을 적용합니다.
+  ctx.scale(pixelRatio, pixelRatio);
 
-  // 주황색 배경
-  ctx.fillStyle = "#ffab03";
-  ctx.beginPath();
-  ctx.roundRect(20, 8, 120, 74, 8);
-  ctx.fill();
+  // 마커 배경 이미지를 불러오기 위한 Image 객체를 생성합니다.
+  const markerBackground = new Image();
 
-  // 아래 삼각형
-  ctx.beginPath();
-  ctx.moveTo(68, 82);
-  ctx.lineTo(92, 82);
-  ctx.lineTo(80, 106);
-  ctx.closePath();
-  ctx.fill();
+  // Vite가 변환한 이미지 URL을 배경 이미지 src로 지정합니다.
+  markerBackground.src = markupImage;
 
-  // 가격 텍스트
-  ctx.fillStyle = "#000000";
-  ctx.font = "900 22px sans-serif";
+  // 이미지가 이미 캐시에 로드된 경우를 대비해 즉시 그릴 수 있는지 확인합니다.
+  if (markerBackground.complete) {
+    // 로드된 markup.png 배경을 canvas 전체에 그립니다.
+    ctx.drawImage(markerBackground, 0, 0, markerWidth, markerHeight);
+  } else {
+    // 이미지가 아직 로드되지 않은 첫 렌더링에서는 같은 디자인의 검은 마커 배경을 임시로 그립니다.
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.roundRect(0, 0, markerWidth, 42, 6);
+    ctx.fill();
+
+    // 말풍선 아래 삼각형을 임시로 그립니다.
+    ctx.beginPath();
+    ctx.moveTo(36, 42);
+    ctx.lineTo(54, 42);
+    ctx.lineTo(45, 56);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 가격 텍스트 색상을 흰색으로 설정합니다.
+  ctx.fillStyle = "#ffffff";
+
+  // 가격 텍스트를 2번 디자인 크기에 맞게 작게 표시합니다.
+  ctx.font = "900 13px sans-serif";
+
+  // 텍스트를 마커 중앙 기준으로 정렬합니다.
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(priceText, 80, 34);
 
-  // 검은 면적 박스
-  ctx.fillStyle = "#000000";
+  // 텍스트의 세로 기준을 중앙으로 맞춥니다.
+  ctx.textBaseline = "middle";
+
+  // 가격 텍스트를 상단 영역에 표시합니다.
+  ctx.fillText(priceText, markerWidth / 2, 16);
+
+  // 가격과 면적 사이의 구분선을 그립니다.
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.roundRect(34, 50, 92, 26, 5);
-  ctx.fill();
+  ctx.moveTo(22, 25);
+  ctx.lineTo(68, 25);
   ctx.stroke();
 
-  // 면적 텍스트
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 16px sans-serif";
-  ctx.fillText(areaText, 80, 64);
+  // 이후 텍스트는 다시 불투명하게 표시합니다.
+  ctx.globalAlpha = 1;
 
+  // 면적 텍스트를 2번 디자인 크기에 맞게 작게 표시합니다.
+  ctx.font = "900 12px sans-serif";
+
+  // 면적 텍스트를 하단 영역에 표시합니다.
+  ctx.fillText(areaText, markerWidth / 2, 34);
+
+  // Kakao MarkerImage에서 사용할 data URL을 반환합니다.
   return canvas.toDataURL();
 };
 
@@ -322,10 +350,11 @@ export const createLandFeature = (land) => {
   // 서버에서 받은 m² 값을 평으로 변환
   const areaPyeong = Math.round(Number(land.area) / 3.3058);
 
-  // 가격과 평수를 포함한 마커 이미지를 캔버스로 생성
+  // OpenLayers 경로에서는 외부 이미지가 없을 수 있으므로 기본 캔버스 fallback으로 처리합니다.
   const markerImage = createLandMarkerImage({
     priceText: formatPrice(land.desiredPrice),
     areaText: `${areaPyeong}평`,
+    markupImage: null,
   });
 
   // 생성한 이미지 마커를 Feature 스타일로 적용
@@ -444,7 +473,6 @@ export const renderNearbyLandGroups = ({ lands, groupLayerRef }) => {
   });
 };
 
-// 등록된 토지 목록을 Kakao 마커로 지도에 표시합니다.
 export const renderLandMarkers = async ({
   // Kakao 지도 객체를 담은 ref입니다.
   mapRef,
@@ -460,6 +488,9 @@ export const renderLandMarkers = async ({
 
   // 주소를 위도/경도로 바꾸는 함수입니다.
   geocodeAddress,
+
+  // 마커 배경으로 사용할 markup.png 이미지입니다.
+  markupImage,
 
   // 마커 클릭 시 실행할 함수입니다.
   onMarkerClick,
@@ -518,19 +549,31 @@ export const renderLandMarkers = async ({
 
   // 좌표 변환이 끝난 토지를 Kakao 마커로 표시합니다.
   displayLands.forEach((land) => {
-    // 가격과 면적이 들어간 기존 canvas 마커 이미지를 생성합니다.
+    // markup.png 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
     const markerImageUrl = createLandMarkerImage({
       priceText: formatPrice(land.desiredPrice),
       areaText: `${Math.round(Number(land.area) / 3.3058)}평`,
+      markupImage,
     });
 
-    // Kakao 마커 이미지 크기를 설정합니다.
-    const imageSize = new window.kakao.maps.Size(78, 58);
+    // 화면에 표시될 마커 전체 너비입니다.
+    const markerDisplayWidth = 80;
 
-    // Kakao 마커 이미지 옵션을 설정합니다.
+    // 화면에 표시될 마커 전체 높이입니다.
+    const markerDisplayHeight = 56;
+
+    // Kakao 지도에서 실제로 보일 마커 크기를 설정합니다.
+    const imageSize = new window.kakao.maps.Size(
+      markerDisplayWidth,
+      markerDisplayHeight
+    );
+
+    // 마커 이미지의 하단 중앙이 실제 좌표에 닿도록 기준점을 설정합니다.
     const imageOption = {
-      // 마커의 하단 중앙이 좌표에 닿도록 기준점을 설정합니다.
-      offset: new window.kakao.maps.Point(39, 58),
+      offset: new window.kakao.maps.Point(
+        markerDisplayWidth / 2,
+        markerDisplayHeight
+      ),
     };
 
     // Kakao 마커 이미지를 생성합니다.

@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import SpecificLand from "@/components/ui/SpecificLand/SpecificLand";
-// 지도 화면에 필요한 styled 컴포넌트를 가져옵니다.
 import {
   MapPage,
   MapContainer,
   NavBarArea,
   FilterArea,
-  FilterButton,
+  FilterToggleButton,
+  FilterPanel,
+  FilterTabs,
+  FilterTab,
+  FilterRangeGroup,
+  FilterRangeLine,
+  FilterRangeHandle,
+  FilterRangeLabels,
   DetailPanelArea,
 } from "./Map.styled";
 import markupImage from "@/images/markup.png";
+import filterIcon from "@/images/filter.png";
 import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
 
-function MainMap() {
+function Map() {
   // VWorld 지도가 렌더링될 DOM 요소를 참조하기 위한 ref
   const mapElementRef = useRef(null);
 
@@ -38,6 +45,9 @@ function MainMap() {
 
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
+
+  // 필터 패널이 열려 있는지 저장하는 state입니다.
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
@@ -593,13 +603,81 @@ function MainMap() {
         />
       </NavBarArea>
 
-      {/* 아직 기능이 연결되지 않은 필터 버튼은 화면 디자인만 표시합니다. */}
+      {/* 필터 버튼과 필터 패널은 현재 화면 디자인만 표시합니다. */}
       <FilterArea>
-        <FilterButton type="button" $active>
-          필터
-        </FilterButton>
+        {/* 필터 패널을 열고 닫는 아이콘 버튼입니다. */}
+        <FilterToggleButton
+          type="button"
+          aria-label="필터"
+          onClick={() => {
+            // 현재 열림 상태를 반대로 바꿔 필터 패널을 토글합니다.
+            setIsFilterOpen((prev) => !prev);
+          }}
+        >
+          {/* 이미지 폴더에 추가된 필터 아이콘을 표시합니다. */}
+          <img src={filterIcon} alt="" />
+        </FilterToggleButton>
 
-        <FilterButton type="button">필터</FilterButton>
+        {/* 필터가 열린 상태일 때만 옵션 패널을 표시합니다. */}
+        {isFilterOpen && (
+          <FilterPanel>
+            {/* 거래 유형 선택 탭입니다. */}
+            <FilterTabs>
+              <FilterTab type="button">전체</FilterTab>
+              <FilterTab type="button">매매</FilterTab>
+              <FilterTab type="button">임대</FilterTab>
+              <FilterTab type="button">사업희망</FilterTab>
+            </FilterTabs>
+
+            {/* 가격 범위 필터입니다. */}
+            <FilterRangeGroup>
+              <FilterRangeLine>
+                <FilterRangeHandle $side="left" />
+                <FilterRangeHandle $side="right" />
+              </FilterRangeLine>
+
+              <FilterRangeLabels>
+                <span>~1000만</span>
+                <span>5000만</span>
+                <span>1억</span>
+                <span>5억</span>
+                <span>최대</span>
+              </FilterRangeLabels>
+            </FilterRangeGroup>
+
+            {/* 임대료 범위 필터입니다. */}
+            <FilterRangeGroup>
+              <FilterRangeLine>
+                <FilterRangeHandle $side="left" />
+                <FilterRangeHandle $side="right" />
+              </FilterRangeLine>
+
+              <FilterRangeLabels>
+                <span>~100만</span>
+                <span>200만</span>
+                <span>300만</span>
+                <span>400만</span>
+                <span>최대</span>
+              </FilterRangeLabels>
+            </FilterRangeGroup>
+
+            {/* 면적 범위 필터입니다. */}
+            <FilterRangeGroup>
+              <FilterRangeLine>
+                <FilterRangeHandle $side="left" />
+                <FilterRangeHandle $side="right" />
+              </FilterRangeLine>
+
+              <FilterRangeLabels>
+                <span>~100m²</span>
+                <span>500m²</span>
+                <span>1000m²</span>
+                <span>5000m²</span>
+                <span>최대</span>
+              </FilterRangeLabels>
+            </FilterRangeGroup>
+          </FilterPanel>
+        )}
       </FilterArea>
 
       {/* 마커 클릭 시 표시되는 특정 토지 상세 패널입니다. */}
@@ -616,4 +694,4 @@ function MainMap() {
   );
 }
 
-export default MainMap;
+export default Map;

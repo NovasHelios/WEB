@@ -9,6 +9,7 @@ import {
   Heart,
   Handshake,
   Map,
+  MessageSquare,
   Mountain,
   Search,
   Settings,
@@ -183,6 +184,15 @@ const NavBar = ({
 
         {/* 메뉴와 설정 영역을 나누는 구분선입니다. */}
         <div className="h-9 w-px bg-[#d8cfba]" />
+
+        {/* 채팅 버튼은 화면 디자인만 유지합니다. */}
+        <button
+          type="button"
+          className="flex h-9 w-9 items-center justify-center"
+          aria-label="채팅"
+        >
+          <MessageSquare className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
+        </button>
 
         {/* 설정 버튼은 화면 디자인만 유지합니다. */}
         <button
