@@ -29,7 +29,7 @@ import {
   ThumbButton,
   ThumbnailGrid,
   ThumbnailImage,
-} from "./SpecificLand.styled";
+} from "./Preview.styeld";
 
 // API 서버 기본 주소를 안전하게 정리합니다.
 const normalizeBaseUrl = (value) => {
@@ -131,7 +131,8 @@ const formatArea = (value) => {
   return `${numberValue.toLocaleString()} ㎡ (약 ${pyeong}평)`;
 };
 
-function SpecificLand({ land, onClose }) {
+// 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
+function Preview({ land, onClose, onOpenSpecific }) {
   // 선택된 토지가 없으면 상세 패널을 렌더링하지 않습니다.
   if (!land) return null;
 
@@ -313,7 +314,10 @@ function SpecificLand({ land, onClose }) {
           관심 등록
         </BookmarkButton>
 
-        <ContactButton type="button">상세 보기</ContactButton>
+        {/* 상세보기 팝업을 여는 버튼입니다. */}
+        <ContactButton type="button" onClick={onOpenSpecific}>
+          상세 보기
+        </ContactButton>
 
         <ContactButton type="button">채팅 하기</ContactButton>
       </ActionBar>
@@ -321,4 +325,4 @@ function SpecificLand({ land, onClose }) {
   );
 }
 
-export default SpecificLand;
+export default Preview;

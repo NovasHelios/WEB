@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
-import SpecificLand from "@/components/ui/SpecificLand/SpecificLand";
+import Preview from "@/components/ui/PreviewComponent/Preview";
+import Specific from "@/components/ui/SpecificPopUp/Specific";
 import {
   MapPage,
   MapContainer,
@@ -48,6 +49,9 @@ function Map() {
 
   // 필터 패널이 열려 있는지 저장하는 state입니다.
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // 상세보기 팝업이 열려 있는지 저장하는 state입니다.
+  const [isSpecificOpen, setIsSpecificOpen] = useState(false);
 
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
@@ -109,6 +113,18 @@ function Map() {
           groupLayerRef: landGroupLayerRef,
           displayDataRef: landDisplayDataRef,
         });
+      });
+
+      // 지도 빈 곳을 클릭하면 선택된 토지 상태를 초기화합니다.
+      window.kakao.maps.event.addListener(map, "click", () => {
+        // 선택된 토지를 비워 미리보기 패널을 닫습니다.
+        setSelectedLand(null);
+
+        // 상세보기 팝업도 닫습니다.
+        setIsSpecificOpen(false);
+
+        // 지도 위 붉은색 경계 레이아웃을 제거합니다.
+        clearSelectedLandBoundary();
       });
 
       // 지도 초기화가 끝났음을 반환합니다.
@@ -253,6 +269,151 @@ function Map() {
     });
   };
 
+  // 현재 지도 위에 표시된 붉은색 토지 경계 레이아웃을 제거합니다.
+  const clearSelectedLandBoundary = () => {
+    // 기존 Kakao Polygon이 없으면 제거할 것이 없으므로 종료합니다.
+    if (!landBoundaryLayerRef.current) return;
+
+    // 기존 Polygon을 지도에서 제거합니다.
+    landBoundaryLayerRef.current.setMap(null);
+
+    // ref에 남아 있는 Polygon 참조를 비웁니다.
+    landBoundaryLayerRef.current = null;
+  };
+
+  // PNU를 기준으로 VWorld에서 토지 경계 좌표를 조회합니다.
+  const fetchLandBoundaryByPnu = async (pnu) => {
+    // PNU가 없으면 경계 조회를 할 수 없으므로 null을 반환합니다.
+    if (!pnu) return null;
+
+    // VWorld API 키를 환경변수에서 가져옵니다.
+    const apiKey = import.meta.env.VITE_VWORLD_API_KEY;
+
+    // API 키가 없으면 경계 조회를 할 수 없으므로 null을 반환합니다.
+    if (!apiKey) {
+      console.error(
+        "VWorld API 키가 없습니다. VITE_VWORLD_API_KEY를 확인하세요."
+      );
+      return null;
+    }
+
+    // PNU로 지적도 경계 데이터를 조회하는 VWorld API URL입니다.
+    const url =
+      `/vworld-api/req/data?service=data` +
+      `&request=GetFeature` +
+      `&data=LP_PA_CBND_BUBUN` +
+      `&attrFilter=pnu:=:${encodeURIComponent(pnu)}` +
+      `&geometry=true` +
+      `&crs=EPSG:4326` +
+      `&format=json` +
+      `&key=${apiKey}`;
+
+    try {
+      // VWorld API에 경계 데이터를 요청합니다.
+      const response = await fetch(url);
+
+      // 응답을 JSON으로 변환합니다.
+      const result = await response.json();
+
+      // 응답에서 GeoJSON FeatureCollection을 꺼냅니다.
+      const geojson = result.response?.result?.featureCollection;
+
+      // 경계 데이터가 없으면 null을 반환합니다.
+      if (!geojson?.features?.length) return null;
+
+      // 첫 번째 필지 경계 geometry를 반환합니다.
+      return geojson.features[0].geometry;
+    } catch (error) {
+      // 경계 조회 실패 원인을 콘솔에 남깁니다.
+      console.error("PNU 기반 토지 경계 조회 실패:", error);
+
+      // 실패 시 null을 반환합니다.
+      return null;
+    }
+  };
+
+  // GeoJSON 좌표를 Kakao Polygon path 형식으로 변환합니다.
+  const convertGeoJsonToKakaoPath = (geometry) => {
+    // geometry가 없으면 빈 배열을 반환합니다.
+    if (!geometry) return [];
+
+    // Polygon이면 첫 번째 외곽 링 좌표를 사용합니다.
+    if (geometry.type === "Polygon") {
+      return geometry.coordinates[0].map(
+        ([lon, lat]) => new window.kakao.maps.LatLng(lat, lon)
+      );
+    }
+
+    // MultiPolygon이면 첫 번째 Polygon의 첫 번째 외곽 링 좌표를 사용합니다.
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates[0][0].map(
+        ([lon, lat]) => new window.kakao.maps.LatLng(lat, lon)
+      );
+    }
+
+    // 지원하지 않는 geometry 타입이면 빈 배열을 반환합니다.
+    return [];
+  };
+
+  // 선택된 토지의 PNU를 기준으로 붉은색 경계 레이아웃을 표시합니다.
+  const renderSelectedLandBoundary = async (land) => {
+    // 기존에 표시된 경계 레이아웃을 먼저 제거합니다.
+    clearSelectedLandBoundary();
+
+    // 지도 객체가 없으면 경계를 그릴 수 없으므로 종료합니다.
+    if (!mapInstanceRef.current) return;
+
+    // 선택한 토지의 PNU로 경계 geometry를 조회합니다.
+    const geometry = await fetchLandBoundaryByPnu(land?.pnu);
+
+    // GeoJSON geometry를 Kakao Polygon path로 변환합니다.
+    const path = convertGeoJsonToKakaoPath(geometry);
+
+    // 좌표가 부족하면 Polygon을 만들 수 없으므로 종료합니다.
+    if (path.length < 3) return;
+
+    // 붉은색 토지 경계 Polygon을 생성합니다.
+    const polygon = new window.kakao.maps.Polygon({
+      // Polygon이 표시될 지도입니다.
+      map: mapInstanceRef.current,
+
+      // Polygon 경계 좌표입니다.
+      path,
+
+      // 붉은색 선 두께입니다.
+      strokeWeight: 3,
+
+      // 붉은색 선 색상입니다.
+      strokeColor: "#ff2b2b",
+
+      // 선 투명도입니다.
+      strokeOpacity: 0.95,
+
+      // 실선 스타일입니다.
+      strokeStyle: "solid",
+
+      // 내부 채움 색상입니다.
+      fillColor: "#ff2b2b",
+
+      // 내부 채움 투명도입니다.
+      fillOpacity: 0.22,
+    });
+
+    // 나중에 제거할 수 있도록 Polygon을 ref에 저장합니다.
+    landBoundaryLayerRef.current = polygon;
+
+    // Polygon 전체 영역을 계산하기 위한 bounds를 생성합니다.
+    const bounds = new window.kakao.maps.LatLngBounds();
+
+    // Polygon의 모든 좌표를 bounds에 포함합니다.
+    path.forEach((position) => {
+      bounds.extend(position);
+    });
+
+    // 선택된 토지 경계가 잘 보이도록 지도를 해당 영역으로 이동합니다.
+    mapInstanceRef.current.setBounds(bounds);
+  };
+
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
     try {
@@ -281,9 +442,15 @@ function Map() {
         // 기존 인자를 유지하되, Kakao 마커에서는 사용하지 않을 수 있습니다.
         markupImage,
 
-        // 마커 클릭 시 상세 패널에 보여줄 토지를 저장합니다.
-        onMarkerClick: (land) => {
+        onMarkerClick: async (land) => {
+          // 클릭된 토지 정보를 미리보기 패널에 표시합니다.
           setSelectedLand(land);
+
+          // 상세보기 팝업은 마커 변경 시 닫습니다.
+          setIsSpecificOpen(false);
+
+          // 클릭된 토지의 PNU를 기준으로 붉은색 경계 레이아웃을 표시합니다.
+          await renderSelectedLandBoundary(land);
         },
 
         // 마커 렌더링 후 현재 지도 레벨에 맞춰 표시 상태를 갱신합니다.
@@ -490,13 +657,31 @@ function Map() {
 
       {/* 마커 클릭 시 표시되는 특정 토지 상세 패널입니다. */}
       <DetailPanelArea>
-        <SpecificLand
+        <Preview
           land={selectedLand}
           onClose={() => {
-            // 선택된 토지를 비워 상세 패널을 닫습니다.
+            // 선택된 토지를 비워 미리보기 패널을 닫습니다.
             setSelectedLand(null);
+
+            // 미리보기 패널이 닫히면 상세보기 팝업도 함께 닫습니다.
+            setIsSpecificOpen(false);
+          }}
+          onOpenSpecific={() => {
+            // 상세보기 팝업을 엽니다.
+            setIsSpecificOpen(true);
           }}
         />
+
+        {/* 상세보기 팝업이 열렸을 때 표시합니다. */}
+        {isSpecificOpen && (
+          <Specific
+            land={selectedLand}
+            onClose={() => {
+              // 상세보기 팝업을 닫습니다.
+              setIsSpecificOpen(false);
+            }}
+          />
+        )}
       </DetailPanelArea>
     </MapPage>
   );
