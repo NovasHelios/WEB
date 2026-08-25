@@ -27,9 +27,6 @@ function Map() {
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
 
-  // 서버에서 받은 전체 토지 목록을 저장하는 ref입니다.
-  const allLandsRef = useRef([]);
-
   // 현재 지도에 적용된 필터 조건을 저장하는 state입니다.
   const [appliedFilters, setAppliedFilters] = useState({
     // 거래 유형 필터입니다.
@@ -251,71 +248,6 @@ function Map() {
     });
   };
 
-  // 현재 지도 위에 표시된 붉은색 토지 경계 레이아웃을 제거합니다.
-  const clearSelectedLandBoundary = () => {
-    // 기존 Kakao Polygon이 없으면 제거할 것이 없으므로 종료합니다.
-    if (!landBoundaryLayerRef.current) return;
-
-    // 기존 Polygon을 지도에서 제거합니다.
-    landBoundaryLayerRef.current.setMap(null);
-
-    // ref에 남아 있는 Polygon 참조를 비웁니다.
-    landBoundaryLayerRef.current = null;
-  };
-
-  // 서버에서 받은 토지 목록에 현재 필터 조건을 적용하는 함수입니다.
-  const filterLands = (lands, filters) => {
-    // 토지 목록이 배열이 아니면 빈 배열을 반환합니다.
-    if (!Array.isArray(lands)) return [];
-
-    // 모든 조건을 만족하는 토지만 남깁니다.
-    return lands.filter((land) => {
-      // 거래 유형 조건을 확인합니다.
-      const isTransactionMatched =
-        filters.transactionType === "ALL" ||
-        land.transactionType === filters.transactionType;
-
-      // 지역 조건을 확인합니다.
-      const isRegionMatched =
-        !filters.region || land.address?.includes(filters.region);
-
-      // 매매가 숫자 값을 가져옵니다.
-      const salePrice = Number(land.desiredPrice || 0);
-
-      // 매매가 조건을 확인합니다.
-      const isSaleMatched =
-        (filters.salePrice.min === null ||
-          salePrice >= filters.salePrice.min) &&
-        (filters.salePrice.max === null || salePrice <= filters.salePrice.max);
-
-      // 임대가 숫자 값을 가져옵니다.
-      const rentPrice = Number(land.rentPrice || land.leasePrice || 0);
-
-      // 임대가 조건을 확인합니다.
-      const isRentMatched =
-        (filters.rentPrice.min === null ||
-          rentPrice >= filters.rentPrice.min) &&
-        (filters.rentPrice.max === null || rentPrice <= filters.rentPrice.max);
-
-      // 토지 면적 숫자 값을 가져옵니다.
-      const area = Number(land.area || 0);
-
-      // 토지 면적 조건을 확인합니다.
-      const isAreaMatched =
-        (filters.area.min === null || area >= filters.area.min) &&
-        (filters.area.max === null || area <= filters.area.max);
-
-      // 모든 조건을 만족하는 토지만 표시합니다.
-      return (
-        isTransactionMatched &&
-        isRegionMatched &&
-        isSaleMatched &&
-        isRentMatched &&
-        isAreaMatched
-      );
-    });
-  };
-
   // 서버에서 단일 토지 상세 정보를 가져오는 함수입니다.
   const fetchLandDetail = async (landId) => {
     try {
@@ -356,18 +288,12 @@ function Map() {
       // 서버 응답 구조에서 실제 토지 배열만 꺼냅니다.
       const lands = result.data || [];
 
-      // 서버에서 받은 전체 토지 목록을 저장합니다.
-      allLandsRef.current = lands;
-
-      // 현재 적용된 필터 조건으로 표시할 토지만 추립니다.
-      const filteredLands = filterLands(lands, appliedFilters);
-
       await renderLandMarkers({
         // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
         mapRef: mapInstanceRef,
 
         // 등록된 토지 목록입니다.
-        lands: filteredLands,
+        lands,
 
         // Kakao 마커 목록을 저장할 ref입니다.
         markerLayerRef: landMarkerLayerRef,
@@ -415,43 +341,88 @@ function Map() {
     }
   };
 
-  // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 실행하는 함수입니다.
+  // 필터 조건을 백엔드에 전달할 query string으로 변환합니다.
+  const createLandFilterQuery = (filters) => {
+    // URL query parameter를 만들기 위한 객체입니다.
+    const params = new URLSearchParams();
+
+    // 거래 유형 조건을 추가합니다.
+    if (filters.transactionType && filters.transactionType !== "ALL") {
+      params.append("transactionType", filters.transactionType);
+    }
+
+    // 지역 조건을 추가합니다.
+    if (filters.region) {
+      params.append("region", filters.region);
+    }
+
+    // 매매가 최소 조건을 추가합니다.
+    if (filters.salePrice.min !== null) {
+      params.append("salePriceMin", filters.salePrice.min);
+    }
+
+    // 매매가 최대 조건을 추가합니다.
+    if (filters.salePrice.max !== null) {
+      params.append("salePriceMax", filters.salePrice.max);
+    }
+
+    // 임대가 최소 조건을 추가합니다.
+    if (filters.rentPrice.min !== null) {
+      params.append("rentPriceMin", filters.rentPrice.min);
+    }
+
+    // 임대가 최대 조건을 추가합니다.
+    if (filters.rentPrice.max !== null) {
+      params.append("rentPriceMax", filters.rentPrice.max);
+    }
+
+    // 토지 면적 최소 조건을 추가합니다.
+    if (filters.area.min !== null) {
+      params.append("areaMin", filters.area.min);
+    }
+
+    // 토지 면적 최대 조건을 추가합니다.
+    if (filters.area.max !== null) {
+      params.append("areaMax", filters.area.max);
+    }
+
+    // 완성된 query string을 반환합니다.
+    return params.toString();
+  };
+
+  // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
   const handleApplyFilters = async (nextFilters) => {
     // 새 필터 조건을 state에 저장합니다.
     setAppliedFilters(nextFilters);
 
-    // 이미 받아둔 전체 토지 목록에 새 필터 조건을 적용합니다.
-    const filteredLands = filterLands(allLandsRef.current, nextFilters);
+    // 필터 조건을 query string으로 변환합니다.
+    const queryString = createLandFilterQuery(nextFilters);
 
-    // 필터링된 토지만 지도 마커로 다시 렌더링합니다.
+    // 필터 조건이 있으면 query string을 붙이고, 없으면 전체 목록을 요청합니다.
+    const requestUrl = queryString ? `/api/lands?${queryString}` : "/api/lands";
+
+    // 백엔드에서 필터링된 토지 목록을 조회합니다.
+    const response = await fetch(requestUrl);
+
+    // 서버 응답을 JSON으로 변환합니다.
+    const result = await response.json();
+
+    // 서버에서 받은 토지 목록만 사용합니다.
+    const lands = result.data || [];
+
+    // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
     await renderLandMarkers({
-      // Kakao 지도 객체 ref입니다.
       mapRef: mapInstanceRef,
-
-      // 필터링된 토지 목록입니다.
-      lands: filteredLands,
-
-      // Kakao 마커 목록 ref입니다.
+      lands,
       markerLayerRef: landMarkerLayerRef,
-
-      // 지도 표시 데이터 ref입니다.
       displayDataRef: landDisplayDataRef,
-
-      // 주소를 좌표로 변환하는 함수입니다.
       geocodeAddress,
-
-      // 마커 이미지입니다.
       markupImage,
-
-      // 마커 클릭 시 상세 정보를 불러오는 함수입니다.
       onMarkerClick: async (land) => {
-        // 상세보기 팝업을 닫습니다.
         setIsSpecificOpen(false);
 
-        // 서버에서 단일 상세 정보를 가져옵니다.
         const landDetail = await fetchLandDetail(land.id);
 
-        // 상세 API 정보와 지도 좌표 정보를 합칩니다.
         setSelectedLand({
           ...land,
           ...(landDetail || {}),
@@ -460,8 +431,6 @@ function Map() {
           lon: land.lon,
         });
       },
-
-      // 마커 렌더링 후 줌 레벨에 맞춰 표시 상태를 갱신합니다.
       onAfterRender: () =>
         updateLandLayerByZoom({
           mapRef: mapInstanceRef,

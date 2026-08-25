@@ -235,6 +235,18 @@ export const DirectInputBox = styled.input`
   color: #111111;
   font-size: 16px;
   font-weight: 600;
+
+  // Chrome, Safari, Edge에서 number input 스피너를 제거합니다.
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  // Firefox에서 number input 스피너를 제거합니다.
+  &[type="number"] {
+    appearance: textfield;
+  }
 `;
 
 // 지역 선택 경로 텍스트입니다.
@@ -268,4 +280,85 @@ export const RegionButton = styled.button`
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+`;
+
+// 직접 입력 팝업 뒤쪽을 어둡게 덮는 배경입니다.
+export const DirectInputBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// 직접 입력 팝업 박스입니다.
+export const DirectInputModal = styled.div`
+  width: 760px;
+  padding: 10px 20px 20px;
+  border-radius: 8px;
+  background: #ffffff;
+`;
+
+// 직접 입력 팝업 상단 제목 영역입니다.
+export const DirectInputHeader = styled.div`
+  position: relative;
+  height: 34px;
+  color: #111111;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+`;
+
+// 직접 입력 팝업 제목입니다.
+export const DirectInputTitle = styled.span`
+  line-height: 28px;
+`;
+
+// 직접 입력 input들을 가로로 배치하는 영역입니다.
+export const DirectInputFields = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  margin: 10px 0 28px;
+`;
+
+// 직접 입력 숫자 input과 단위 텍스트를 묶는 영역입니다.
+export const DirectInputGroup = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  input {
+    padding-right: 54px;
+  }
+`;
+
+// 직접 입력 단위 텍스트입니다.
+export const DirectInputUnit = styled.span`
+  position: absolute;
+  top: 15px;
+  right: 18px;
+  color: #111111;
+  font-size: 15px;
+  font-weight: 700;
+`;
+
+// 직접 입력값 아래 읽기용 금액 문구입니다.
+export const DirectInputHint = styled.span`
+  min-height: 20px;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 500;
+`;
+
+// 직접 입력 에러 메시지입니다.
+export const DirectInputError = styled.p`
+  margin: -12px 0 18px;
+  color: #ff3030;
+  font-size: 15px;
+  font-weight: 700;
 `;

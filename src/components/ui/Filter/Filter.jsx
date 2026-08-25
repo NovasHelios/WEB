@@ -21,11 +21,23 @@ import {
   RangeInput,
   RangeLabels,
   ActionRow,
-  DirectInputRow,
   DirectInputBox,
   RegionPath,
   RegionGrid,
   RegionButton,
+  // 직접 입력 팝업 스타일 컴포넌트입니다.
+  DirectInputBackdrop,
+  DirectInputModal,
+  DirectInputHeader,
+  DirectInputTitle,
+  DirectInputFields,
+  DirectInputUnit,
+  // 직접 입력 숫자 input과 단위 select를 묶는 박스입니다.
+  DirectInputGroup,
+  // 직접 입력값 아래 읽기용 금액 문구입니다.
+  DirectInputHint,
+  // 직접 입력 에러 메시지입니다.
+  DirectInputError,
 } from "./Filter.styled";
 
 // 거래 유형 옵션입니다.
@@ -97,6 +109,7 @@ const formatMoneyRangeLabel = (range, defaultMin, defaultMax) => {
   return `${formatMoneyLabel(minValue)} ~ ${formatMoneyLabel(maxValue)}`;
 };
 
+
 // 숫자 면적을 필터 표시 문구로 변환합니다.
 const formatAreaLabel = (value) => {
   // 값이 없으면 전체로 표시합니다.
@@ -116,6 +129,9 @@ function Filter({ filters, onApplyFilters }) {
 
   // 직접 입력 모드로 열린 필터 이름을 저장합니다.
   const [directInputTarget, setDirectInputTarget] = useState(null);
+
+  // 직접 입력 검증 에러 메시지를 저장합니다.
+  const [directInputError, setDirectInputError] = useState("");
 
   // 필터 버튼 클릭 시 열고 닫는 함수입니다.
   const handleToggleFilter = (filterName) => {
@@ -197,20 +213,254 @@ function Filter({ filters, onApplyFilters }) {
     });
   };
 
+  // 직접 입력 숫자와 단위를 원 단위 값으로 변환합니다.
+  const convertDirectInputToWon = (value, unit) => {
+    // 값이 없으면 조건 없음으로 처리합니다.
+    if (value === null || value === "") return null;
+
+    // 입력값을 숫자로 변환합니다.
+    const numberValue = Number(value);
+
+    // 숫자가 아니거나 음수이면 조건 없음으로 처리합니다.
+    if (Number.isNaN(numberValue) || numberValue < 0) return null;
+
+    // 억 단위 입력이면 원 단위로 변환합니다.
+    if (unit === "EOK") return numberValue * 100000000;
+
+    // 만원 단위 입력이면 원 단위로 변환합니다.
+    return numberValue * 10000;
+  };
+
+  // 만원 단위 입력값을 원 단위 값으로 변환합니다.
+  const convertManToWon = (value) => {
+    // 값이 없으면 조건 없음으로 처리합니다.
+    if (value === null || value === "") return null;
+
+    // 입력값을 숫자로 변환합니다.
+    const numberValue = Number(value);
+
+    // 숫자가 아니거나 음수이면 조건 없음으로 처리합니다.
+    if (Number.isNaN(numberValue) || numberValue < 0) return null;
+
+    // 만원 단위를 원 단위로 변환합니다.
+    return numberValue * 10000;
+  };
+
+  // 숫자 입력값을 1,000 형태로 표시합니다.
+  const formatNumberInput = (value) => {
+    // 값이 없으면 빈 문자열로 표시합니다.
+    if (value === null || value === undefined || value === "") return "";
+
+    // 숫자만 남긴 뒤 3자리마다 콤마를 추가합니다.
+    return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  // 콤마가 포함된 입력값에서 숫자만 추출합니다.
+  const parseNumberInput = (value) => {
+    // 입력값에서 숫자가 아닌 문자를 제거합니다.
+    return value.replace(/[^\d]/g, "");
+  };
+
+  // 원 단위 값을 만원 단위 입력값으로 변환합니다.
+  const convertWonToMan = (value) => {
+    // 값이 없으면 빈 입력값으로 표시합니다.
+    if (value === null || value === undefined) return "";
+
+    // 원 단위를 만원 단위로 변환합니다.
+    return value / 10000;
+  };
+
+  // 직접 입력값 아래에 보여줄 읽기용 금액 문구를 만듭니다.
+  const formatDirectMoneyHint = (value) => {
+    // 값이 없으면 안내 문구를 숨깁니다.
+    if (value === null || value === undefined) return "";
+
+    // 원 단위를 만원 단위로 변환합니다.
+    const manValue = Math.floor(value / 10000);
+
+    // 억 단위와 남은 만원 단위를 계산합니다.
+    const eokValue = Math.floor(manValue / 10000);
+    const remainManValue = manValue % 10000;
+
+    // 1억 이상이고 남은 만원이 있으면 억과 만을 함께 표시합니다.
+    if (eokValue > 0 && remainManValue > 0) {
+      return `${eokValue}억 ${remainManValue.toLocaleString()}만`;
+    }
+
+    // 1억 이상이면 억 단위만 표시합니다.
+    if (eokValue > 0) return `${eokValue}억`;
+
+    // 1억 미만이면 만원 단위로 표시합니다.
+    return `${manValue.toLocaleString()}만`;
+  };
+
   // 직접 입력 값을 변경합니다.
   const handleChangeDirectInput = (filterKey, side, value) => {
-    // 빈 값이면 조건 없음으로 처리합니다.
-    const nextValue = value === "" ? null : Number(value);
+    // 콤마가 포함된 입력값에서 숫자만 추출합니다.
+    const onlyNumberValue = parseNumberInput(value);
 
-    // 직접 입력 값을 임시 필터에 반영합니다.
+    // 입력값이 비어 있으면 조건 없음으로 처리합니다.
+    if (onlyNumberValue === "") {
+      setDraftFilters((prev) => ({
+        ...prev,
+        [filterKey]: {
+          ...prev[filterKey],
+          [side]: null,
+        },
+      }));
+
+      return;
+    }
+
+    // 입력값을 숫자로 변환합니다.
+    const numberValue = Number(onlyNumberValue);
+
+    // 숫자가 아니거나 음수이면 값을 반영하지 않습니다.
+    if (Number.isNaN(numberValue) || numberValue < 0) return;
+
+    // 가격 필터는 만원 단위 입력값을 원 단위로 변환합니다.
+    const wonValue =
+      directInputConfig?.unit === "원"
+        ? convertManToWon(numberValue)
+        : numberValue;
+
+    // 변환된 값을 임시 필터에 저장합니다.
     setDraftFilters((prev) => ({
       ...prev,
       [filterKey]: {
         ...prev[filterKey],
-        [side]: nextValue,
+        [side]: wonValue,
       },
     }));
   };
+
+  // 직접 입력으로 넣은 값을 슬라이더의 최소/최대 범위 안으로 보정합니다.
+  const normalizeDirectInputRange = (range, minValue, maxValue) => {
+    // 최소값이 비어 있으면 null로 유지하고, 있으면 슬라이더 범위 안으로 제한합니다.
+    const nextMin =
+      range.min === null
+        ? null
+        : Math.min(Math.max(range.min, minValue), maxValue);
+
+    // 최대값이 비어 있으면 null로 유지하고, 있으면 슬라이더 범위 안으로 제한합니다.
+    const nextMax =
+      range.max === null
+        ? null
+        : Math.min(Math.max(range.max, minValue), maxValue);
+
+    // 최소값과 최대값이 둘 다 있고 최소값이 더 크면 최대값을 최소값에 맞춥니다.
+    if (nextMin !== null && nextMax !== null && nextMin > nextMax) {
+      return {
+        min: nextMin,
+        max: nextMin,
+      };
+    }
+
+    // 보정된 범위를 반환합니다.
+    return {
+      min: nextMin,
+      max: nextMax,
+    };
+  };
+
+  // 직접 입력 팝업의 적용 버튼을 눌렀을 때 필터 패널에만 값을 반영합니다.
+  const handleApplyDirectInput = () => {
+    // 직접 입력 설정이 없으면 실행하지 않습니다.
+    if (!directInputConfig) return;
+
+    // 현재 직접 입력 대상 필터 이름을 가져옵니다.
+    const filterKey = directInputConfig.filterKey;
+
+    // 현재 입력된 범위를 가져옵니다.
+    const currentRange = draftFilters[filterKey];
+
+    // 최소값이 최대값보다 크면 에러 메시지를 보여주고 적용하지 않습니다.
+    if (
+      currentRange.min !== null &&
+      currentRange.max !== null &&
+      currentRange.min > currentRange.max
+    ) {
+      setDirectInputError("최대 금액보다 작아야 합니다.");
+      return;
+    }
+
+    // 에러 메시지를 초기화합니다.
+    setDirectInputError("");
+
+    // 직접 입력 팝업만 닫고, 실제 백엔드 적용은 저장 버튼에서만 합니다.
+    setDirectInputTarget(null);
+  };
+
+  // 직접 입력창에서 포커스가 빠질 때 필터별 최소값보다 작으면 최소값으로 보정합니다.
+  const handleBlurDirectInput = (filterKey, side) => {
+    // 현재 직접 입력 대상의 최소 허용값을 가져옵니다.
+    const minValue = directInputConfig?.minValue ?? 0;
+
+    // 입력값이 최소값보다 작으면 최소값으로 보정합니다.
+    setDraftFilters((prev) => {
+      const currentValue = prev[filterKey][side];
+
+      // 값이 비어 있으면 그대로 둡니다.
+      if (currentValue === null) return prev;
+
+      return {
+        ...prev,
+        [filterKey]: {
+          ...prev[filterKey],
+          [side]: Math.max(currentValue, minValue),
+        },
+      };
+    });
+  };
+
+  // 현재 직접 입력 대상에 맞는 설정값을 반환합니다.
+  const getDirectInputConfig = () => {
+    // 매매가 직접 입력 설정입니다.
+    if (directInputTarget === "sale") {
+      return {
+        title: "매매가",
+        filterKey: "salePrice",
+        unit: "원",
+
+        // 매매가 직접 입력 최소값입니다.
+        minValue: 10000000,
+        // 매매가 슬라이더 최대값입니다.
+        maxValue: 1000000000,
+      };
+    }
+
+    // 임대가 직접 입력 설정입니다.
+    if (directInputTarget === "rent") {
+      return {
+        title: "임대가",
+        filterKey: "rentPrice",
+        unit: "원",
+
+        // 임대가 직접 입력 최소값입니다.
+        minValue: 1000000,
+        // 임대가 슬라이더 최대값입니다.
+        maxValue: 5000000,
+      };
+    }
+
+    // 토지 넓이 직접 입력 설정입니다.
+    if (directInputTarget === "area") {
+      return {
+        title: "토지 넓이",
+        filterKey: "area",
+        unit: "㎡",
+
+        // 토지 넓이 직접 입력 최소값입니다.
+        minValue: 1,
+      };
+    }
+
+    // 직접 입력 대상이 없으면 null을 반환합니다.
+    return null;
+  };
+
+  // 현재 열려 있는 직접 입력 팝업 설정입니다.
+  const directInputConfig = getDirectInputConfig();
 
   return (
     <FilterWrap>
@@ -347,11 +597,8 @@ function Filter({ filters, onApplyFilters }) {
             </RangeTrack>
 
             <RangeLabels>
-              <span>~1000만</span>
-              <span>5000만</span>
-              <span>1억</span>
-              <span>5억</span>
-              <span>최대</span>
+              <span>1000만</span>
+              <span>10억</span>
             </RangeLabels>
           </RangeBlock>
 
@@ -391,9 +638,9 @@ function Filter({ filters, onApplyFilters }) {
                 // 최대 임대가 핸들입니다.
                 type="range"
                 min="1000000"
-                max="5000000"
+                max="10000000"
                 step="100000"
-                value={draftFilters.rentPrice.max ?? 5000000}
+                value={draftFilters.rentPrice.max ?? 10000000}
                 onChange={(event) =>
                   handleChangeRange("rentPrice", "max", event.target.value)
                 }
@@ -401,73 +648,10 @@ function Filter({ filters, onApplyFilters }) {
             </RangeTrack>
 
             <RangeLabels>
-              <span>~100만</span>
-              <span>200만</span>
-              <span>300만</span>
-              <span>400만</span>
-              <span>최대</span>
+              <span>100만</span>
+              <span>1000만</span>
             </RangeLabels>
           </RangeBlock>
-
-          {directInputTarget === "sale" && (
-            <DirectInputRow>
-              <DirectInputBox
-                type="number"
-                placeholder="최소"
-                value={draftFilters.salePrice.min ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput(
-                    "salePrice",
-                    "min",
-                    event.target.value
-                  )
-                }
-              />
-              <span>~</span>
-              <DirectInputBox
-                type="number"
-                placeholder="최대"
-                value={draftFilters.salePrice.max ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput(
-                    "salePrice",
-                    "max",
-                    event.target.value
-                  )
-                }
-              />
-            </DirectInputRow>
-          )}
-
-          {directInputTarget === "rent" && (
-            <DirectInputRow>
-              <DirectInputBox
-                type="number"
-                placeholder="최소"
-                value={draftFilters.rentPrice.min ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput(
-                    "rentPrice",
-                    "min",
-                    event.target.value
-                  )
-                }
-              />
-              <span>~</span>
-              <DirectInputBox
-                type="number"
-                placeholder="최대"
-                value={draftFilters.rentPrice.max ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput(
-                    "rentPrice",
-                    "max",
-                    event.target.value
-                  )
-                }
-              />
-            </DirectInputRow>
-          )}
 
           <ActionRow>
             <ApplyButton type="button" onClick={handleApply}>
@@ -508,7 +692,7 @@ function Filter({ filters, onApplyFilters }) {
             <RangeTrack>
               <RangeInput
                 type="range"
-                min="100"
+                min="1"
                 max="5000"
                 step="100"
                 value={draftFilters.area.min ?? 100}
@@ -518,7 +702,7 @@ function Filter({ filters, onApplyFilters }) {
               />
               <RangeInput
                 type="range"
-                min="100"
+                min="1"
                 max="5000"
                 step="100"
                 value={draftFilters.area.max ?? 5000}
@@ -529,35 +713,13 @@ function Filter({ filters, onApplyFilters }) {
             </RangeTrack>
 
             <RangeLabels>
-              <span>~100㎡</span>
+              <span>~1㎡</span>
               <span>500㎡</span>
               <span>1000㎡</span>
               <span>5000㎡</span>
               <span>최대</span>
             </RangeLabels>
           </RangeBlock>
-
-          {directInputTarget === "area" && (
-            <DirectInputRow>
-              <DirectInputBox
-                type="number"
-                placeholder="최소"
-                value={draftFilters.area.min ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput("area", "min", event.target.value)
-                }
-              />
-              <span>~</span>
-              <DirectInputBox
-                type="number"
-                placeholder="최대"
-                value={draftFilters.area.max ?? ""}
-                onChange={(event) =>
-                  handleChangeDirectInput("area", "max", event.target.value)
-                }
-              />
-            </DirectInputRow>
-          )}
 
           <ActionRow>
             <ApplyButton type="button" onClick={handleApply}>
@@ -571,6 +733,129 @@ function Filter({ filters, onApplyFilters }) {
             </ApplyButton>
           </ActionRow>
         </DropdownPanel>
+      )}
+
+      {/* 직접 입력 버튼을 눌렀을 때 화면을 어둡게 덮는 팝업입니다. */}
+      {directInputConfig && (
+        <DirectInputBackdrop>
+          <DirectInputModal>
+            <DirectInputHeader>
+              <DirectInputTitle>{directInputConfig.title}</DirectInputTitle>
+
+              <CloseButton
+                type="button"
+                onClick={() => setDirectInputTarget(null)}
+              >
+                <X size={18} />
+              </CloseButton>
+            </DirectInputHeader>
+
+            <DirectInputFields>
+              <DirectInputGroup>
+                <DirectInputBox
+                  type="text"
+                  inputMode="numeric"
+                  min={directInputConfig.minValue}
+                  placeholder="최소"
+                  value={
+                    directInputConfig.unit === "원"
+                      ? formatNumberInput(
+                          convertWonToMan(
+                            draftFilters[directInputConfig.filterKey].min
+                          )
+                        )
+                      : formatNumberInput(
+                          draftFilters[directInputConfig.filterKey].min
+                        )
+                  }
+                  onChange={(event) =>
+                    handleChangeDirectInput(
+                      directInputConfig.filterKey,
+                      "min",
+                      event.target.value
+                    )
+                  }
+                  onBlur={() =>
+                    handleBlurDirectInput(directInputConfig.filterKey, "min")
+                  }
+                />
+
+                {/* 가격 직접 입력에서는 만원 단위로 고정 표시합니다. */}
+                <DirectInputUnit>
+                  {directInputConfig.unit === "원"
+                    ? "만"
+                    : directInputConfig.unit}
+                </DirectInputUnit>
+
+                {/* 가격 직접 입력값을 읽기 좋은 억/만 단위로 표시합니다. */}
+                {directInputConfig.unit === "원" && (
+                  <DirectInputHint>
+                    {formatDirectMoneyHint(
+                      draftFilters[directInputConfig.filterKey].min
+                    )}
+                  </DirectInputHint>
+                )}
+              </DirectInputGroup>
+
+              <span>~</span>
+
+              <DirectInputGroup>
+                <DirectInputBox
+                  type="text"
+                  inputMode="numeric"
+                  min={directInputConfig.minValue}
+                  placeholder="최대"
+                  value={
+                    directInputConfig.unit === "원"
+                      ? formatNumberInput(
+                          convertWonToMan(
+                            draftFilters[directInputConfig.filterKey].max
+                          )
+                        )
+                      : formatNumberInput(
+                          draftFilters[directInputConfig.filterKey].max
+                        )
+                  }
+                  onChange={(event) =>
+                    handleChangeDirectInput(
+                      directInputConfig.filterKey,
+                      "max",
+                      event.target.value
+                    )
+                  }
+                  onBlur={() =>
+                    handleBlurDirectInput(directInputConfig.filterKey, "max")
+                  }
+                />
+
+                {/* 가격 직접 입력에서는 만원 단위로 고정 표시합니다. */}
+                <DirectInputUnit>
+                  {directInputConfig.unit === "원"
+                    ? "만"
+                    : directInputConfig.unit}
+                </DirectInputUnit>
+
+                {/* 가격 직접 입력값을 읽기 좋은 억/만 단위로 표시합니다. */}
+                {directInputConfig.unit === "원" && (
+                  <DirectInputHint>
+                    {formatDirectMoneyHint(
+                      draftFilters[directInputConfig.filterKey].max
+                    )}
+                  </DirectInputHint>
+                )}
+              </DirectInputGroup>
+            </DirectInputFields>
+
+            {/* 직접 입력값 검증 에러 메시지입니다. */}
+            {directInputError && (
+              <DirectInputError>{directInputError}</DirectInputError>
+            )}
+
+            <ApplyButton type="button" onClick={handleApplyDirectInput}>
+              적용
+            </ApplyButton>
+          </DirectInputModal>
+        </DirectInputBackdrop>
       )}
     </FilterWrap>
   );
