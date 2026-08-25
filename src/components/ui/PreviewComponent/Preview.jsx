@@ -264,16 +264,16 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
           <InfoRow>
             <span>총 면적</span>
-            <strong>{formatArea(land.lndpclAr ?? land.area)}</strong>
+            <strong>{formatArea(land.area)}</strong>
           </InfoRow>
 
           <InfoRow>
-            <span>도로 접면</span>
-            <strong>{land.roadAccess || "세로한면(가)"}</strong>
+            <span>거래 방식</span>
+            <strong>{transactionType}</strong>
           </InfoRow>
 
           <InfoRow>
-            <span>매매가</span>
+            <span>희망가</span>
             <PriceValue>{formatPrice(land.desiredPrice)}</PriceValue>
           </InfoRow>
         </InfoCard>

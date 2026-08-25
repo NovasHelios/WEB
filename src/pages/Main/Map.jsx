@@ -2,23 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
+// 지도 필터 UI 컴포넌트를 가져옵니다.
+import Filter from "@/components/ui/Filter/Filter";
 import {
   MapPage,
   MapContainer,
   NavBarArea,
   FilterArea,
-  FilterToggleButton,
-  FilterPanel,
-  FilterTabs,
-  FilterTab,
-  FilterRangeGroup,
-  FilterRangeLine,
-  FilterRangeHandle,
-  FilterRangeLabels,
   DetailPanelArea,
 } from "./Map.styled";
 import markupImage from "@/images/markup.png";
-import filterIcon from "@/images/filter.png";
 import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
 
 function Map() {
@@ -34,14 +27,41 @@ function Map() {
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
 
+  // 서버에서 받은 전체 토지 목록을 저장하는 ref입니다.
+  const allLandsRef = useRef([]);
+
+  // 현재 지도에 적용된 필터 조건을 저장하는 state입니다.
+  const [appliedFilters, setAppliedFilters] = useState({
+    // 거래 유형 필터입니다.
+    transactionType: "ALL",
+
+    // 지역 선택 필터입니다.
+    region: "",
+
+    // 매매가 범위 필터입니다.
+    salePrice: {
+      min: null,
+      max: null,
+    },
+
+    // 임대가 범위 필터입니다.
+    rentPrice: {
+      min: null,
+      max: null,
+    },
+
+    // 토지 면적 범위 필터입니다.
+    area: {
+      min: null,
+      max: null,
+    },
+  });
+
   // 검색창에 입력한 주소 값을 저장하는 state
   const [keyword, setKeyword] = useState("");
 
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
-
-  // 필터 패널이 열려 있는지 저장하는 state입니다.
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // 상세보기 팝업이 열려 있는지 저장하는 state입니다.
   const [isSpecificOpen, setIsSpecificOpen] = useState(false);
@@ -243,6 +263,59 @@ function Map() {
     landBoundaryLayerRef.current = null;
   };
 
+  // 서버에서 받은 토지 목록에 현재 필터 조건을 적용하는 함수입니다.
+  const filterLands = (lands, filters) => {
+    // 토지 목록이 배열이 아니면 빈 배열을 반환합니다.
+    if (!Array.isArray(lands)) return [];
+
+    // 모든 조건을 만족하는 토지만 남깁니다.
+    return lands.filter((land) => {
+      // 거래 유형 조건을 확인합니다.
+      const isTransactionMatched =
+        filters.transactionType === "ALL" ||
+        land.transactionType === filters.transactionType;
+
+      // 지역 조건을 확인합니다.
+      const isRegionMatched =
+        !filters.region || land.address?.includes(filters.region);
+
+      // 매매가 숫자 값을 가져옵니다.
+      const salePrice = Number(land.desiredPrice || 0);
+
+      // 매매가 조건을 확인합니다.
+      const isSaleMatched =
+        (filters.salePrice.min === null ||
+          salePrice >= filters.salePrice.min) &&
+        (filters.salePrice.max === null || salePrice <= filters.salePrice.max);
+
+      // 임대가 숫자 값을 가져옵니다.
+      const rentPrice = Number(land.rentPrice || land.leasePrice || 0);
+
+      // 임대가 조건을 확인합니다.
+      const isRentMatched =
+        (filters.rentPrice.min === null ||
+          rentPrice >= filters.rentPrice.min) &&
+        (filters.rentPrice.max === null || rentPrice <= filters.rentPrice.max);
+
+      // 토지 면적 숫자 값을 가져옵니다.
+      const area = Number(land.area || 0);
+
+      // 토지 면적 조건을 확인합니다.
+      const isAreaMatched =
+        (filters.area.min === null || area >= filters.area.min) &&
+        (filters.area.max === null || area <= filters.area.max);
+
+      // 모든 조건을 만족하는 토지만 표시합니다.
+      return (
+        isTransactionMatched &&
+        isRegionMatched &&
+        isSaleMatched &&
+        isRentMatched &&
+        isAreaMatched
+      );
+    });
+  };
+
   // 서버에서 단일 토지 상세 정보를 가져오는 함수입니다.
   const fetchLandDetail = async (landId) => {
     try {
@@ -280,15 +353,21 @@ function Map() {
       const response = await fetch("/api/lands");
       const result = await response.json();
 
-      // 서버 응답 구조에서 실제 토지 배열만 꺼냄
+      // 서버 응답 구조에서 실제 토지 배열만 꺼냅니다.
       const lands = result.data || [];
+
+      // 서버에서 받은 전체 토지 목록을 저장합니다.
+      allLandsRef.current = lands;
+
+      // 현재 적용된 필터 조건으로 표시할 토지만 추립니다.
+      const filteredLands = filterLands(lands, appliedFilters);
 
       await renderLandMarkers({
         // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
         mapRef: mapInstanceRef,
 
         // 등록된 토지 목록입니다.
-        lands,
+        lands: filteredLands,
 
         // Kakao 마커 목록을 저장할 ref입니다.
         markerLayerRef: landMarkerLayerRef,
@@ -334,6 +413,61 @@ function Map() {
     } catch (error) {
       console.error("등록된 토지 목록 조회 실패:", error);
     }
+  };
+
+  // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 실행하는 함수입니다.
+  const handleApplyFilters = async (nextFilters) => {
+    // 새 필터 조건을 state에 저장합니다.
+    setAppliedFilters(nextFilters);
+
+    // 이미 받아둔 전체 토지 목록에 새 필터 조건을 적용합니다.
+    const filteredLands = filterLands(allLandsRef.current, nextFilters);
+
+    // 필터링된 토지만 지도 마커로 다시 렌더링합니다.
+    await renderLandMarkers({
+      // Kakao 지도 객체 ref입니다.
+      mapRef: mapInstanceRef,
+
+      // 필터링된 토지 목록입니다.
+      lands: filteredLands,
+
+      // Kakao 마커 목록 ref입니다.
+      markerLayerRef: landMarkerLayerRef,
+
+      // 지도 표시 데이터 ref입니다.
+      displayDataRef: landDisplayDataRef,
+
+      // 주소를 좌표로 변환하는 함수입니다.
+      geocodeAddress,
+
+      // 마커 이미지입니다.
+      markupImage,
+
+      // 마커 클릭 시 상세 정보를 불러오는 함수입니다.
+      onMarkerClick: async (land) => {
+        // 상세보기 팝업을 닫습니다.
+        setIsSpecificOpen(false);
+
+        // 서버에서 단일 상세 정보를 가져옵니다.
+        const landDetail = await fetchLandDetail(land.id);
+
+        // 상세 API 정보와 지도 좌표 정보를 합칩니다.
+        setSelectedLand({
+          ...land,
+          ...(landDetail || {}),
+          position: land.position,
+          lat: land.lat,
+          lon: land.lon,
+        });
+      },
+
+      // 마커 렌더링 후 줌 레벨에 맞춰 표시 상태를 갱신합니다.
+      onAfterRender: () =>
+        updateLandLayerByZoom({
+          mapRef: mapInstanceRef,
+          markerLayerRef: landMarkerLayerRef,
+        }),
+    });
   };
 
   // === 주소 검색 함수 ===
@@ -446,81 +580,14 @@ function Map() {
         />
       </NavBarArea>
 
-      {/* 필터 버튼과 필터 패널은 현재 화면 디자인만 표시합니다. */}
+      {/* 지도 위 필터 컴포넌트 영역입니다. */}
       <FilterArea>
-        {/* 필터 패널을 열고 닫는 아이콘 버튼입니다. */}
-        <FilterToggleButton
-          type="button"
-          aria-label="필터"
-          onClick={() => {
-            // 현재 열림 상태를 반대로 바꿔 필터 패널을 토글합니다.
-            setIsFilterOpen((prev) => !prev);
-          }}
-        >
-          {/* 이미지 폴더에 추가된 필터 아이콘을 표시합니다. */}
-          <img src={filterIcon} alt="" />
-        </FilterToggleButton>
-
-        {/* 필터가 열린 상태일 때만 옵션 패널을 표시합니다. */}
-        {isFilterOpen && (
-          <FilterPanel>
-            {/* 거래 유형 선택 탭입니다. */}
-            <FilterTabs>
-              <FilterTab type="button">전체</FilterTab>
-              <FilterTab type="button">매매</FilterTab>
-              <FilterTab type="button">임대</FilterTab>
-              <FilterTab type="button">사업희망</FilterTab>
-            </FilterTabs>
-
-            {/* 가격 범위 필터입니다. */}
-            <FilterRangeGroup>
-              <FilterRangeLine>
-                <FilterRangeHandle $side="left" />
-                <FilterRangeHandle $side="right" />
-              </FilterRangeLine>
-
-              <FilterRangeLabels>
-                <span>~1000만</span>
-                <span>5000만</span>
-                <span>1억</span>
-                <span>5억</span>
-                <span>최대</span>
-              </FilterRangeLabels>
-            </FilterRangeGroup>
-
-            {/* 임대료 범위 필터입니다. */}
-            <FilterRangeGroup>
-              <FilterRangeLine>
-                <FilterRangeHandle $side="left" />
-                <FilterRangeHandle $side="right" />
-              </FilterRangeLine>
-
-              <FilterRangeLabels>
-                <span>~100만</span>
-                <span>200만</span>
-                <span>300만</span>
-                <span>400만</span>
-                <span>최대</span>
-              </FilterRangeLabels>
-            </FilterRangeGroup>
-
-            {/* 면적 범위 필터입니다. */}
-            <FilterRangeGroup>
-              <FilterRangeLine>
-                <FilterRangeHandle $side="left" />
-                <FilterRangeHandle $side="right" />
-              </FilterRangeLine>
-
-              <FilterRangeLabels>
-                <span>~100m²</span>
-                <span>500m²</span>
-                <span>1000m²</span>
-                <span>5000m²</span>
-                <span>최대</span>
-              </FilterRangeLabels>
-            </FilterRangeGroup>
-          </FilterPanel>
-        )}
+        <Filter
+          // 현재 적용된 필터 조건입니다.
+          filters={appliedFilters}
+          // 필터 적용 시 실행할 함수입니다.
+          onApplyFilters={handleApplyFilters}
+        />
       </FilterArea>
 
       {/* 마커 클릭 시 표시되는 특정 토지 상세 패널입니다. */}
