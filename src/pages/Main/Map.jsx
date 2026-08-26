@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
+import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 // 지도 필터 UI 컴포넌트를 가져옵니다.
 import Filter from "@/components/ui/Filter/Filter";
 import {

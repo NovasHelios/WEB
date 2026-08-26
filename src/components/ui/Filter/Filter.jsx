@@ -1,13 +1,13 @@
 // 필터 내부 상태를 관리하기 위한 React 훅입니다.
 import { useState } from "react";
 
-// 필터 버튼 아이콘으로 사용할 아이콘입니다.
-import { ChevronDown, Pencil, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 
 // 필터 UI 스타일 컴포넌트입니다.
 import {
   FilterWrap,
   FilterButton,
+  FilterItem,
   DropdownPanel,
   DropdownHeader,
   CloseButton,
@@ -77,6 +77,30 @@ const seoulRegions = [
   "영등포구",
 ];
 
+// 드래그 범위 필터별 최소값, 최대값, 이동 단위입니다.
+const rangeConfig = {
+    // 매매가는 1000만원부터 10억원까지 1000만원 단위로 움직입니다.
+    salePrice: {
+      min: 10000000,
+      max: 1000000000,
+      step: 10000000,
+    },
+
+    // 임대가는 100만원부터 1000만원까지 10만원 단위로 움직입니다.
+    rentPrice: {
+      min: 1000000,
+      max: 10000000,
+      step: 100000,
+    },
+
+    // 면적은 0㎡부터 5000㎡까지 100㎡ 단위로 움직입니다.
+    area: {
+      min: 0,
+      max: 500,
+      step: 10,
+    },
+};
+
 // 숫자 가격을 필터 표시 문구로 변환합니다.
 const formatMoneyLabel = (value) => {
   // 값이 없으면 전체로 표시합니다.
@@ -109,6 +133,20 @@ const formatMoneyRangeLabel = (range, defaultMin, defaultMax) => {
   return `${formatMoneyLabel(minValue)} ~ ${formatMoneyLabel(maxValue)}`;
 };
 
+// 면적 범위 표시 문구를 생성합니다.
+const formatAreaRangeLabel = (range, defaultMin, defaultMax) => {
+  // 최소값이 없으면 기본 최소값을 사용합니다.
+  const minValue = range.min ?? defaultMin;
+
+  // 최대값이 없으면 기본 최대값을 사용합니다.
+  const maxValue = range.max ?? defaultMax;
+
+  // 양끝 기본값이면 전체로 표시합니다.
+  if (minValue === defaultMin && maxValue === defaultMax) return "전체";
+
+  // 하나라도 움직였으면 숫자 범위로 표시합니다.
+  return `${formatAreaLabel(minValue)} ~ ${formatAreaLabel(maxValue)}`;
+};
 
 // 숫자 면적을 필터 표시 문구로 변환합니다.
 const formatAreaLabel = (value) => {
@@ -180,55 +218,52 @@ function Filter({ filters, onApplyFilters }) {
     // range input 문자열을 숫자로 변환합니다.
     const numberValue = Number(value);
 
+    // 현재 필터의 범위 설정을 가져옵니다.
+    const config = rangeConfig[filterKey];
+
+    // 범위 설정이 없으면 실행하지 않습니다.
+    if (!config) return;
+
     // 선택한 범위 값을 변경합니다.
     setDraftFilters((prev) => {
       // 기존 범위 값을 가져옵니다.
       const currentRange = prev[filterKey];
 
-      // 최소값 변경 시 최대값을 넘지 않도록 보정합니다.
+      // 현재 최대값이 없으면 필터 기본 최대값을 사용합니다.
+      const currentMax = currentRange.max ?? config.max;
+
+      // 현재 최소값이 없으면 필터 기본 최소값을 사용합니다.
+      const currentMin = currentRange.min ?? config.min;
+
+      // 최소 핸들은 최대 핸들보다 최소 1 step 앞까지만 이동할 수 있습니다.
       if (side === "min") {
+        // 최소값이 넘어갈 수 있는 최대 위치입니다.
+        const maxAllowedMin = currentMax - config.step;
+
         return {
           ...prev,
           [filterKey]: {
             ...currentRange,
-            min:
-              currentRange.max !== null
-                ? Math.min(numberValue, currentRange.max)
-                : numberValue,
+
+            // 최소값은 기본 최소값보다 작아질 수 없고, 최대값과 겹치거나 넘어갈 수 없습니다.
+            min: Math.min(Math.max(numberValue, config.min), maxAllowedMin),
           },
         };
       }
 
-      // 최대값 변경 시 최소값보다 작아지지 않도록 보정합니다.
+      // 최대 핸들은 최소 핸들보다 최소 1 step 뒤까지만 이동할 수 있습니다.
+      const minAllowedMax = currentMin + config.step;
+
       return {
         ...prev,
         [filterKey]: {
           ...currentRange,
-          max:
-            currentRange.min !== null
-              ? Math.max(numberValue, currentRange.min)
-              : numberValue,
+
+          // 최대값은 기본 최대값보다 커질 수 없고, 최소값과 겹치거나 뒤로 갈 수 없습니다.
+          max: Math.max(Math.min(numberValue, config.max), minAllowedMax),
         },
       };
     });
-  };
-
-  // 직접 입력 숫자와 단위를 원 단위 값으로 변환합니다.
-  const convertDirectInputToWon = (value, unit) => {
-    // 값이 없으면 조건 없음으로 처리합니다.
-    if (value === null || value === "") return null;
-
-    // 입력값을 숫자로 변환합니다.
-    const numberValue = Number(value);
-
-    // 숫자가 아니거나 음수이면 조건 없음으로 처리합니다.
-    if (Number.isNaN(numberValue) || numberValue < 0) return null;
-
-    // 억 단위 입력이면 원 단위로 변환합니다.
-    if (unit === "EOK") return numberValue * 100000000;
-
-    // 만원 단위 입력이면 원 단위로 변환합니다.
-    return numberValue * 10000;
   };
 
   // 만원 단위 입력값을 원 단위 값으로 변환합니다.
@@ -296,6 +331,9 @@ function Filter({ filters, onApplyFilters }) {
 
   // 직접 입력 값을 변경합니다.
   const handleChangeDirectInput = (filterKey, side, value) => {
+    // 입력을 다시 시작하면 기존 에러 메시지를 숨깁니다.
+    setDirectInputError("");
+
     // 콤마가 포함된 입력값에서 숫자만 추출합니다.
     const onlyNumberValue = parseNumberInput(value);
 
@@ -334,35 +372,6 @@ function Filter({ filters, onApplyFilters }) {
     }));
   };
 
-  // 직접 입력으로 넣은 값을 슬라이더의 최소/최대 범위 안으로 보정합니다.
-  const normalizeDirectInputRange = (range, minValue, maxValue) => {
-    // 최소값이 비어 있으면 null로 유지하고, 있으면 슬라이더 범위 안으로 제한합니다.
-    const nextMin =
-      range.min === null
-        ? null
-        : Math.min(Math.max(range.min, minValue), maxValue);
-
-    // 최대값이 비어 있으면 null로 유지하고, 있으면 슬라이더 범위 안으로 제한합니다.
-    const nextMax =
-      range.max === null
-        ? null
-        : Math.min(Math.max(range.max, minValue), maxValue);
-
-    // 최소값과 최대값이 둘 다 있고 최소값이 더 크면 최대값을 최소값에 맞춥니다.
-    if (nextMin !== null && nextMax !== null && nextMin > nextMax) {
-      return {
-        min: nextMin,
-        max: nextMin,
-      };
-    }
-
-    // 보정된 범위를 반환합니다.
-    return {
-      min: nextMin,
-      max: nextMax,
-    };
-  };
-
   // 직접 입력 팝업의 적용 버튼을 눌렀을 때 필터 패널에만 값을 반영합니다.
   const handleApplyDirectInput = () => {
     // 직접 입력 설정이 없으면 실행하지 않습니다.
@@ -391,12 +400,13 @@ function Filter({ filters, onApplyFilters }) {
     setDirectInputTarget(null);
   };
 
-  // 직접 입력창에서 포커스가 빠질 때 필터별 최소값보다 작으면 최소값으로 보정합니다.
+  // 직접 입력창에서 포커스가 빠질 때 허용 범위 밖의 값을 보정합니다.
   const handleBlurDirectInput = (filterKey, side) => {
-    // 현재 직접 입력 대상의 최소 허용값을 가져옵니다.
+    // 현재 직접 입력 대상의 최소/최대 허용값을 가져옵니다.
     const minValue = directInputConfig?.minValue ?? 0;
+    const maxValue = directInputConfig?.maxValue ?? Infinity;
 
-    // 입력값이 최소값보다 작으면 최소값으로 보정합니다.
+    // 입력값이 허용 범위를 벗어나면 보정합니다.
     setDraftFilters((prev) => {
       const currentValue = prev[filterKey][side];
 
@@ -407,86 +417,146 @@ function Filter({ filters, onApplyFilters }) {
         ...prev,
         [filterKey]: {
           ...prev[filterKey],
-          [side]: Math.max(currentValue, minValue),
+
+          // 최소값보다 작으면 최소값으로, 최대값보다 크면 최대값으로 보정합니다.
+          [side]: Math.min(Math.max(currentValue, minValue), maxValue),
         },
       };
     });
   };
 
-  // 현재 직접 입력 대상에 맞는 설정값을 반환합니다.
-  const getDirectInputConfig = () => {
+  // 직접 입력 대상별 설정값입니다.
+  const directInputConfigs = {
     // 매매가 직접 입력 설정입니다.
-    if (directInputTarget === "sale") {
-      return {
-        title: "매매가",
-        filterKey: "salePrice",
-        unit: "원",
-
-        // 매매가 직접 입력 최소값입니다.
-        minValue: 10000000,
-        // 매매가 슬라이더 최대값입니다.
-        maxValue: 1000000000,
-      };
-    }
+    sale: {
+      title: "매매가",
+      filterKey: "salePrice",
+      unit: "원",
+      minValue: rangeConfig.salePrice.min,
+      maxValue: rangeConfig.salePrice.max,
+    },
 
     // 임대가 직접 입력 설정입니다.
-    if (directInputTarget === "rent") {
-      return {
-        title: "임대가",
-        filterKey: "rentPrice",
-        unit: "원",
+    rent: {
+      title: "임대가",
+      filterKey: "rentPrice",
+      unit: "원",
+      minValue: rangeConfig.rentPrice.min,
+      maxValue: rangeConfig.rentPrice.max,
+    },
 
-        // 임대가 직접 입력 최소값입니다.
-        minValue: 1000000,
-        // 임대가 슬라이더 최대값입니다.
-        maxValue: 5000000,
-      };
-    }
-
-    // 토지 넓이 직접 입력 설정입니다.
-    if (directInputTarget === "area") {
-      return {
-        title: "토지 넓이",
-        filterKey: "area",
-        unit: "㎡",
-
-        // 토지 넓이 직접 입력 최소값입니다.
-        minValue: 1,
-      };
-    }
-
-    // 직접 입력 대상이 없으면 null을 반환합니다.
-    return null;
+    // 면적 직접 입력 설정입니다.
+    area: {
+      title: "면적",
+      filterKey: "area",
+      unit: "㎡",
+      minValue: rangeConfig.area.min,
+      maxValue: rangeConfig.area.max,
+    },
   };
 
   // 현재 열려 있는 직접 입력 팝업 설정입니다.
-  const directInputConfig = getDirectInputConfig();
+  const directInputConfig = directInputTarget
+    ? directInputConfigs[directInputTarget]
+    : null;
 
   return (
     <FilterWrap>
-      {/* 거래 유형 필터 버튼입니다. */}
-      <FilterButton type="button" onClick={() => handleToggleFilter("type")}>
-        거래 유형
-        <ChevronDown size={16} strokeWidth={2.4} />
-      </FilterButton>
+      {/* 거래 유형 필터 묶음입니다. */}
+      <FilterItem>
+        {/* 거래 유형 필터 버튼입니다. */}
+        <FilterButton
+          type="button"
+          $active={activeFilter === "type"}
+          onClick={() => handleToggleFilter("type")}
+        >
+          거래 유형
+          {activeFilter === "type" ? (
+            <ChevronUp size={16} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={16} strokeWidth={2.4} />
+          )}
+        </FilterButton>
 
-      {/* 지역 선택 필터 버튼입니다. */}
-      <FilterButton type="button" onClick={() => handleToggleFilter("region")}>
-        지역 선택
-        <ChevronDown size={16} strokeWidth={2.4} />
-      </FilterButton>
+        {/* 거래 유형 필터 패널입니다. */}
+        {activeFilter === "type" && (
+          <DropdownPanel $width="500px">
+            {/* 기존 거래 유형 패널 내용 그대로 넣기 */}
+          </DropdownPanel>
+        )}
+      </FilterItem>
 
-      {/* 금액 필터 버튼입니다. */}
-      <FilterButton type="button" onClick={() => handleToggleFilter("price")}>
-        금액
-        <ChevronDown size={16} strokeWidth={2.4} />
-      </FilterButton>
+      {/* 지역 선택 필터 묶음입니다. */}
+      <FilterItem>
+        {/* 지역 선택 필터 버튼입니다. */}
+        <FilterButton
+          type="button"
+          $active={activeFilter === "region"}
+          onClick={() => handleToggleFilter("region")}
+        >
+          지역 선택
+          {activeFilter === "region" ? (
+            <ChevronUp size={16} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={16} strokeWidth={2.4} />
+          )}
+        </FilterButton>
 
-      {/* 토지 크기 필터 버튼입니다. */}
-      <FilterButton type="button" onClick={() => handleToggleFilter("area")}>
-        토지 크기
-        <ChevronDown size={16} strokeWidth={2.4} />
-      </FilterButton>
+        {/* 지역 선택 필터 패널입니다. */}
+        {activeFilter === "region" && (
+          <DropdownPanel $width="452px">
+            {/* 기존 지역 선택 패널 내용 그대로 넣기 */}
+          </DropdownPanel>
+        )}
+      </FilterItem>
+
+      {/* 금액 필터 묶음입니다. */}
+      <FilterItem>
+        {/* 금액 필터 버튼입니다. */}
+        <FilterButton
+          type="button"
+          $active={activeFilter === "price"}
+          onClick={() => handleToggleFilter("price")}
+        >
+          금액
+          {activeFilter === "price" ? (
+            <ChevronUp size={16} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={16} strokeWidth={2.4} />
+          )}
+        </FilterButton>
+
+        {/* 금액 필터 패널입니다. */}
+        {activeFilter === "price" && (
+          <DropdownPanel $width="452px">
+            {/* 기존 금액 패널 내용 그대로 넣기 */}
+          </DropdownPanel>
+        )}
+      </FilterItem>
+
+      {/* 면적 필터 묶음입니다. */}
+      <FilterItem>
+        {/* 면적 필터 버튼입니다. */}
+        <FilterButton
+          type="button"
+          $active={activeFilter === "area"}
+          onClick={() => handleToggleFilter("area")}
+        >
+          면적
+          {activeFilter === "area" ? (
+            <ChevronUp size={16} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={16} strokeWidth={2.4} />
+          )}
+        </FilterButton>
+
+        {/* 면적 필터 패널입니다. */}
+        {activeFilter === "area" && (
+          <DropdownPanel $width="452px">
+            {/* 기존 면적 패널 내용 그대로 넣기 */}
+          </DropdownPanel>
+        )}
+      </FilterItem>
 
       {/* 거래 유형 필터 패널입니다. */}
       {activeFilter === "type" && (
@@ -512,7 +582,7 @@ function Filter({ filters, onApplyFilters }) {
           </SegmentedControl>
 
           <ApplyButton type="button" onClick={handleApply}>
-            적용
+            저장
           </ApplyButton>
         </DropdownPanel>
       )}
@@ -538,7 +608,7 @@ function Filter({ filters, onApplyFilters }) {
           </RegionGrid>
 
           <ApplyButton type="button" onClick={handleApply}>
-            적용
+            저장
           </ApplyButton>
         </DropdownPanel>
       )}
@@ -609,7 +679,7 @@ function Filter({ filters, onApplyFilters }) {
                 {formatMoneyRangeLabel(
                   draftFilters.rentPrice,
                   1000000,
-                  5000000
+                  10000000
                 )}
               </RangeValueText>
               <button
@@ -626,7 +696,7 @@ function Filter({ filters, onApplyFilters }) {
                 $isMin
                 type="range"
                 min="1000000"
-                max="5000000"
+                max="10000000"
                 step="100000"
                 value={draftFilters.rentPrice.min ?? 1000000}
                 onChange={(event) =>
@@ -653,15 +723,10 @@ function Filter({ filters, onApplyFilters }) {
             </RangeLabels>
           </RangeBlock>
 
-          <ActionRow>
+          <ActionRow $center>
+            {/* 저장 버튼을 중앙에 배치합니다. */}
             <ApplyButton type="button" onClick={handleApply}>
               저장
-            </ApplyButton>
-            <ApplyButton
-              type="button"
-              onClick={() => setDirectInputTarget("sale")}
-            >
-              가격 직접 입력
             </ApplyButton>
           </ActionRow>
         </DropdownPanel>
@@ -672,14 +737,9 @@ function Filter({ filters, onApplyFilters }) {
         <DropdownPanel $width="452px">
           <RangeBlock>
             <RangeTitleRow>
-              <span>토지 넓이</span>
+              <span>면적</span>
               <RangeValueText>
-                {draftFilters.area.min === null &&
-                draftFilters.area.max === null
-                  ? "전체"
-                  : `${formatAreaLabel(
-                      draftFilters.area.min
-                    )} ~ ${formatAreaLabel(draftFilters.area.max)}`}
+                {formatAreaRangeLabel(draftFilters.area, 0, 500)}
               </RangeValueText>
               <button
                 type="button"
@@ -692,20 +752,20 @@ function Filter({ filters, onApplyFilters }) {
             <RangeTrack>
               <RangeInput
                 type="range"
-                min="1"
-                max="5000"
-                step="100"
-                value={draftFilters.area.min ?? 100}
+                min="0"
+                max="490"
+                step="10"
+                value={draftFilters.area.min ?? 0}
                 onChange={(event) =>
                   handleChangeRange("area", "min", event.target.value)
                 }
               />
               <RangeInput
                 type="range"
-                min="1"
-                max="5000"
-                step="100"
-                value={draftFilters.area.max ?? 5000}
+                min="10"
+                max="500"
+                step="10"
+                value={draftFilters.area.max ?? 500}
                 onChange={(event) =>
                   handleChangeRange("area", "max", event.target.value)
                 }
@@ -713,23 +773,18 @@ function Filter({ filters, onApplyFilters }) {
             </RangeTrack>
 
             <RangeLabels>
-              <span>~1㎡</span>
+              {/* 면적 최소값은 0㎡입니다. */}
+              <span>0㎡</span>
+
+              {/* 면적 표시 최대값은 500㎡입니다. */}
               <span>500㎡</span>
-              <span>1000㎡</span>
-              <span>5000㎡</span>
-              <span>최대</span>
             </RangeLabels>
           </RangeBlock>
 
-          <ActionRow>
+          <ActionRow $center>
+            {/* 저장 버튼을 중앙에 배치합니다. */}
             <ApplyButton type="button" onClick={handleApply}>
               저장
-            </ApplyButton>
-            <ApplyButton
-              type="button"
-              onClick={() => setDirectInputTarget("area")}
-            >
-              가격 직접 입력
             </ApplyButton>
           </ActionRow>
         </DropdownPanel>

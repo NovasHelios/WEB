@@ -6,7 +6,7 @@ export const FilterWrap = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 8px;
 `;
 
 // 지도 위에 표시되는 필터 버튼입니다.
@@ -15,8 +15,8 @@ export const FilterButton = styled.button`
   padding: 0 12px 0 16px;
   border: 2px solid #111111;
   border-radius: 999px;
-  background: #ffffff;
-  color: #111111;
+  background: ${({ $active }) => ($active ? "#111111" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#111111")};
   font-size: 18px;
   font-weight: 800;
   display: inline-flex;
@@ -24,6 +24,12 @@ export const FilterButton = styled.button`
   justify-content: center;
   gap: 4px;
   cursor: pointer;
+`;
+
+// 필터 버튼 하나와 해당 드롭다운 패널을 함께 감싸는 기준 영역입니다.
+export const FilterItem = styled.div`
+  position: relative;
+  display: inline-flex;
 `;
 
 // 필터 버튼 아래에 열리는 드롭다운 패널입니다.
@@ -210,10 +216,16 @@ export const RangeLabels = styled.div`
   font-weight: 600;
 `;
 
-// 하단 버튼 두 개를 배치하는 영역입니다.
+// 하단 버튼을 배치하는 영역입니다.
 export const ActionRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+
+  // 버튼이 하나일 때는 중앙에 고정 폭으로 배치하고, 두 개일 때는 2열로 배치합니다.
+  grid-template-columns: ${({ $center }) => ($center ? "260px" : "1fr 1fr")};
+
+  // 중앙 배치 옵션이 켜진 경우 버튼 영역을 가운데로 보냅니다.
+  justify-content: ${({ $center }) => ($center ? "center" : "stretch")};
+
   gap: 10px;
 `;
 
