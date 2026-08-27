@@ -1,5 +1,4 @@
 import {
-  BellDot,
   Heart,
   HelpCircle,
   Home,

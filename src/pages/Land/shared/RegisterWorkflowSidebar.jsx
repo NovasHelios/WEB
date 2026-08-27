@@ -1,9 +1,6 @@
-import { AlertTriangle, BellDot, HelpCircle, ShieldCheck } from "lucide-react";
-import { RegisterPrimaryButton } from "../shared.styled";
+import { AlertTriangle, HelpCircle, ShieldCheck } from "lucide-react";
 import {
   WorkflowSidebarCard,
-  WorkflowSidebarHelpCard,
-  WorkflowSidebarHelpText,
   WorkflowSidebarInfoCard,
   WorkflowSidebarStepCircle,
   WorkflowSidebarStepCount,

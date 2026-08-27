@@ -4,21 +4,18 @@ import {
   ChevronRight,
   FileText,
   ImagePlus,
-  MapPinned,
   Map as MapIcon,
   FileType,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
 import {
-  PhotosAddressHint,
   PhotosCard,
   PhotosCardHeader,
   PhotosCardLabel,
   PhotosCardRow,
   PhotosCardSubtext,
   PhotosCardTitle,
-  PhotosCountText,
   PhotosDocAction,
   PhotosDocBadge,
   PhotosDocIcon,
@@ -35,26 +32,14 @@ import {
   PhotosDropboxIcon,
   PhotosFooterNote,
   PhotosFooterNoteIcon,
-  PhotosGuideCard,
-  PhotosGuideText,
   PhotosPage,
-  PhotosRightColumn,
   PhotosSection,
-  PhotosSideCard,
-  PhotosSideCardTitle,
-  PhotosStepCircle,
-  PhotosStepDesc,
-  PhotosStepItem,
-  PhotosStepLine,
-  PhotosStepTitle,
-  PhotosStepWrapper,
   PhotosThumb,
   PhotosThumbBadge,
   PhotosThumbGrid,
   PhotosThumbPlaceholder,
   PhotosThumbText,
   PhotosTopShell,
-  PhotosUploadArea,
   PhotosUploadCaption,
 } from "./LandRegisterPhotos.styled";
 import {
@@ -63,13 +48,6 @@ import {
   RegisterSectionDescription as PhotosSectionDescription,
   RegisterSectionTitle as PhotosSectionTitle,
 } from "../shared.styled";
-
-const steps = [
-  { number: "1", title: "주소 입력", description: "주소 입력 및 자동 정보 조회" },
-  { number: "2", title: "자동 정보 확인", description: "자동 조회 정보 확인 및 수정" },
-  { number: "3", title: "상세 정보 입력", description: "거래 정보 및 상세 내용 입력" },
-  { number: "4", title: "사진 및 서류", description: "현장 사진 및 증명서류 업로드", active: true },
-];
 
 const photoSlots = [
   { label: "대표 사진", note: "선택" },

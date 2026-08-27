@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
   ArrowLeft,
-  ChevronRight,
-  MapPinned,
-  Info,
 } from "lucide-react";
 import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
 import {
@@ -20,14 +16,8 @@ import {
   ConditionField,
   ConditionFieldPrefix,
   ConditionFieldValue,
-  ConditionGuideCard,
-  ConditionGuideText,
   ConditionPage,
   ConditionSection,
-  ConditionSideCard,
-  ConditionSideCardTitle,
-  ConditionTopNote,
-  ConditionTopNoteIcon,
   ConditionTopShell,
 } from "./LandRegisterCondition.styled";
 import {
@@ -36,13 +26,6 @@ import {
   RegisterSectionDescription as ConditionSectionDescription,
   RegisterSectionTitle as ConditionSectionTitle,
 } from "../shared.styled";
-
-const steps = [
-  { number: "1", title: "주소 입력", description: "주소 입력 및 자동 정보 조회" },
-  { number: "2", title: "자동 정보 확인", description: "자동 조회 정보 확인 및 수정" },
-  { number: "3", title: "상세 정보 입력", description: "거래 정보 및 상세 내용 입력" },
-  { number: "4", title: "사진 및 서류", description: "현장 사진 및 증명서류 업로드" },
-];
 
 const conditionTabs = {
   sale: {
@@ -158,7 +141,7 @@ function LandRegisterCondition() {
       </ConditionTopShell>
 
       {/* 진행 단계 사이드바 */}
-      <RegisterWorkflowSidebar activeStep={5} />
+      <RegisterWorkflowSidebar activeStep={2} />
     </ConditionPage>
   );
 }

@@ -15,19 +15,8 @@ import {
   ConfirmAddressText,
   ConfirmCard,
   ConfirmCardGrid,
-  ConfirmGuideCard,
-  ConfirmGuideText,
   ConfirmPage,
-  ConfirmRightColumn,
   ConfirmSection,
-  ConfirmSideCard,
-  ConfirmSideCardTitle,
-  ConfirmStepCircle,
-  ConfirmStepDesc,
-  ConfirmStepItem,
-  ConfirmStepLine,
-  ConfirmStepTitle,
-  ConfirmStepWrapper,
   ConfirmTable,
   ConfirmTableCell,
   ConfirmTableRow,
@@ -54,39 +43,13 @@ import {
   RegisterSectionTitle as ConfirmSectionTitle,
 } from "../shared.styled";
 
-const steps = [
-  {
-    number: "1",
-    title: "주소 입력",
-    description: "주소 입력 및 자동 정보 조회",
-  },
-  {
-    number: "2",
-    title: "자동 정보 확인",
-    description: "자동 조회 정보 확인 및 수정",
-    active: true,
-  },
-  {
-    number: "3",
-    title: "상세 정보 입력",
-    description: "거래 정보 및 상세 내용 입력",
-  },
-  {
-    number: "4",
-    title: "사진 및 서류",
-    description: "현장 사진 및 증명서류 업로드",
-  },
-];
-
 function LandRegisterConfirm() {
   const navigate = useNavigate();
 
   return (
     <ConfirmPage>
-      {/* 공통 헤더 */}
       <RegisterPageHeader />
 
-      {/* 자동 조회 정보 확인 */}
       <ConfirmTopShell>
         <ConfirmSection>
           <ConfirmSectionTitle>2. 자동 정보 확인</ConfirmSectionTitle>
@@ -137,7 +100,7 @@ function LandRegisterConfirm() {
         </ConfirmTopRow>
 
         <ConfirmSection>
-          <ConfirmAddressLabel>자동 조회 정보</ConfirmAddressLabel>
+          <ConfirmSectionTitle>자동 조회 정보</ConfirmSectionTitle>
         </ConfirmSection>
 
         <ConfirmCardGrid>
@@ -180,7 +143,6 @@ function LandRegisterConfirm() {
         </ConfirmFooterButtons>
       </ConfirmTopShell>
 
-      {/* 진행 단계 사이드바 */}
       <RegisterWorkflowSidebar activeStep={2} />
     </ConfirmPage>
   );

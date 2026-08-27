@@ -1,28 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
   ArrowLeft,
   ChevronRight,
   Info,
-  MapPinned,
-  Search,
 } from "lucide-react";
 import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
 import {
-  DetailGuideCard,
-  DetailGuideText,
   DetailPage,
-  DetailRightColumn,
   DetailSection,
-  DetailSideCard,
-  DetailSideCardTitle,
-  DetailStepCircle,
-  DetailStepDesc,
-  DetailStepItem,
-  DetailStepLine,
-  DetailStepTitle,
-  DetailStepWrapper,
   DetailTextarea,
   DetailTextareaCard,
   DetailTextareaCardHeader,
@@ -36,16 +22,8 @@ import {
 import {
   RegisterButtonRow as DetailFooterButtons,
   RegisterPrimaryButton as DetailPrimaryButton,
-  RegisterSectionDescription as DetailSectionDescription,
   RegisterSectionTitle as DetailSectionTitle,
 } from "../shared.styled";
-
-const steps = [
-  { number: "1", title: "주소 입력", description: "주소 입력 및 자동 정보 조회" },
-  { number: "2", title: "자동 정보 확인", description: "자동 조회 정보 확인 및 수정" },
-  { number: "3", title: "상세 정보 입력", description: "거래 정보 및 상세 내용 입력", active: true },
-  { number: "4", title: "사진 및 서류", description: "현장 사진 및 증명서류 업로드" },
-];
 
 const MAX_LENGTH = 1000;
 
