@@ -117,16 +117,16 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-3xl p-8 w-[400px] shadow-xl">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Verification Code</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-lg">✕</button>
+          <h2 className="text-xl font-bold">인증코드</h2>
+          <button onClick={onClose} className="text-lg text-gray-500 hover:text-gray-800">✕</button>
         </div>
 
         {/* 코드 입력 */}
-        <p className="text-sm text-gray-600 mb-3">Enter code</p>
+        <p className="mb-3 text-sm text-gray-600">인증코드를 입력해주세요</p>
         <div className="flex gap-2 mb-1">
           {codes.map((val, i) => (
             <input
@@ -142,17 +142,17 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
             />
           ))}
         </div>
-        <div className="h-5 text-right mb-4">
+        <div className="h-5 mb-4 text-right">
           {error && <p className="text-sm font-semibold text-red-500">{error}</p>}
         </div>
 
         {/* 타이머 */}
-        <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3 mb-4">
-          <div className="flex items-center gap-2 text-yellow-500 text-sm font-semibold">
+        <div className="flex items-center justify-between px-4 py-3 mb-4 bg-gray-50 rounded-2xl">
+          <div className="flex items-center gap-2 text-sm font-semibold text-yellow-500">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Code expiers in
+            남은 시간
           </div>
           <span className={`text-sm font-bold ${timeLeft <= 10 ? "text-red-500" : "text-yellow-500"}`}>
             {formatTime(timeLeft)}
@@ -163,16 +163,16 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
         <button
           onClick={handleVerify}
           disabled={isLoading}
-          className="w-full py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold text-lg rounded-2xl transition-colors mb-4 disabled:opacity-60"
+          className="w-full py-4 mb-4 text-lg font-bold text-white transition-colors bg-yellow-400 hover:bg-yellow-500 rounded-2xl disabled:opacity-60"
         >
-          {isLoading ? "확인 중..." : "Verify Code"}
+          {isLoading ? "확인 중..." : "인증코드 확인"}
         </button>
 
         {/* 재전송 */}
-        <p className="text-center text-sm text-gray-500">
-          Didn't receive the code?{" "}
-          <button onClick={handleResend} className="text-yellow-500 font-semibold hover:underline">
-            Resend code
+        <p className="text-sm text-center text-gray-500">
+          코드를 받지 못하셨나요?{" "}
+          <button onClick={handleResend} className="font-semibold text-yellow-500 hover:underline">
+            코드 재전송
           </button>
         </p>
       </div>

@@ -1,12 +1,8 @@
 import LoginForm from "./components/LoginForm";
-import bgimg from "@/images/HeliosBackground.png"
 
 function Login() {
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center bg-center bg-cover"
-      style={{ backgroundImage: `url(${bgimg})` }}
-    >
+    <div className="min-h-screen bg-white px-4 py-10 text-[#1f1f1f]">
       <LoginForm />
     </div>
   );

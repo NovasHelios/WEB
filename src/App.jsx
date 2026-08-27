@@ -1,28 +1,40 @@
 import { Route, BrowserRouter, Routes } from "react-router-dom";
 import Background from "./pages/Background";
-import BusinessSignIn from "./pages/SignIn/BusinessSignIn.jsx";
 import Login from "./pages/Login/Login";
+import Signin_2 from "./pages/SignIn/Signin_2.jsx";
 import Map from "./pages/Main/Map";
-import Land from "./pages/Land/Land";
+import MySpace from "./pages/MySpace";
+import {
+  LandRegister,
+  LandRegisterComplete,
+  LandRegisterCondition,
+  LandRegisterConfirm,
+  LandRegisterDetail,
+  LandRegisterPhotos,
+  LandFavorites,
+} from "./pages/Land";
 import DevelopmentNotice from "./components/ui/DevelopmentNotice";
-import SignUpSelect from "./components/ui/SignUpSelect";
-import NormalSignIn from "./pages/SignIn/normal.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
 
 function App() {
   return (
     <Background>
       <Routes>
-        <Route path="/signup" element={<SignUpSelect />} />
-        <Route path="/signup/business" element={<BusinessSignIn />} />
-        <Route path="/signup/individual" element={<NormalSignIn />} />
+        <Route path="/signup/individual-2" element={<Signin_2 />} />
         <Route path="/" element={<Map />} />
-        <Route path="/land" element={<Land />} />
+        <Route path="/land/favorites" element={<LandFavorites />} />
+        <Route path="/land/register" element={<LandRegister />} />
+        <Route path="/land/register/confirm" element={<LandRegisterConfirm />} />
+        <Route path="/land/register/detail" element={<LandRegisterDetail />} />
+        <Route path="/land/register/photos" element={<LandRegisterPhotos />} />
+        <Route path="/land/register/condition" element={<LandRegisterCondition />} />
+        <Route path="/land/register/complete" element={<LandRegisterComplete />} />
         <Route path="/business" element={<DevelopmentNotice />} />
         <Route path="/chat" element={<DevelopmentNotice />} />
         <Route path="/setting" element={<DevelopmentNotice />} />
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/space" element={<MySpace />} />
       </Routes>
     </Background>
   );
