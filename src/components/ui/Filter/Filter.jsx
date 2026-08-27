@@ -205,6 +205,10 @@ const formatAreaLabel = (value) => {
   return `${value}㎡`;
 };
 
+const getRangePercent = (value, config) => {
+  return ((value - config.min) / (config.max - config.min)) * 100;
+};
+
 // 슬라이더 기준 라벨을 실제 값 비율에 맞춰 렌더링합니다.
 const renderRangeLabels = (config) => {
   // 전체 범위 길이를 계산합니다.
@@ -426,18 +430,25 @@ function Filter({ filters, onApplyFilters }) {
     // 숫자가 아니거나 음수이면 값을 반영하지 않습니다.
     if (Number.isNaN(numberValue) || numberValue < 0) return;
 
-    // 가격 필터는 만원 단위 입력값을 원 단위로 변환합니다.
-    const wonValue =
+    // 가격 필터는 만원 단위 입력값을 원 단위로 변환하고, 면적은 입력값을 그대로 사용합니다.
+    const rawValue =
       directInputConfig?.unit === "원"
         ? convertManToWon(numberValue)
         : numberValue;
 
-    // 변환된 값을 임시 필터에 저장합니다.
+    // 직접 입력 대상의 허용 최소값과 최대값을 가져옵니다.
+    const minValue = directInputConfig?.minValue ?? 0;
+    const maxValue = directInputConfig?.maxValue ?? Infinity;
+
+    // 허용 범위를 벗어난 값은 저장 전에 잘라냅니다.
+    const clampedValue = Math.min(Math.max(rawValue, minValue), maxValue);
+
+    // 변환 및 보정된 값을 임시 필터에 저장합니다.
     setDraftFilters((prev) => ({
       ...prev,
       [filterKey]: {
         ...prev[filterKey],
-        [side]: wonValue,
+        [side]: clampedValue,
       },
     }));
   };
@@ -664,7 +675,16 @@ function Filter({ filters, onApplyFilters }) {
               </RangeTitleRow>
 
               {/* 매매가 최소/최대 슬라이더입니다. */}
-              <RangeTrack>
+              <RangeTrack
+                $minPercent={getRangePercent(
+                  draftFilters.salePrice.min ?? rangeConfig.salePrice.min,
+                  rangeConfig.salePrice
+                )}
+                $maxPercent={getRangePercent(
+                  draftFilters.salePrice.max ?? rangeConfig.salePrice.max,
+                  rangeConfig.salePrice
+                )}
+              >
                 <RangeInput
                   $isMin
                   type="range"
@@ -720,7 +740,16 @@ function Filter({ filters, onApplyFilters }) {
               </RangeTitleRow>
 
               {/* 임대가 최소/최대 슬라이더입니다. */}
-              <RangeTrack>
+              <RangeTrack
+                $minPercent={getRangePercent(
+                  draftFilters.rentPrice.min ?? rangeConfig.rentPrice.min,
+                  rangeConfig.rentPrice
+                )}
+                $maxPercent={getRangePercent(
+                  draftFilters.rentPrice.max ?? rangeConfig.rentPrice.max,
+                  rangeConfig.rentPrice
+                )}
+              >
                 <RangeInput
                   $isMin
                   type="range"
@@ -799,13 +828,26 @@ function Filter({ filters, onApplyFilters }) {
                 </button>
               </RangeTitleRow>
 
-              <RangeTrack>
+              <RangeTrack
+                $minPercent={getRangePercent(
+                  draftFilters.area.min ?? rangeConfig.area.min,
+                  rangeConfig.area
+                )}
+                $maxPercent={getRangePercent(
+                  draftFilters.area.max ?? rangeConfig.area.max,
+                  rangeConfig.area
+                )}
+              >
                 <RangeInput
+                  $isMin
                   type="range"
                   min={rangeConfig.area.min}
                   max={rangeConfig.area.max}
                   step={rangeConfig.area.step}
                   value={draftFilters.area.min ?? rangeConfig.area.min}
+                  onChange={(event) =>
+                    handleChangeRange("area", "min", event.target.value)
+                  }
                 />
                 <RangeInput
                   type="range"
@@ -813,6 +855,9 @@ function Filter({ filters, onApplyFilters }) {
                   max={rangeConfig.area.max}
                   step={rangeConfig.area.step}
                   value={draftFilters.area.max ?? rangeConfig.area.max}
+                  onChange={(event) =>
+                    handleChangeRange("area", "max", event.target.value)
+                  }
                 />
               </RangeTrack>
 

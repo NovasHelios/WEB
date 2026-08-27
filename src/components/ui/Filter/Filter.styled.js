@@ -119,7 +119,7 @@ export const RangeBlock = styled.div`
 // 범위 필터 제목 줄입니다.
 export const RangeTitleRow = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   margin-bottom: 8px;
@@ -140,6 +140,11 @@ export const RangeValueText = styled.span`
   color: #d2ad23;
   font-size: 15px;
   font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 // range input 두 개를 겹쳐 배치하는 영역입니다.
@@ -156,23 +161,28 @@ export const RangeTrack = styled.div`
     top: 9px;
     height: 5px;
     background: #cfcfcf;
+    z-index: 0;
   }
 
-  // 선택된 범위를 표현하는 금색 바입니다.
+    // 선택된 범위만 금색으로 표시합니다.
   &::after {
     content: "";
     position: absolute;
-    left: 46px;
-    right: 26px;
+    left: ${({ $minPercent }) =>
+      `calc(46px + (100% - 72px) * ${$minPercent / 100})`};
+    width: ${({ $minPercent, $maxPercent }) =>
+      `calc((100% - 72px) * ${($maxPercent - $minPercent) / 100})`};
     top: 9px;
     height: 5px;
     background: #d2ad23;
+    z-index: 1;
   }
 `;
 
 // 범위 선택 input입니다.
 export const RangeInput = styled.input`
   position: absolute;
+  top: 0;
   left: 46px;
   right: 26px;
   width: calc(100% - 72px);
@@ -183,10 +193,8 @@ export const RangeInput = styled.input`
 
   // input 전체가 클릭을 먹지 않게 해서 반대편 핸들이 움직이는 문제를 막습니다.
   pointer-events: none;
-
   // 최소 핸들과 최대 핸들의 클릭 우선순위를 분리합니다.
   z-index: ${({ $isMin }) => ($isMin ? 3 : 2)};
-
   &::-webkit-slider-runnable-track {
     height: 5px;
     background: transparent;
