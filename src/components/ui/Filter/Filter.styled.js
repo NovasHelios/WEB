@@ -145,7 +145,7 @@ export const RangeValueText = styled.span`
 // range input 두 개를 겹쳐 배치하는 영역입니다.
 export const RangeTrack = styled.div`
   position: relative;
-  height: 24px;
+  height: 28px;
 
   // 전체 슬라이더 회색 바입니다.
   &::before {
@@ -207,10 +207,36 @@ export const RangeInput = styled.input`
   }
 `;
 
-// 범위 눈금 라벨 영역입니다.
-export const RangeLabels = styled.div`
-  display: flex;
-  justify-content: space-between;
+// 슬라이더 아래 여러 개의 기준 라벨을 배치하는 영역입니다.
+export const RangeLabelList = styled.div`
+  /* 슬라이더 input과 같은 좌우 기준을 사용합니다. */
+  position: relative;
+
+  /* 라벨이 절대 위치로 배치될 수 있도록 높이를 확보합니다. */
+  height: 28px;
+
+  /* 슬라이더 바와 라벨 사이 간격입니다. */
+  margin-top: 4px;
+
+  /* RangeTrack, RangeInput의 left/right 값과 맞춥니다. */
+  margin-left: 46px;
+  margin-right: 26px;
+`;
+
+// 슬라이더 값 위치에 맞춰 표시되는 개별 라벨입니다.
+export const RangeLabel = styled.span`
+  /* 각 라벨을 슬라이더 값 비율에 맞춰 배치합니다. */
+  position: absolute;
+
+  /* 0~100 사이의 위치값을 받아 왼쪽 위치로 사용합니다. */
+  left: ${({ $position }) => `${$position}%`};
+
+  /* 라벨 중앙이 해당 위치에 오도록 보정합니다. */
+  transform: translateX(-50%);
+
+  /* 숫자 라벨이 줄바꿈되지 않도록 고정합니다. */
+  white-space: nowrap;
+
   color: #111111;
   font-size: 16px;
   font-weight: 600;

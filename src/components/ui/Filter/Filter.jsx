@@ -19,7 +19,10 @@ import {
   RangeValueText,
   RangeTrack,
   RangeInput,
-  RangeLabels,
+  // 슬라이더 기준 라벨 목록입니다.
+  RangeLabelList,
+  // 슬라이더 값 위치에 맞춰 배치되는 라벨입니다.
+  RangeLabel,
   ActionRow,
   DirectInputBox,
   RegionPath,
@@ -77,30 +80,6 @@ const seoulRegions = [
   "영등포구",
 ];
 
-// 드래그 범위 필터별 최소값, 최대값, 이동 단위입니다.
-const rangeConfig = {
-    // 매매가는 1000만원부터 10억원까지 1000만원 단위로 움직입니다.
-    salePrice: {
-      min: 10000000,
-      max: 1000000000,
-      step: 10000000,
-    },
-
-    // 임대가는 100만원부터 1000만원까지 10만원 단위로 움직입니다.
-    rentPrice: {
-      min: 1000000,
-      max: 10000000,
-      step: 100000,
-    },
-
-    // 면적은 0㎡부터 5000㎡까지 100㎡ 단위로 움직입니다.
-    area: {
-      min: 0,
-      max: 500,
-      step: 10,
-    },
-};
-
 // 숫자 가격을 필터 표시 문구로 변환합니다.
 const formatMoneyLabel = (value) => {
   // 값이 없으면 전체로 표시합니다.
@@ -116,35 +95,104 @@ const formatMoneyLabel = (value) => {
   return `${value / 10000}만`;
 };
 
+// 드래그 범위 필터별 최소값, 최대값, 이동 단위, 표시 라벨입니다.
+const rangeConfig = {
+  // 매매가는 최소/최대 끝값을 조건 없음으로 해석하고, 중간 라벨은 실제 값과 맞춥니다.
+  salePrice: {
+    min: 0,
+    max: 4000000000,
+    step: 10000000,
+    labels: [
+      { label: "최소", value: 0 },
+      { label: "10억", value: 1000000000 },
+      { label: "20억", value: 2000000000 },
+      { label: "30억", value: 3000000000 },
+      { label: "최대", value: 4000000000 },
+    ],
+  },
+
+  // 임대가는 5만원 단위로 움직이고, 중간 라벨은 실제 값과 맞춥니다.
+  rentPrice: {
+    min: 0,
+    max: 5000000,
+    step: 50000,
+    labels: [
+      { label: "최소", value: 0 },
+      { label: "100만", value: 1000000 },
+      { label: "200만", value: 2000000 },
+      { label: "300만", value: 3000000 },
+      { label: "400만", value: 4000000 },
+      { label: "최대", value: 5000000 },
+    ],
+  },
+
+  // 면적은 최소/최대 끝값을 조건 없음으로 해석합니다.
+  area: {
+    min: 0,
+    max: 500,
+    step: 10,
+    labels: [
+      { label: "최소", value: 0 },
+      { label: "100㎡", value: 100 },
+      { label: "200㎡", value: 200 },
+      { label: "300㎡", value: 300 },
+      { label: "400㎡", value: 400 },
+      { label: "최대", value: 500 },
+    ],
+  },
+};
+
 // 금액 범위 표시 문구를 생성합니다.
 const formatMoneyRangeLabel = (range, defaultMin, defaultMax) => {
-  // 최소값이 없으면 기본 최소값을 사용합니다.
+  // 최소 핸들의 현재 값을 가져옵니다.
   const minValue = range.min ?? defaultMin;
 
-  // 최대값이 없으면 기본 최대값을 사용합니다.
+  // 최대 핸들의 현재 값을 가져옵니다.
   const maxValue = range.max ?? defaultMax;
 
-  // 두 핸들이 모두 양끝에 있으면 전체로 표시합니다.
+  // 양쪽 핸들이 모두 끝에 있으면 전체 조건입니다.
   if (minValue === defaultMin && maxValue === defaultMax) {
     return "전체";
   }
 
-  // 하나라도 양끝에서 벗어나면 숫자 범위로 표시합니다.
+  // 왼쪽 핸들이 최소 끝에 있으면 오른쪽 값 이하 조건입니다.
+  if (minValue === defaultMin) {
+    return `${formatMoneyLabel(maxValue)} 이하`;
+  }
+
+  // 오른쪽 핸들이 최대 끝에 있으면 왼쪽 값 이상 조건입니다.
+  if (maxValue === defaultMax) {
+    return `${formatMoneyLabel(minValue)} 이상`;
+  }
+
+  // 양쪽 핸들이 모두 끝이 아니면 범위 조건입니다.
   return `${formatMoneyLabel(minValue)} ~ ${formatMoneyLabel(maxValue)}`;
 };
 
 // 면적 범위 표시 문구를 생성합니다.
 const formatAreaRangeLabel = (range, defaultMin, defaultMax) => {
-  // 최소값이 없으면 기본 최소값을 사용합니다.
+  // 최소 핸들의 현재 값을 가져옵니다.
   const minValue = range.min ?? defaultMin;
 
-  // 최대값이 없으면 기본 최대값을 사용합니다.
+  // 최대 핸들의 현재 값을 가져옵니다.
   const maxValue = range.max ?? defaultMax;
 
-  // 양끝 기본값이면 전체로 표시합니다.
-  if (minValue === defaultMin && maxValue === defaultMax) return "전체";
+  // 양쪽 핸들이 모두 끝에 있으면 전체 조건입니다.
+  if (minValue === defaultMin && maxValue === defaultMax) {
+    return "전체";
+  }
 
-  // 하나라도 움직였으면 숫자 범위로 표시합니다.
+  // 왼쪽 핸들이 최소 끝에 있으면 오른쪽 값 이하 조건입니다.
+  if (minValue === defaultMin) {
+    return `${formatAreaLabel(maxValue)} 이하`;
+  }
+
+  // 오른쪽 핸들이 최대 끝에 있으면 왼쪽 값 이상 조건입니다.
+  if (maxValue === defaultMax) {
+    return `${formatAreaLabel(minValue)} 이상`;
+  }
+
+  // 양쪽 핸들이 모두 끝이 아니면 범위 조건입니다.
   return `${formatAreaLabel(minValue)} ~ ${formatAreaLabel(maxValue)}`;
 };
 
@@ -155,6 +203,28 @@ const formatAreaLabel = (value) => {
 
   // 제곱미터 단위로 표시합니다.
   return `${value}㎡`;
+};
+
+// 슬라이더 기준 라벨을 실제 값 비율에 맞춰 렌더링합니다.
+const renderRangeLabels = (config) => {
+  // 전체 범위 길이를 계산합니다.
+  const rangeSize = config.max - config.min;
+
+  // 각 라벨을 슬라이더 값 위치에 맞춰 표시합니다.
+  return (
+    <RangeLabelList>
+      {config.labels.map((item) => {
+        // 현재 라벨 값이 전체 범위에서 몇 퍼센트 위치인지 계산합니다.
+        const position = ((item.value - config.min) / rangeSize) * 100;
+
+        return (
+          <RangeLabel key={item.label} $position={position}>
+            {item.label}
+          </RangeLabel>
+        );
+      })}
+    </RangeLabelList>
+  );
 };
 
 // 지도 필터 컴포넌트입니다.
@@ -481,7 +551,29 @@ function Filter({ filters, onApplyFilters }) {
         {/* 거래 유형 필터 패널입니다. */}
         {activeFilter === "type" && (
           <DropdownPanel $width="500px">
-            {/* 기존 거래 유형 패널 내용 그대로 넣기 */}
+            <DropdownHeader>
+              <span>거래 형태</span>
+              <CloseButton type="button" onClick={() => setActiveFilter(null)}>
+                <X size={18} />
+              </CloseButton>
+            </DropdownHeader>
+
+            <SegmentedControl>
+              {transactionOptions.map((option) => (
+                <SegmentButton
+                  key={option.value}
+                  type="button"
+                  $active={draftFilters.transactionType === option.value}
+                  onClick={() => handleChangeTransaction(option.value)}
+                >
+                  {option.label}
+                </SegmentButton>
+              ))}
+            </SegmentedControl>
+
+            <ApplyButton type="button" onClick={handleApply}>
+              저장
+            </ApplyButton>
           </DropdownPanel>
         )}
       </FilterItem>
@@ -505,7 +597,26 @@ function Filter({ filters, onApplyFilters }) {
         {/* 지역 선택 필터 패널입니다. */}
         {activeFilter === "region" && (
           <DropdownPanel $width="452px">
-            {/* 기존 지역 선택 패널 내용 그대로 넣기 */}
+            <RegionPath>
+              서울시 <span>›</span> 시·군·구 <span>›</span> 읍·면·동 선택
+            </RegionPath>
+
+            <RegionGrid>
+              {seoulRegions.map((region) => (
+                <RegionButton
+                  key={region}
+                  type="button"
+                  $active={draftFilters.region === region}
+                  onClick={() => handleChangeRegion(region)}
+                >
+                  {region}
+                </RegionButton>
+              ))}
+            </RegionGrid>
+
+            <ApplyButton type="button" onClick={handleApply}>
+              저장
+            </ApplyButton>
           </DropdownPanel>
         )}
       </FilterItem>
@@ -529,7 +640,124 @@ function Filter({ filters, onApplyFilters }) {
         {/* 금액 필터 패널입니다. */}
         {activeFilter === "price" && (
           <DropdownPanel $width="452px">
-            {/* 기존 금액 패널 내용 그대로 넣기 */}
+            {/* 매매가 범위 필터 영역입니다. */}
+            <RangeBlock>
+              <RangeTitleRow>
+                <span>매매가</span>
+
+                {/* 현재 선택 중인 매매가 범위를 표시합니다. */}
+                <RangeValueText>
+                  {formatMoneyRangeLabel(
+                    draftFilters.salePrice,
+                    rangeConfig.salePrice.min,
+                    rangeConfig.salePrice.max
+                  )}
+                </RangeValueText>
+
+                {/* 매매가 직접 입력 팝업을 엽니다. */}
+                <button
+                  type="button"
+                  onClick={() => setDirectInputTarget("sale")}
+                >
+                  <Pencil size={16} />
+                </button>
+              </RangeTitleRow>
+
+              {/* 매매가 최소/최대 슬라이더입니다. */}
+              <RangeTrack>
+                <RangeInput
+                  $isMin
+                  type="range"
+                  min={rangeConfig.salePrice.min}
+                  max={rangeConfig.salePrice.max}
+                  step={rangeConfig.salePrice.step}
+                  value={
+                    draftFilters.salePrice.min ?? rangeConfig.salePrice.min
+                  }
+                  onChange={(event) =>
+                    handleChangeRange("salePrice", "min", event.target.value)
+                  }
+                />
+
+                <RangeInput
+                  type="range"
+                  min={rangeConfig.salePrice.min}
+                  max={rangeConfig.salePrice.max}
+                  step={rangeConfig.salePrice.step}
+                  value={
+                    draftFilters.salePrice.max ?? rangeConfig.salePrice.max
+                  }
+                  onChange={(event) =>
+                    handleChangeRange("salePrice", "max", event.target.value)
+                  }
+                />
+              </RangeTrack>
+              {/* 매매가 기준 라벨입니다. */}
+              {renderRangeLabels(rangeConfig.salePrice)}
+            </RangeBlock>
+
+            {/* 임대가 범위 필터 영역입니다. */}
+            <RangeBlock>
+              <RangeTitleRow>
+                <span>임대가</span>
+
+                {/* 현재 선택 중인 임대가 범위를 표시합니다. */}
+                <RangeValueText>
+                  {formatMoneyRangeLabel(
+                    draftFilters.rentPrice,
+                    rangeConfig.rentPrice.min,
+                    rangeConfig.rentPrice.max
+                  )}
+                </RangeValueText>
+
+                {/* 임대가 직접 입력 팝업을 엽니다. */}
+                <button
+                  type="button"
+                  onClick={() => setDirectInputTarget("rent")}
+                >
+                  <Pencil size={16} />
+                </button>
+              </RangeTitleRow>
+
+              {/* 임대가 최소/최대 슬라이더입니다. */}
+              <RangeTrack>
+                <RangeInput
+                  $isMin
+                  type="range"
+                  min={rangeConfig.rentPrice.min}
+                  max={rangeConfig.rentPrice.max}
+                  step={rangeConfig.rentPrice.step}
+                  value={
+                    draftFilters.rentPrice.min ?? rangeConfig.rentPrice.min
+                  }
+                  onChange={(event) =>
+                    handleChangeRange("rentPrice", "min", event.target.value)
+                  }
+                />
+
+                <RangeInput
+                  type="range"
+                  min={rangeConfig.rentPrice.min}
+                  max={rangeConfig.rentPrice.max}
+                  step={rangeConfig.rentPrice.step}
+                  value={
+                    draftFilters.rentPrice.max ?? rangeConfig.rentPrice.max
+                  }
+                  onChange={(event) =>
+                    handleChangeRange("rentPrice", "max", event.target.value)
+                  }
+                />
+              </RangeTrack>
+              {/* 임대가 기준 라벨입니다. */}
+              {renderRangeLabels(rangeConfig.rentPrice)}
+            </RangeBlock>
+
+            {/* 금액 필터 저장 버튼입니다. */}
+            <ActionRow $center>
+              <ApplyButton type="button" onClick={handleApply}>
+                저장
+              </ApplyButton>
+            </ActionRow>
           </DropdownPanel>
         )}
       </FilterItem>
@@ -550,245 +778,57 @@ function Filter({ filters, onApplyFilters }) {
           )}
         </FilterButton>
 
-        {/* 면적 필터 패널입니다. */}
+        {/* 토지 크기 필터 패널입니다. */}
         {activeFilter === "area" && (
           <DropdownPanel $width="452px">
-            {/* 기존 면적 패널 내용 그대로 넣기 */}
+            <RangeBlock>
+              <RangeTitleRow>
+                <span>면적</span>
+                <RangeValueText>
+                  {formatAreaRangeLabel(
+                    draftFilters.area,
+                    rangeConfig.area.min,
+                    rangeConfig.area.max
+                  )}
+                </RangeValueText>
+                <button
+                  type="button"
+                  onClick={() => setDirectInputTarget("area")}
+                >
+                  <Pencil size={16} />
+                </button>
+              </RangeTitleRow>
+
+              <RangeTrack>
+                <RangeInput
+                  type="range"
+                  min={rangeConfig.area.min}
+                  max={rangeConfig.area.max}
+                  step={rangeConfig.area.step}
+                  value={draftFilters.area.min ?? rangeConfig.area.min}
+                />
+                <RangeInput
+                  type="range"
+                  min={rangeConfig.area.min}
+                  max={rangeConfig.area.max}
+                  step={rangeConfig.area.step}
+                  value={draftFilters.area.max ?? rangeConfig.area.max}
+                />
+              </RangeTrack>
+
+              {/* 면적 기준 라벨입니다. */}
+              {renderRangeLabels(rangeConfig.area)}
+            </RangeBlock>
+
+            <ActionRow $center>
+              {/* 저장 버튼을 중앙에 배치합니다. */}
+              <ApplyButton type="button" onClick={handleApply}>
+                저장
+              </ApplyButton>
+            </ActionRow>
           </DropdownPanel>
         )}
       </FilterItem>
-
-      {/* 거래 유형 필터 패널입니다. */}
-      {activeFilter === "type" && (
-        <DropdownPanel $width="500px">
-          <DropdownHeader>
-            <span>거래 형태</span>
-            <CloseButton type="button" onClick={() => setActiveFilter(null)}>
-              <X size={18} />
-            </CloseButton>
-          </DropdownHeader>
-
-          <SegmentedControl>
-            {transactionOptions.map((option) => (
-              <SegmentButton
-                key={option.value}
-                type="button"
-                $active={draftFilters.transactionType === option.value}
-                onClick={() => handleChangeTransaction(option.value)}
-              >
-                {option.label}
-              </SegmentButton>
-            ))}
-          </SegmentedControl>
-
-          <ApplyButton type="button" onClick={handleApply}>
-            저장
-          </ApplyButton>
-        </DropdownPanel>
-      )}
-
-      {/* 지역 선택 필터 패널입니다. */}
-      {activeFilter === "region" && (
-        <DropdownPanel $width="452px">
-          <RegionPath>
-            서울시 <span>›</span> 시·군·구 <span>›</span> 읍·면·동 선택
-          </RegionPath>
-
-          <RegionGrid>
-            {seoulRegions.map((region) => (
-              <RegionButton
-                key={region}
-                type="button"
-                $active={draftFilters.region === region}
-                onClick={() => handleChangeRegion(region)}
-              >
-                {region}
-              </RegionButton>
-            ))}
-          </RegionGrid>
-
-          <ApplyButton type="button" onClick={handleApply}>
-            저장
-          </ApplyButton>
-        </DropdownPanel>
-      )}
-
-      {/* 금액 필터 패널입니다. */}
-      {activeFilter === "price" && (
-        <DropdownPanel $width="452px">
-          <RangeBlock>
-            <RangeTitleRow>
-              <span>매매가</span>
-              <RangeValueText>
-                {formatMoneyRangeLabel(
-                  // 현재 선택 중인 매매가 범위입니다.
-                  draftFilters.salePrice,
-
-                  // 매매가 슬라이더의 기본 최소값입니다.
-                  10000000,
-
-                  // 매매가 슬라이더의 기본 최대값입니다.
-                  1000000000
-                )}
-              </RangeValueText>
-              <button
-                type="button"
-                onClick={() => setDirectInputTarget("sale")}
-              >
-                <Pencil size={16} />
-              </button>
-            </RangeTitleRow>
-
-            <RangeTrack>
-              <RangeInput
-                // 최소 매매가 핸들입니다.
-                $isMin
-                type="range"
-                min="10000000"
-                max="1000000000"
-                step="10000000"
-                value={draftFilters.salePrice.min ?? 10000000}
-                onChange={(event) =>
-                  handleChangeRange("salePrice", "min", event.target.value)
-                }
-              />
-
-              <RangeInput
-                // 최대 매매가 핸들입니다.
-                type="range"
-                min="10000000"
-                max="1000000000"
-                step="10000000"
-                value={draftFilters.salePrice.max ?? 1000000000}
-                onChange={(event) =>
-                  handleChangeRange("salePrice", "max", event.target.value)
-                }
-              />
-            </RangeTrack>
-
-            <RangeLabels>
-              <span>1000만</span>
-              <span>10억</span>
-            </RangeLabels>
-          </RangeBlock>
-
-          <RangeBlock>
-            <RangeTitleRow>
-              <span>임대가</span>
-              <RangeValueText>
-                {formatMoneyRangeLabel(
-                  draftFilters.rentPrice,
-                  1000000,
-                  10000000
-                )}
-              </RangeValueText>
-              <button
-                type="button"
-                onClick={() => setDirectInputTarget("rent")}
-              >
-                <Pencil size={16} />
-              </button>
-            </RangeTitleRow>
-
-            <RangeTrack>
-              <RangeInput
-                // 최소 임대가 핸들입니다.
-                $isMin
-                type="range"
-                min="1000000"
-                max="10000000"
-                step="100000"
-                value={draftFilters.rentPrice.min ?? 1000000}
-                onChange={(event) =>
-                  handleChangeRange("rentPrice", "min", event.target.value)
-                }
-              />
-
-              <RangeInput
-                // 최대 임대가 핸들입니다.
-                type="range"
-                min="1000000"
-                max="10000000"
-                step="100000"
-                value={draftFilters.rentPrice.max ?? 10000000}
-                onChange={(event) =>
-                  handleChangeRange("rentPrice", "max", event.target.value)
-                }
-              />
-            </RangeTrack>
-
-            <RangeLabels>
-              <span>100만</span>
-              <span>1000만</span>
-            </RangeLabels>
-          </RangeBlock>
-
-          <ActionRow $center>
-            {/* 저장 버튼을 중앙에 배치합니다. */}
-            <ApplyButton type="button" onClick={handleApply}>
-              저장
-            </ApplyButton>
-          </ActionRow>
-        </DropdownPanel>
-      )}
-
-      {/* 토지 크기 필터 패널입니다. */}
-      {activeFilter === "area" && (
-        <DropdownPanel $width="452px">
-          <RangeBlock>
-            <RangeTitleRow>
-              <span>면적</span>
-              <RangeValueText>
-                {formatAreaRangeLabel(draftFilters.area, 0, 500)}
-              </RangeValueText>
-              <button
-                type="button"
-                onClick={() => setDirectInputTarget("area")}
-              >
-                <Pencil size={16} />
-              </button>
-            </RangeTitleRow>
-
-            <RangeTrack>
-              <RangeInput
-                type="range"
-                min="0"
-                max="490"
-                step="10"
-                value={draftFilters.area.min ?? 0}
-                onChange={(event) =>
-                  handleChangeRange("area", "min", event.target.value)
-                }
-              />
-              <RangeInput
-                type="range"
-                min="10"
-                max="500"
-                step="10"
-                value={draftFilters.area.max ?? 500}
-                onChange={(event) =>
-                  handleChangeRange("area", "max", event.target.value)
-                }
-              />
-            </RangeTrack>
-
-            <RangeLabels>
-              {/* 면적 최소값은 0㎡입니다. */}
-              <span>0㎡</span>
-
-              {/* 면적 표시 최대값은 500㎡입니다. */}
-              <span>500㎡</span>
-            </RangeLabels>
-          </RangeBlock>
-
-          <ActionRow $center>
-            {/* 저장 버튼을 중앙에 배치합니다. */}
-            <ApplyButton type="button" onClick={handleApply}>
-              저장
-            </ApplyButton>
-          </ActionRow>
-        </DropdownPanel>
-      )}
 
       {/* 직접 입력 버튼을 눌렀을 때 화면을 어둡게 덮는 팝업입니다. */}
       {directInputConfig && (
