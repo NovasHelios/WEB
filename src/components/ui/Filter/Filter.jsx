@@ -3,6 +3,8 @@ import { useState } from "react";
 
 import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 
+import RegionFilter from "../RegionFilter";
+
 // 필터 UI 스타일 컴포넌트입니다.
 import {
   FilterWrap,
@@ -49,35 +51,6 @@ const transactionOptions = [
   { label: "매매", value: "SALE" },
   { label: "임대", value: "RENT" },
   { label: "사업희망", value: "BUSINESS_HOPE" },
-];
-
-// 서울 지역 선택 예시 목록입니다.
-const seoulRegions = [
-  "강남구",
-  "강동구",
-  "강북구",
-  "중랑구",
-  "강서구",
-  "관악구",
-  "광진구",
-  "은평구",
-  "구로구",
-  "금천구",
-  "노원구",
-  "종로구",
-  "도봉구",
-  "동대문구",
-  "동작구",
-  "중구",
-  "마포구",
-  "서대문구",
-  "서초구",
-  "양천구",
-  "성동구",
-  "성북구",
-  "송파구",
-  "용산구",
-  "영등포구",
 ];
 
 // 숫자 가격을 필터 표시 문구로 변환합니다.
@@ -513,7 +486,7 @@ function Filter({ filters, onApplyFilters }) {
       title: "매매가",
       filterKey: "salePrice",
       unit: "원",
-      minValue: rangeConfig.salePrice.min,
+      minValue: 10000000,
       maxValue: rangeConfig.salePrice.max,
     },
 
@@ -522,7 +495,7 @@ function Filter({ filters, onApplyFilters }) {
       title: "임대가",
       filterKey: "rentPrice",
       unit: "원",
-      minValue: rangeConfig.rentPrice.min,
+      minValue: 1000000,
       maxValue: rangeConfig.rentPrice.max,
     },
 
@@ -807,72 +780,27 @@ function Filter({ filters, onApplyFilters }) {
           )}
         </FilterButton>
 
-        {/* 토지 크기 필터 패널입니다. */}
-        {activeFilter === "area" && (
-          <DropdownPanel $width="452px">
-            <RangeBlock>
-              <RangeTitleRow>
-                <span>면적</span>
-                <RangeValueText>
-                  {formatAreaRangeLabel(
-                    draftFilters.area,
-                    rangeConfig.area.min,
-                    rangeConfig.area.max
-                  )}
-                </RangeValueText>
-                <button
-                  type="button"
-                  onClick={() => setDirectInputTarget("area")}
-                >
-                  <Pencil size={16} />
-                </button>
-              </RangeTitleRow>
+        <RegionFilter
+          defaultValue={draftFilters.region}
+          onSave={(selectedRegion) => {
+            setDraftFilters((prev) => ({
+              ...prev,
+              region: selectedRegion,
+            }));
 
-              <RangeTrack
-                $minPercent={getRangePercent(
-                  draftFilters.area.min ?? rangeConfig.area.min,
-                  rangeConfig.area
-                )}
-                $maxPercent={getRangePercent(
-                  draftFilters.area.max ?? rangeConfig.area.max,
-                  rangeConfig.area
-                )}
-              >
-                <RangeInput
-                  $isMin
-                  type="range"
-                  min={rangeConfig.area.min}
-                  max={rangeConfig.area.max}
-                  step={rangeConfig.area.step}
-                  value={draftFilters.area.min ?? rangeConfig.area.min}
-                  onChange={(event) =>
-                    handleChangeRange("area", "min", event.target.value)
-                  }
-                />
-                <RangeInput
-                  type="range"
-                  min={rangeConfig.area.min}
-                  max={rangeConfig.area.max}
-                  step={rangeConfig.area.step}
-                  value={draftFilters.area.max ?? rangeConfig.area.max}
-                  onChange={(event) =>
-                    handleChangeRange("area", "max", event.target.value)
-                  }
-                />
-              </RangeTrack>
+            setAppliedFilters((prev) => ({
+              ...prev,
+              region: selectedRegion,
+            }));
 
-              {/* 면적 기준 라벨입니다. */}
-              {renderRangeLabels(rangeConfig.area)}
-            </RangeBlock>
+            onApply?.({
+              ...appliedFilters,
+              region: selectedRegion,
+            });
 
-            <ActionRow $center>
-              {/* 저장 버튼을 중앙에 배치합니다. */}
-              <ApplyButton type="button" onClick={handleApply}>
-                저장
-              </ApplyButton>
-            </ActionRow>
-          </DropdownPanel>
-        )}
+            setOpenFilter(null);
+          }}
+        />
       </FilterItem>
 
       {/* 직접 입력 버튼을 눌렀을 때 화면을 어둡게 덮는 팝업입니다. */}
