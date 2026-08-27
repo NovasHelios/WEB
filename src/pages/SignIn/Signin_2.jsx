@@ -101,6 +101,10 @@ function Signin_2() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = Api.googleLogin;
+  };
+
   return (
     <Page>
       <LogoWrap>
@@ -184,7 +188,9 @@ function Signin_2() {
           </SubmitButton>
 
           <GoogleRow>
-            <GoogleButton type="button">G Google</GoogleButton>
+            <GoogleButton type="button" onClick={handleGoogleLogin}>
+              G Google
+            </GoogleButton>
           </GoogleRow>
 
           <BottomText>

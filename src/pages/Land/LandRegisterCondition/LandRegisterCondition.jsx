@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
 } from "lucide-react";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import {
   ConditionButton,
   ConditionButtonRow,
@@ -59,6 +60,7 @@ const conditionTabs = {
 
 function LandRegisterCondition() {
   const navigate = useNavigate();
+  useRequireLogin();
   const [selected, setSelected] = useState("sale");
   const [values, setValues] = useState({
     sale: "",
@@ -71,7 +73,13 @@ function LandRegisterCondition() {
   return (
     <ConditionPage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 거래 조건 선택 */}
       <ConditionTopShell>

@@ -7,7 +7,8 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import {
   ConfirmAddressBox,
   ConfirmAddressChangeButton,
@@ -45,10 +46,17 @@ import {
 
 function LandRegisterConfirm() {
   const navigate = useNavigate();
+  useRequireLogin();
 
   return (
     <ConfirmPage>
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       <ConfirmTopShell>
         <ConfirmSection>

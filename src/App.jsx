@@ -13,9 +13,6 @@ import {
   LandRegisterPhotos,
   LandFavorites,
 } from "./pages/Land";
-import DevelopmentNotice from "./components/ui/DevelopmentNotice";
-import Profile from "./pages/Profile/Profile.jsx";
-
 function App() {
   return (
     <Background>
@@ -29,11 +26,7 @@ function App() {
         <Route path="/land/register/photos" element={<LandRegisterPhotos />} />
         <Route path="/land/register/condition" element={<LandRegisterCondition />} />
         <Route path="/land/register/complete" element={<LandRegisterComplete />} />
-        <Route path="/business" element={<DevelopmentNotice />} />
-        <Route path="/chat" element={<DevelopmentNotice />} />
-        <Route path="/setting" element={<DevelopmentNotice />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
         <Route path="/space" element={<MySpace />} />
       </Routes>
     </Background>

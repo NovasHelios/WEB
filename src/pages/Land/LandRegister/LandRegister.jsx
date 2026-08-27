@@ -5,7 +5,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import {
   LandRegisterBottomButton,
   LandRegisterButtonIcon,
@@ -34,33 +35,90 @@ import {
 
 function LandRegister() {
   const navigate = useNavigate();
+  useRequireLogin();
   const [address, setAddress] = useState("");
   const [searchResult, setSearchResult] = useState("");
+  const [isAddressValid, setIsAddressValid] = useState(false);
+  const [isAddressChecking, setIsAddressChecking] = useState(false);
+  const [addressMessage, setAddressMessage] = useState("");
 
   const previewMessage = useMemo(() => {
     // 검색 결과가 있으면 미리보기 문구로 사용
+    if (addressMessage) {
+      return addressMessage;
+    }
+
     if (searchResult) {
       return searchResult;
     }
     return "주소를 검색하면 지도에 위치가 표시됩니다.";
-  }, [searchResult]);
+  }, [addressMessage, searchResult]);
+
+  const validateAddress = async (value) => {
+    // Kakao 주소 검색 결과로 입력 주소의 유효성을 확인합니다.
+    if (!window.kakao?.maps?.services?.Geocoder) {
+      return false;
+    }
+
+    const geocoder = new window.kakao.maps.services.Geocoder();
+
+    return new Promise((resolve) => {
+      geocoder.addressSearch(value, (result, status) => {
+        resolve(status === window.kakao.maps.services.Status.OK && result.length > 0);
+      });
+    });
+  };
 
   const handleSearch = (event) => {
-    // 주소 입력 후 미리보기 검색 처리
+    // 주소 입력 후 유효성 검사를 진행합니다.
     event.preventDefault();
     const trimmed = address.trim();
+
     if (!trimmed) {
-      setSearchResult("주소를 입력한 뒤 검색해 주세요.");
+      setIsAddressValid(false);
+      setAddressMessage("주소를 입력한 뒤 검색해 주세요.");
       return;
     }
 
-    setSearchResult(`입력된 주소: ${trimmed}`);
+    setIsAddressChecking(true);
+    setAddressMessage("주소를 확인하는 중입니다.");
+
+    validateAddress(trimmed)
+      .then((isValid) => {
+        if (!isValid) {
+          setIsAddressValid(false);
+          setSearchResult("");
+          setAddressMessage("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
+          return;
+        }
+
+        setIsAddressValid(true);
+        setSearchResult(`입력된 주소: ${trimmed}`);
+        setAddressMessage("유효한 주소로 확인되었습니다.");
+      })
+      .finally(() => {
+        setIsAddressChecking(false);
+      });
+  };
+
+  const handleAddressChange = (event) => {
+    // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
+    setAddress(event.target.value);
+    setIsAddressValid(false);
+    setSearchResult("");
+    setAddressMessage("");
   };
 
   return (
     <LandRegisterPage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 주소 입력과 지도 미리보기 */}
       <LandRegisterContainer>
@@ -83,14 +141,14 @@ function LandRegister() {
                 <LandRegisterAddressField>
                   <LandRegisterAddressInput
                     value={address}
-                    onChange={(event) => setAddress(event.target.value)}
+                    onChange={handleAddressChange}
                     placeholder="주소를 입력해주세요. (예: 경기도 안성시 일죽면 산북리 123)"
                   />
                 </LandRegisterAddressField>
 
-                <LandRegisterPrimaryButton type="submit">
+                <LandRegisterPrimaryButton type="submit" disabled={isAddressChecking}>
                   <Search size={16} strokeWidth={2.2} />
-                  검색
+                  {isAddressChecking ? "확인 중" : "검색"}
                 </LandRegisterPrimaryButton>
               </LandRegisterAddressFieldWrap>
 
@@ -114,7 +172,11 @@ function LandRegister() {
           </LandRegisterCard>
 
           <LandRegisterButtonWrap>
-            <LandRegisterBottomButton type="button" onClick={() => navigate("/land/register/confirm")}>
+            <LandRegisterBottomButton
+              type="button"
+              disabled={!address.trim() || !isAddressValid || isAddressChecking}
+              onClick={() => navigate("/land/register/confirm")}
+            >
               다음 단계로
               <LandRegisterButtonIcon>
                 <ChevronRight size={18} strokeWidth={2.4} />

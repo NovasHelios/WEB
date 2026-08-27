@@ -7,7 +7,8 @@ import {
   List,
   PlusCircle,
 } from "lucide-react";
-import { RegisterPageHeader } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { useRequireLogin } from "../shared";
 import {
   CompleteCardBody,
   CompleteCardButton,
@@ -74,6 +75,7 @@ const completionModes = {
 
 function LandRegisterComplete() {
   const navigate = useNavigate();
+  useRequireLogin();
   const [selected, setSelected] = useState("sale");
 
   const current = useMemo(() => completionModes[selected], [selected]);
@@ -81,7 +83,13 @@ function LandRegisterComplete() {
   return (
     <CompletePage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 등록 완료 요약 */}
       <CompleteSectionWrap>

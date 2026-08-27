@@ -8,7 +8,8 @@ import {
   FileType,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import {
   PhotosCard,
   PhotosCardHeader,
@@ -88,11 +89,18 @@ const documentSlots = [
 
 function LandRegisterPhotos() {
   const navigate = useNavigate();
+  useRequireLogin();
 
   return (
     <PhotosPage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 사진과 서류 업로드 영역 */}
       <PhotosTopShell>

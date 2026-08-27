@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Heart, Map, Mountain, Camera } from "lucide-react";
-import { RegisterPageHeader } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
 import {
@@ -34,6 +34,7 @@ import {
   FavoritesTitle,
   FavoritesToolbar,
 } from "./LandFavorites.styles";
+import { getValidAccessToken } from "@/lib/auth";
 
 const favoriteFilters = [
   { key: "all", label: "전체" },
@@ -132,7 +133,7 @@ function LandFavorites() {
     if (activeFilter === "all") return wishes;
     if (activeFilter === "sale") return wishes.filter((wish) => getTransactionLabel(wish.status) === "매매");
     if (activeFilter === "rent") return wishes.filter((wish) => getTransactionLabel(wish.status) === "임대");
-    if (activeFilter === "hope") return wishes.filter((wish) => getTransactionLabel(wish.status) === "사업 희망자");
+    if (activeFilter === "hope") return wishes.filter((wish) => getTransactionLabel(wish.status) === "사업 희망");
     return wishes;
   }, [activeFilter, wishes]);
 
@@ -166,7 +167,13 @@ function LandFavorites() {
   return (
     <FavoritesPage>
       {/* 상단 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       <FavoritesShell>
         {/* 목록 제목과 설명 */}

@@ -5,7 +5,8 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import {
   DetailPage,
   DetailSection,
@@ -29,6 +30,7 @@ const MAX_LENGTH = 1000;
 
 function LandRegisterDetail() {
   const navigate = useNavigate();
+  useRequireLogin();
   const [memo, setMemo] = useState("");
 
   const memoCount = memo.length;
@@ -40,7 +42,13 @@ function LandRegisterDetail() {
   return (
     <DetailPage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 상세 메모 입력 */}
       <DetailTopShell>

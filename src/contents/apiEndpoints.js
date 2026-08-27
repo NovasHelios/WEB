@@ -8,4 +8,5 @@ export const Api = {
   LandImage: (landId) => `https://www.helioss.site/api/lands/${landId}/image`,
   MyProfile: "https://www.helioss.site/api/users/me",
   MyProfileImage: "https://www.helioss.site/api/users/me/image",
+  googleLogin: "https://www.helioss.site/oauth2/callback",
 };
