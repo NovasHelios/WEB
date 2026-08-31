@@ -4,6 +4,14 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 
 import RegionFilter from "../RegionFilter";
+import { rangeConfig, transactionOptions } from "./filterConfig";
+import {
+  formatAreaLabel,
+  formatAreaRangeLabel,
+  formatMoneyLabel,
+  formatMoneyRangeLabel,
+  getRangePercent,
+} from "./filterFormatters";
 
 // 필터 UI 스타일 컴포넌트입니다.
 import {
@@ -41,143 +49,6 @@ import {
   // 직접 입력 에러 메시지입니다.
   DirectInputError,
 } from "./Filter.styled";
-
-// 거래 유형 옵션입니다.
-const transactionOptions = [
-  { label: "전체", value: "ALL" },
-  { label: "매매", value: "SALE" },
-  { label: "임대", value: "LEASE" },
-  { label: "사업희망", value: "BUSINESS_HOPE" },
-];
-
-// 숫자 가격을 필터 표시 문구로 변환합니다.
-const formatMoneyLabel = (value) => {
-  // 값이 없으면 전체로 표시합니다.
-  if (value === null || value === undefined) return "전체";
-
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (value >= 100000000) return `${value / 100000000}억`;
-
-  // 1천만원 이상이면 천만원 단위로 표시합니다.
-  if (value >= 10000000) return `${value / 10000}만`;
-
-  // 기본은 만원 단위로 표시합니다.
-  return `${value / 10000}만`;
-};
-
-// 드래그 범위 필터별 최소값, 최대값, 이동 단위, 표시 라벨입니다.
-const rangeConfig = {
-  // 매매가는 최소/최대 끝값을 조건 없음으로 해석하고, 중간 라벨은 실제 값과 맞춥니다.
-  salePrice: {
-    min: 0,
-    max: 4000000000,
-    step: 10000000,
-    labels: [
-      { label: "최소", value: 0 },
-      { label: "10억", value: 1000000000 },
-      { label: "20억", value: 2000000000 },
-      { label: "30억", value: 3000000000 },
-      { label: "최대", value: 4000000000 },
-    ],
-  },
-
-  // 임대가는 5만원 단위로 움직이고, 중간 라벨은 실제 값과 맞춥니다.
-  rentPrice: {
-    min: 0,
-    max: 5000000,
-    step: 50000,
-    labels: [
-      { label: "최소", value: 0 },
-      { label: "100만", value: 1000000 },
-      { label: "200만", value: 2000000 },
-      { label: "300만", value: 3000000 },
-      { label: "400만", value: 4000000 },
-      { label: "최대", value: 5000000 },
-    ],
-  },
-
-  // 면적은 최소/최대 끝값을 조건 없음으로 해석합니다.
-  area: {
-    min: 0,
-    max: 500,
-    step: 10,
-    labels: [
-      { label: "최소", value: 0 },
-      { label: "100㎡", value: 100 },
-      { label: "200㎡", value: 200 },
-      { label: "300㎡", value: 300 },
-      { label: "400㎡", value: 400 },
-      { label: "최대", value: 500 },
-    ],
-  },
-};
-
-// 금액 범위 표시 문구를 생성합니다.
-const formatMoneyRangeLabel = (range, defaultMin, defaultMax) => {
-  // 최소 핸들의 현재 값을 가져옵니다.
-  const minValue = range.min ?? defaultMin;
-
-  // 최대 핸들의 현재 값을 가져옵니다.
-  const maxValue = range.max ?? defaultMax;
-
-  // 양쪽 핸들이 모두 끝에 있으면 전체 조건입니다.
-  if (minValue === defaultMin && maxValue === defaultMax) {
-    return "전체";
-  }
-
-  // 왼쪽 핸들이 최소 끝에 있으면 오른쪽 값 이하 조건입니다.
-  if (minValue === defaultMin) {
-    return `${formatMoneyLabel(maxValue)} 이하`;
-  }
-
-  // 오른쪽 핸들이 최대 끝에 있으면 왼쪽 값 이상 조건입니다.
-  if (maxValue === defaultMax) {
-    return `${formatMoneyLabel(minValue)} 이상`;
-  }
-
-  // 양쪽 핸들이 모두 끝이 아니면 범위 조건입니다.
-  return `${formatMoneyLabel(minValue)} ~ ${formatMoneyLabel(maxValue)}`;
-};
-
-// 면적 범위 표시 문구를 생성합니다.
-const formatAreaRangeLabel = (range, defaultMin, defaultMax) => {
-  // 최소 핸들의 현재 값을 가져옵니다.
-  const minValue = range.min ?? defaultMin;
-
-  // 최대 핸들의 현재 값을 가져옵니다.
-  const maxValue = range.max ?? defaultMax;
-
-  // 양쪽 핸들이 모두 끝에 있으면 전체 조건입니다.
-  if (minValue === defaultMin && maxValue === defaultMax) {
-    return "전체";
-  }
-
-  // 왼쪽 핸들이 최소 끝에 있으면 오른쪽 값 이하 조건입니다.
-  if (minValue === defaultMin) {
-    return `${formatAreaLabel(maxValue)} 이하`;
-  }
-
-  // 오른쪽 핸들이 최대 끝에 있으면 왼쪽 값 이상 조건입니다.
-  if (maxValue === defaultMax) {
-    return `${formatAreaLabel(minValue)} 이상`;
-  }
-
-  // 양쪽 핸들이 모두 끝이 아니면 범위 조건입니다.
-  return `${formatAreaLabel(minValue)} ~ ${formatAreaLabel(maxValue)}`;
-};
-
-// 숫자 면적을 필터 표시 문구로 변환합니다.
-const formatAreaLabel = (value) => {
-  // 값이 없으면 전체로 표시합니다.
-  if (value === null || value === undefined) return "전체";
-
-  // 제곱미터 단위로 표시합니다.
-  return `${value}㎡`;
-};
-
-const getRangePercent = (value, config) => {
-  return ((value - config.min) / (config.max - config.min)) * 100;
-};
 
 // 슬라이더 기준 라벨을 실제 값 비율에 맞춰 렌더링합니다.
 const renderRangeLabels = (config) => {
