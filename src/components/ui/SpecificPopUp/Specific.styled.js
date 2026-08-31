@@ -10,6 +10,7 @@ export const SpecificBackdrop = styled.div`
   align-items: center;
   justify-content: center;
   padding: 28px;
+  padding-top: 10%;
   background: rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(8px);
 `;
