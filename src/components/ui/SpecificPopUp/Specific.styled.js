@@ -5,32 +5,36 @@ import styled from "styled-components";
 export const SpecificBackdrop = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px;
-  padding-top: 10%;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(8px);
+
+  padding: 40px 32px;
+  box-sizing: border-box;
 `;
 
 // 실제 상세보기 팝업 박스입니다.
-export const Panel = styled.section`
-  width: min(1200px, calc(100vw - 76px));
-  max-height: calc(100vh - 56px);
+export const Panel = styled.div`
+  width: min(1280px, 100%);
+  height: min(760px, calc(100vh - 120px));
+  background: white;
+  border-radius: 16px;
   overflow: hidden;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #111827;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.3);
+
+  display: flex;
+  flex-direction: column;
+
+  /* 팝업 박스 전체를 아래로 10px 이동 */
+  transform: translateY(20px);
 `;
 
 // 팝업 상단 헤더 영역입니다.
-export const Header = styled.header`
-  position: relative;
-  padding: 34px 40px 22px;
-  border-bottom: 1px solid #eeeeee;
+export const Header = styled.div`
+  padding: 28px 48px 20px;
 `;
 
 // 팝업 닫기 버튼입니다.
@@ -51,10 +55,7 @@ export const CloseButton = styled.button`
 
 // 상세보기 제목입니다.
 export const Title = styled.h2`
-  margin: 10px 48px 12px 0;
-  color: #111827;
   font-size: 34px;
-  font-weight: 500;
   line-height: 1.25;
 `;
 
@@ -81,16 +82,17 @@ export const Tag = styled.span`
 
 // 팝업 본문 스크롤 영역입니다.
 export const MainContent = styled.div`
-  max-height: calc(100vh - 196px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 24px 40px 40px;
+  padding: 28px 48px 40px;
 `;
 
 // 상단 이미지, 정보, 위치 카드 그리드입니다.
 export const DetailGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(360px, 1.35fr) minmax(300px, 1fr) 256px;
-  gap: 32px;
+  grid-template-columns: minmax(260px, 1.25fr) minmax(240px, 1fr) 190px;
+  gap: 22px;
   align-items: start;
 `;
 
@@ -206,15 +208,8 @@ export const LocationCard = styled.div`
 
 // 지도 미리보기 영역입니다.
 export const LocationMap = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 190px;
+  height: 140px;
   background: #e7f4ff;
-  color: rgba(35, 172, 97, 0.22);
-  font-size: 30px;
-  font-weight: 800;
 `;
 
 // 위치 카드 하단 제목입니다.
@@ -301,7 +296,7 @@ export const InfoGrid = styled.div`
 
 // 기본 정보 카드입니다.
 export const InfoCard = styled.section`
-  padding: 24px;
+  padding: 18px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;
@@ -315,7 +310,7 @@ export const InfoList = styled.div`
 
 // 분석 카드입니다.
 export const AnalysisCard = styled.section`
-  padding: 24px;
+  padding: 18px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;

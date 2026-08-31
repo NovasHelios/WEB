@@ -236,7 +236,7 @@ export const renderLandMarkers = async ({
     // markup.png 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
     const markerImageUrl = createLandMarkerImage({
       priceText: formatPrice(land.desiredPrice),
-      areaText: `${Math.round(Number(land.area) / 3.3058)}평`,
+      areaText: `${Math.round(Number(land.area)).toLocaleString()}㎡`,
       markupImage,
     });
 

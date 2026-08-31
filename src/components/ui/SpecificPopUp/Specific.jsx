@@ -1,11 +1,11 @@
 // 상세보기 팝업에서 사용할 아이콘입니다.
+import { useEffect, useRef } from "react";
 import {
   Bot,
   FileText,
   Heart,
   Image as ImageIcon,
   Info,
-  MapPin,
   X,
 } from "lucide-react";
 
@@ -178,6 +178,40 @@ const buildDocumentList = (land) => {
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
+  // 상세보기 안에 표시할 고정 미니 지도 영역입니다.
+  const locationMapRef = useRef(null);
+
+  useEffect(() => {
+    // 지도 SDK와 좌표가 준비되지 않으면 지도 생성을 건너뜁니다.
+    if (!locationMapRef.current || !window.kakao?.maps || !land?.x || !land?.y) {
+      return;
+    }
+
+    // 서버 좌표는 x=경도, y=위도 형식으로 내려옵니다.
+    const position = new window.kakao.maps.LatLng(Number(land.y), Number(land.x));
+
+    // 상세보기에서는 위치 확인만 가능하도록 조작을 막은 미니 지도를 생성합니다.
+    const map = new window.kakao.maps.Map(locationMapRef.current, {
+      center: position,
+      level: 3,
+      draggable: false,
+      scrollwheel: false,
+      disableDoubleClickZoom: true,
+    });
+
+    // 선택한 토지 위치를 지도 중앙에 마커로 표시합니다.
+    new window.kakao.maps.Marker({
+      position,
+      map,
+    });
+
+    // 팝업 렌더링 직후 지도 크기를 다시 계산해 타일 깨짐을 방지합니다.
+    setTimeout(() => {
+      map.relayout();
+      map.setCenter(position);
+    }, 0);
+  }, [land]);
+
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
   if (!land) return null;
 
@@ -295,10 +329,7 @@ function Specific({ land, onClose }) {
 
             {/* 위치 요약 카드입니다. */}
             <LocationCard>
-              <LocationMap>
-                <MapPin size={24} fill="#18a05e" color="#18a05e" />
-                <span>Map View</span>
-              </LocationMap>
+              <LocationMap ref={locationMapRef} />
               <LocationTitle>위치</LocationTitle>
             </LocationCard>
           </DetailGrid>
@@ -391,10 +422,16 @@ function Specific({ land, onClose }) {
             </AnalysisCard>
           </InfoGrid>
 
-          {/* AI 의견 영역입니다. */}
+          {/* 판매자가 작성한 상세 설명 영역입니다. */}
+          <AiOpinion>
+            <SectionTitle>상세 설명</SectionTitle>
+            <p>{land.description || "등록된 상세 설명이 없습니다."}</p>
+          </AiOpinion>
+
+          {/* AI 의견은 추후 기능 개발 전까지 준비 중 문구를 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
-            <p>{land.description || "등록된 설명이 없습니다."}</p>
+            <p>AI 의견은 현재 개발 중입니다.</p>
           </AiOpinion>
         </MainContent>
       </Panel>
