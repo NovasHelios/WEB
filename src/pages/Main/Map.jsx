@@ -14,6 +14,7 @@ import {
 } from "./Map.styled";
 import markupImage from "@/images/markup.png";
 import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
+import { authFetch } from "@/lib/auth";
 
 function Map() {
   // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
@@ -34,7 +35,11 @@ function Map() {
     transactionType: "ALL",
 
     // 지역 선택 필터입니다.
-    region: "",
+    region: {
+      sido: null,
+      sigungu: null,
+      emd: null,
+    },
 
     // 매매가 범위 필터입니다.
     salePrice: {
@@ -284,11 +289,25 @@ function Map() {
   const fetchRegisteredLands = async () => {
     try {
       const response = await fetch("/api/lands");
+      // 서버 응답을 JSON으로 변환합니다.
       const result = await response.json();
 
-      // 서버 응답 구조에서 실제 토지 배열만 꺼냅니다.
-      const lands = result.data || [];
+      // 서버 응답이 실패하면 기존 마커를 유지하고 렌더링을 중단합니다.
+      if (!response.ok) {
+        console.error("토지 필터 조회 실패:", result);
+        return;
+      }
 
+      // 서버 응답 data가 배열이 아니면 기존 마커를 유지하고 렌더링을 중단합니다.
+      if (!Array.isArray(result.data)) {
+        console.error("토지 필터 응답 형식 오류:", result);
+        return;
+      }
+
+      // 서버에서 받은 토지 목록만 사용합니다.
+      const lands = result.data;
+
+      // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
       await renderLandMarkers({
         // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
         mapRef: mapInstanceRef,
@@ -342,53 +361,41 @@ function Map() {
     }
   };
 
-  // 필터 조건을 백엔드에 전달할 query string으로 변환합니다.
-  const createLandFilterQuery = (filters) => {
-    // URL query parameter를 만들기 위한 객체입니다.
-    const params = new URLSearchParams();
+  // 필터 조건을 백엔드 POST body 형식으로 변환합니다.
+  const createLandFilterBody = (filters) => {
+    // 지역 필터는 선택된 단계의 이름을 서버 필드에 맞춰 나누어 전달합니다.
+    const selectedRegion = filters.region || {};
 
-    // 거래 유형 조건을 추가합니다.
-    if (filters.transactionType && filters.transactionType !== "ALL") {
-      params.append("transactionType", filters.transactionType);
-    }
+    // 최소 핸들이 시작점이면 서버에 조건 없음으로 전달합니다.
+    const normalizeMinValue = (value, defaultMin) => {
+      if (value === null || value === defaultMin) return null;
+      return value;
+    };
 
-    // 지역 조건을 추가합니다.
-    if (filters.region) {
-      params.append("region", filters.region);
-    }
+    // 최대 핸들이 끝점이면 서버에 조건 없음으로 전달합니다.
+    const normalizeMaxValue = (value, defaultMax) => {
+      if (value === null || value === defaultMax) return null;
+      return value;
+    };
 
-    // 매매가 최소 조건을 추가합니다.
-    if (filters.salePrice.min !== null) {
-      params.append("salePriceMin", filters.salePrice.min);
-    }
-
-    // 매매가 최대 조건을 추가합니다.
-    if (filters.salePrice.max !== null) {
-      params.append("salePriceMax", filters.salePrice.max);
-    }
-
-    // 임대가 최소 조건을 추가합니다.
-    if (filters.rentPrice.min !== null) {
-      params.append("rentPriceMin", filters.rentPrice.min);
-    }
-
-    // 임대가 최대 조건을 추가합니다.
-    if (filters.rentPrice.max !== null) {
-      params.append("rentPriceMax", filters.rentPrice.max);
-    }
-
-    // 토지 면적 최소 조건을 추가합니다.
-    if (filters.area.min !== null) {
-      params.append("areaMin", filters.area.min);
-    }
-
-    // 토지 면적 최대 조건을 추가합니다.
-    if (filters.area.max !== null) {
-      params.append("areaMax", filters.area.max);
-    }
-
-    // 완성된 query string을 반환합니다.
-    return params.toString();
+    // 서버가 요구하는 필터 request body를 생성합니다.
+    return {
+      // 상태 조건은 현재 화면 필터에 없으므로 전체 상태를 조회하도록 null을 전달합니다.
+      status: null,
+      transactionType:
+        filters.transactionType && filters.transactionType !== "ALL"
+          ? filters.transactionType
+          : null,
+      saleMinPrice: normalizeMinValue(filters.salePrice.min, 0),
+      saleMaxPrice: normalizeMaxValue(filters.salePrice.max, 4000000000),
+      leaseMinPrice: normalizeMinValue(filters.rentPrice.min, 0),
+      leaseMaxPrice: normalizeMaxValue(filters.rentPrice.max, 5000000),
+      minArea: normalizeMinValue(filters.area.min, 0),
+      maxArea: normalizeMaxValue(filters.area.max, 500),
+      sido: selectedRegion.sido?.name || null,
+      sigungu: selectedRegion.sigungu?.name || null,
+      eupmyeondong: selectedRegion.emd?.name || null,
+    };
   };
 
   // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
@@ -396,17 +403,30 @@ function Map() {
     // 새 필터 조건을 state에 저장합니다.
     setAppliedFilters(nextFilters);
 
-    // 필터 조건을 query string으로 변환합니다.
-    const queryString = createLandFilterQuery(nextFilters);
-
-    // 필터 조건이 있으면 query string을 붙이고, 없으면 전체 목록을 요청합니다.
-    const requestUrl = queryString ? `/api/lands?${queryString}` : "/api/lands";
+    // 필터 조건을 POST body로 변환합니다.
+    const requestBody = createLandFilterBody(nextFilters);
+    // 필터 API로 보내는 요청 body를 확인합니다.
+    console.log("필터 요청 body:", requestBody);
 
     // 백엔드에서 필터링된 토지 목록을 조회합니다.
-    const response = await fetch(requestUrl);
+    const response = await authFetch("/api/lands/filter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
     // 서버 응답을 JSON으로 변환합니다.
     const result = await response.json();
+
+    // 필터 API 응답 상태와 응답 데이터를 확인합니다.
+    console.log("필터 응답 status:", response.status);
+    console.log("필터 응답 data:", result);
+    console.log(
+      "필터 결과 개수:",
+      Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
+    );
 
     // 서버에서 받은 토지 목록만 사용합니다.
     const lands = result.data || [];

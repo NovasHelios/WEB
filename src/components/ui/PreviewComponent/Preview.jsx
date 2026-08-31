@@ -133,6 +133,15 @@ const formatArea = (value) => {
 
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
 function Preview({ land, onClose, onOpenSpecific }) {
+  // 현재 선택된 대표 이미지 번호를 저장합니다.
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // 다른 토지를 클릭했을 때 첫 번째 이미지로 다시 초기화합니다.
+  useEffect(() => {
+    // 새 토지 상세을 열면 첫 번째 이미지를 대표 이미지로 보여줍니다.
+    setSelectedImageIndex(0);
+  }, [land?.id]);
+
   // 선택된 토지가 없으면 상세 패널을 렌더링하지 않습니다.
   if (!land) return null;
 
@@ -167,15 +176,6 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
   // 거래 유형을 서버 필드 기준으로 표시합니다.
   const transactionType = land.transactionType || "매매";
-
-  // 현재 선택된 대표 이미지 번호를 저장합니다.
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-  // 다른 토지를 클릭했을 때 첫 번째 이미지로 다시 초기화합니다.
-  useEffect(() => {
-    // 새 토지 상세를 열면 첫 번째 이미지를 대표 이미지로 보여줍니다.
-    setSelectedImageIndex(0);
-  }, [land.id]);
 
   // 현재 대표 이미지로 보여줄 항목입니다.
   const selectedImage = detailImages[selectedImageIndex] || detailImages[0];

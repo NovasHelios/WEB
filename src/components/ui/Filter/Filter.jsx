@@ -27,9 +27,6 @@ import {
   RangeLabel,
   ActionRow,
   DirectInputBox,
-  RegionPath,
-  RegionGrid,
-  RegionButton,
   // 직접 입력 팝업 스타일 컴포넌트입니다.
   DirectInputBackdrop,
   DirectInputModal,
@@ -49,7 +46,7 @@ import {
 const transactionOptions = [
   { label: "전체", value: "ALL" },
   { label: "매매", value: "SALE" },
-  { label: "임대", value: "RENT" },
+  { label: "임대", value: "LEASE" },
   { label: "사업희망", value: "BUSINESS_HOPE" },
 ];
 
@@ -248,15 +245,6 @@ function Filter({ filters, onApplyFilters }) {
     setDraftFilters((prev) => ({
       ...prev,
       transactionType: value,
-    }));
-  };
-
-  // 지역 임시 값을 변경합니다.
-  const handleChangeRegion = (region) => {
-    // 지역 필터 값을 변경합니다.
-    setDraftFilters((prev) => ({
-      ...prev,
-      region,
     }));
   };
 
@@ -578,29 +566,19 @@ function Filter({ filters, onApplyFilters }) {
           )}
         </FilterButton>
 
-        {/* 지역 선택 필터 패널입니다. */}
         {activeFilter === "region" && (
           <DropdownPanel $width="452px">
-            <RegionPath>
-              서울시 <span>›</span> 시·군·구 <span>›</span> 읍·면·동 선택
-            </RegionPath>
+            <RegionFilter
+              defaultValue={draftFilters.region}
+              onSave={(selectedRegion) => {
+                onApplyFilters({
+                  ...draftFilters,
+                  region: selectedRegion,
+                });
 
-            <RegionGrid>
-              {seoulRegions.map((region) => (
-                <RegionButton
-                  key={region}
-                  type="button"
-                  $active={draftFilters.region === region}
-                  onClick={() => handleChangeRegion(region)}
-                >
-                  {region}
-                </RegionButton>
-              ))}
-            </RegionGrid>
-
-            <ApplyButton type="button" onClick={handleApply}>
-              저장
-            </ApplyButton>
+                setActiveFilter(null);
+              }}
+            />
           </DropdownPanel>
         )}
       </FilterItem>
@@ -780,27 +758,76 @@ function Filter({ filters, onApplyFilters }) {
           )}
         </FilterButton>
 
-        <RegionFilter
-          defaultValue={draftFilters.region}
-          onSave={(selectedRegion) => {
-            setDraftFilters((prev) => ({
-              ...prev,
-              region: selectedRegion,
-            }));
+        {/* 면적 필터 패널입니다. */}
+        {activeFilter === "area" && (
+          <DropdownPanel $width="452px">
+            {/* 면적 범위 필터 영역입니다. */}
+            <RangeBlock>
+              <RangeTitleRow>
+                <span>면적</span>
 
-            setAppliedFilters((prev) => ({
-              ...prev,
-              region: selectedRegion,
-            }));
+                {/* 현재 선택 중인 면적 범위를 표시합니다. */}
+                <RangeValueText>
+                  {formatAreaRangeLabel(
+                    draftFilters.area,
+                    rangeConfig.area.min,
+                    rangeConfig.area.max
+                  )}
+                </RangeValueText>
 
-            onApply?.({
-              ...appliedFilters,
-              region: selectedRegion,
-            });
+                {/* 면적 직접 입력 팝업을 엽니다. */}
+                <button type="button" onClick={() => setDirectInputTarget("area")}>
+                  <Pencil size={16} />
+                </button>
+              </RangeTitleRow>
 
-            setOpenFilter(null);
-          }}
-        />
+              {/* 면적 최소/최대 슬라이더입니다. */}
+              <RangeTrack
+                $minPercent={getRangePercent(
+                  draftFilters.area.min ?? rangeConfig.area.min,
+                  rangeConfig.area
+                )}
+                $maxPercent={getRangePercent(
+                  draftFilters.area.max ?? rangeConfig.area.max,
+                  rangeConfig.area
+                )}
+              >
+                <RangeInput
+                  $isMin
+                  type="range"
+                  min={rangeConfig.area.min}
+                  max={rangeConfig.area.max}
+                  step={rangeConfig.area.step}
+                  value={draftFilters.area.min ?? rangeConfig.area.min}
+                  onChange={(event) =>
+                    handleChangeRange("area", "min", event.target.value)
+                  }
+                />
+
+                <RangeInput
+                  type="range"
+                  min={rangeConfig.area.min}
+                  max={rangeConfig.area.max}
+                  step={rangeConfig.area.step}
+                  value={draftFilters.area.max ?? rangeConfig.area.max}
+                  onChange={(event) =>
+                    handleChangeRange("area", "max", event.target.value)
+                  }
+                />
+              </RangeTrack>
+
+              {/* 면적 기준 라벨입니다. */}
+              {renderRangeLabels(rangeConfig.area)}
+            </RangeBlock>
+
+            {/* 면적 필터 저장 버튼입니다. */}
+            <ActionRow $center>
+              <ApplyButton type="button" onClick={handleApply}>
+                저장
+              </ApplyButton>
+            </ActionRow>
+          </DropdownPanel>
+        )}
       </FilterItem>
 
       {/* 직접 입력 버튼을 눌렀을 때 화면을 어둡게 덮는 팝업입니다. */}

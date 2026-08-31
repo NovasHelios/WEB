@@ -13,8 +13,9 @@ export const getSgisAccessToken = async () => {
     consumer_secret: SECURITY_KEY,
   });
 
+  // 개발 환경에서는 Vite 프록시를 통해 SGIS 인증 API를 호출합니다.
   const response = await fetch(
-    `https://sgisapi.mods.go.kr/OpenAPI3/auth/authentication.json?${params}`
+    `/sgis/OpenAPI3/auth/authentication.json?${params}`
   );
 
   const data = await response.json();
@@ -40,9 +41,8 @@ export const getRegions = async (code = null) => {
     params.append("cd", code);
   }
 
-  const response = await fetch(
-    `https://sgisapi.mods.go.kr/OpenAPI3/addr/stage.json?${params}`
-  );
+  // 개발 환경에서는 Vite 프록시를 통해 SGIS 단계별 주소 API를 호출합니다.
+  const response = await fetch(`/sgis/OpenAPI3/addr/stage.json?${params}`);
 
   const data = await response.json();
 

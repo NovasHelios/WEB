@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { getRegions } from "../../../api/sgisAPI";
+import { getRegions } from "@/API/sgisAPI";
 import RegionBreadcrumb from "./RegionBreadcrumb";
 import RegionGrid from "./RegionGrid";
 import {
@@ -90,13 +90,13 @@ const RegionFilter = ({ defaultValue = initialSelectedRegion, onSave }) => {
     }));
   };
 
-  // 시도 단계로 되돌아가며 하위 선택값을 초기화합니다.
+  // 시도 자체를 다시 선택할 수 있도록 모든 지역 선택값을 초기화합니다.
   const handleBackToSido = () => {
-    setSelectedRegion((prev) => ({
-      sido: prev.sido,
+    setSelectedRegion({
+      sido: null,
       sigungu: null,
       emd: null,
-    }));
+    });
   };
 
   // 시군구 단계로 되돌아가며 읍면동 선택값을 초기화합니다.
