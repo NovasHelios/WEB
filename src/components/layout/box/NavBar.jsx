@@ -68,7 +68,7 @@ const NavBar = ({
   // 아직 기능이 없는 상단 메뉴는 화면 디자인만 유지합니다.
   const menuItems = [
     { label: "지도 검색", icon: Map, url: "/map" },
-    { label: "내 공간", icon: Mountain, url: "/my-space" },
+    { label: "내 공간", icon: Mountain, url: "/space" },
     { label: "관심 토지", icon: Heart, url: "/land/favorites" },
     { label: "사업 연결", icon: Handshake, url: "/business-connections" },
   ];

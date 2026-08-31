@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { Api } from "@/contents/apiEndpoints";
+import { authFetch } from "@/lib/auth";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   ConditionButton,
   ConditionButtonRow,
@@ -61,6 +64,7 @@ const conditionTabs = {
 function LandRegisterCondition() {
   const navigate = useNavigate();
   useRequireLogin();
+  const { registerData, setRegisterData } = useLandRegister();
   const [selected, setSelected] = useState("sale");
   const [values, setValues] = useState({
     sale: "",
@@ -69,6 +73,61 @@ function LandRegisterCondition() {
   });
 
   const current = useMemo(() => conditionTabs[selected], [selected]);
+
+  const handleValueChange = (event) => {
+    const nextValue = event.target.value;
+
+    setValues((prev) => ({
+      ...prev,
+      [selected]: nextValue,
+    }));
+
+    if (selected !== "hope") {
+      setRegisterData((prev) => ({
+        ...prev,
+        transactionType: selected,
+        price: nextValue,
+      }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    // 마지막 단계에서 저장 가능한 정보를 한 번에 전송합니다.
+    const desiredPrice = Number((selected === "hope" ? "" : values[selected]).replace(/[^\d]/g, ""));
+
+    if (selected !== "hope" && Number.isNaN(desiredPrice)) {
+      return;
+    }
+
+    const payload = {
+      address: registerData.address,
+      desiredPrice: selected === "hope" ? 0 : desiredPrice,
+      description: registerData.memo || "",
+    };
+
+    const response = await authFetch(Api.Lands, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+    }
+
+    setRegisterData((prev) => ({
+      ...prev,
+      submittedLand: data?.data ?? data,
+      price: selected === "hope" ? "가격 미정" : values[selected],
+      transactionType: selected,
+    }));
+
+    navigate("/land/register/complete");
+  };
 
   return (
     <ConditionPage>
@@ -114,12 +173,7 @@ function LandRegisterCondition() {
                 inputMode="numeric"
                 value={values[selected]}
                 disabled={selected === "hope"}
-                onChange={(event) =>
-                  setValues((prev) => ({
-                    ...prev,
-                    [selected]: event.target.value,
-                  }))
-                }
+                onChange={handleValueChange}
                 placeholder={current.placeholder}
                 aria-label={current.valueLabel}
                 aria-disabled={selected === "hope"}
@@ -142,7 +196,7 @@ function LandRegisterCondition() {
             <ArrowLeft size={18} strokeWidth={2.4} />
             이전 단계로
           </ConditionPrimaryButton>
-          <ConditionPrimaryButton type="button" onClick={() => navigate("/land/register/complete")}>
+          <ConditionPrimaryButton type="button" onClick={handleSubmit}>
             등록
           </ConditionPrimaryButton>
         </ConditionFooterButtons>

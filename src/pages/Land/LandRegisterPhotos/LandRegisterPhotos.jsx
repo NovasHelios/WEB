@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   PhotosCard,
   PhotosCardHeader,
@@ -90,6 +91,7 @@ const documentSlots = [
 function LandRegisterPhotos() {
   const navigate = useNavigate();
   useRequireLogin();
+  const { setRegisterData } = useLandRegister();
 
   return (
     <PhotosPage>

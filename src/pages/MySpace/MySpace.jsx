@@ -1,4 +1,4 @@
-import { ChevronDown, CalendarDays, Heart, MapPinned, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarDays, Heart, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";

@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   LandRegisterBottomButton,
   LandRegisterButtonIcon,
@@ -36,9 +37,8 @@ import {
 function LandRegister() {
   const navigate = useNavigate();
   useRequireLogin();
-  const [address, setAddress] = useState("");
+  const { registerData, setRegisterData } = useLandRegister();
   const [searchResult, setSearchResult] = useState("");
-  const [isAddressValid, setIsAddressValid] = useState(false);
   const [isAddressChecking, setIsAddressChecking] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
 
@@ -64,7 +64,18 @@ function LandRegister() {
 
     return new Promise((resolve) => {
       geocoder.addressSearch(value, (result, status) => {
-        resolve(status === window.kakao.maps.services.Status.OK && result.length > 0);
+        if (status !== window.kakao.maps.services.Status.OK || result.length === 0) {
+          resolve(null);
+          return;
+        }
+
+        const matched = result[0];
+        resolve({
+          address: matched.address_name || value,
+          roadAddress: matched.road_address?.address_name || "",
+          x: matched.x || "",
+          y: matched.y || "",
+        });
       });
     });
   };
@@ -72,10 +83,9 @@ function LandRegister() {
   const handleSearch = (event) => {
     // 주소 입력 후 유효성 검사를 진행합니다.
     event.preventDefault();
-    const trimmed = address.trim();
+    const trimmed = registerData.address.trim();
 
     if (!trimmed) {
-      setIsAddressValid(false);
       setAddressMessage("주소를 입력한 뒤 검색해 주세요.");
       return;
     }
@@ -84,17 +94,34 @@ function LandRegister() {
     setAddressMessage("주소를 확인하는 중입니다.");
 
     validateAddress(trimmed)
-      .then((isValid) => {
-        if (!isValid) {
-          setIsAddressValid(false);
+      .then((result) => {
+        if (!result) {
           setSearchResult("");
           setAddressMessage("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
+          setRegisterData((prev) => ({
+            ...prev,
+            isAddressValid: false,
+            confirmedAddress: "",
+            confirmedRoadAddress: "",
+            confirmedLocation: "",
+            latitude: "",
+            longitude: "",
+          }));
           return;
         }
 
-        setIsAddressValid(true);
         setSearchResult(`입력된 주소: ${trimmed}`);
         setAddressMessage("유효한 주소로 확인되었습니다.");
+        setRegisterData((prev) => ({
+          ...prev,
+          address: trimmed,
+          isAddressValid: true,
+          confirmedAddress: result.address,
+          confirmedRoadAddress: result.roadAddress,
+          confirmedLocation: result.x && result.y ? `${result.y}, ${result.x}` : "",
+          latitude: result.y,
+          longitude: result.x,
+        }));
       })
       .finally(() => {
         setIsAddressChecking(false);
@@ -103,10 +130,18 @@ function LandRegister() {
 
   const handleAddressChange = (event) => {
     // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
-    setAddress(event.target.value);
-    setIsAddressValid(false);
     setSearchResult("");
     setAddressMessage("");
+    setRegisterData((prev) => ({
+      ...prev,
+      address: event.target.value,
+      isAddressValid: false,
+      confirmedAddress: "",
+      confirmedRoadAddress: "",
+      confirmedLocation: "",
+      latitude: "",
+      longitude: "",
+    }));
   };
 
   return (
@@ -140,7 +175,7 @@ function LandRegister() {
               <LandRegisterAddressFieldWrap onSubmit={handleSearch}>
                 <LandRegisterAddressField>
                   <LandRegisterAddressInput
-                    value={address}
+                    value={registerData.address}
                     onChange={handleAddressChange}
                     placeholder="주소를 입력해주세요. (예: 경기도 안성시 일죽면 산북리 123)"
                   />
@@ -174,7 +209,7 @@ function LandRegister() {
           <LandRegisterButtonWrap>
             <LandRegisterBottomButton
               type="button"
-              disabled={!address.trim() || !isAddressValid || isAddressChecking}
+              disabled={!registerData.address.trim() || !registerData.isAddressValid || isAddressChecking}
               onClick={() => navigate("/land/register/confirm")}
             >
               다음 단계로

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { useRequireLogin } from "../shared";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   CompleteCardBody,
   CompleteCardButton,
@@ -76,6 +77,7 @@ const completionModes = {
 function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
+  const { registerData } = useLandRegister();
   const [selected, setSelected] = useState("sale");
 
   const current = useMemo(() => completionModes[selected], [selected]);
@@ -141,15 +143,17 @@ function LandRegisterComplete() {
                 <CompleteCardInfo>
                   <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>소재지</CompleteCardInfoLabel>
-                    <CompleteCardInfoValue>경기도 안성시 일죽면 산북리 123</CompleteCardInfoValue>
+                    <CompleteCardInfoValue>{registerData.address || "경기도 안성시 일죽면 산북리 123"}</CompleteCardInfoValue>
                   </CompleteCardInfoItem>
                   <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>면적</CompleteCardInfoLabel>
-                    <CompleteCardInfoValue>6,689 ㎡ (2,023평)</CompleteCardInfoValue>
+                    <CompleteCardInfoValue>{registerData.submittedLand?.area || "6,689 ㎡ (2,023평)"}</CompleteCardInfoValue>
                   </CompleteCardInfoItem>
                   <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>희망 가격</CompleteCardInfoLabel>
-                    <CompleteCardInfoValue $emphasis>{current.priceEmphasis}</CompleteCardInfoValue>
+                    <CompleteCardInfoValue $emphasis>
+                      {registerData.price || current.priceEmphasis}
+                    </CompleteCardInfoValue>
                   </CompleteCardInfoItem>
                   <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>등록 상태</CompleteCardInfoLabel>
@@ -162,7 +166,7 @@ function LandRegisterComplete() {
 
           <CompleteRecommendCard>
             <CompleteRecommendTitle>다음 단계 추천</CompleteRecommendTitle>
-            <CompleteRecommendButton type="button" onClick={() => navigate("/land")}>
+            <CompleteRecommendButton type="button" onClick={() => navigate("/space")}>
               <List size={18} strokeWidth={2.2} />
               내 토지 관리 이동
             </CompleteRecommendButton>
@@ -176,7 +180,7 @@ function LandRegisterComplete() {
             <CompleteButton type="button" $outline onClick={() => navigate("/")}>
               대시보드로 이동
             </CompleteButton>
-            <CompleteButton type="button" onClick={() => navigate("/land")}>
+            <CompleteButton type="button" onClick={() => navigate("/space")}>
               토지 목록 보기
               <ArrowRight size={18} strokeWidth={2.4} />
             </CompleteButton>
