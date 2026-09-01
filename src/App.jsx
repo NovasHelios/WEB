@@ -1,4 +1,4 @@
-import { Route, BrowserRouter, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Background from "./pages/Background";
 import Login from "./pages/Login/Login";
 import Signin_2 from "./pages/SignIn/Signin_2.jsx";
@@ -19,7 +19,7 @@ function App() {
     <Background>
       <LandRegisterProvider>
         <Routes>
-          <Route path="/signup/individual-2" element={<Signin_2 />} />
+          <Route path="/signup" element={<Signin_2 />} />
           <Route path="/" element={<Map />} />
           <Route path="/land" element={<MySpace />} />
           <Route path="/land/favorites" element={<LandFavorites />} />

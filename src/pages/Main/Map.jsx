@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
-import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 // 지도 필터 UI 컴포넌트를 가져옵니다.
 import Filter from "@/components/ui/Filter/Filter";
 import {
@@ -112,6 +111,7 @@ function Map() {
       }, 100);
 
       // 등록된 토지 목록을 불러옵니다.
+      // eslint-disable-next-line react-hooks/immutability
       fetchRegisteredLands();
 
       // Kakao 지도 줌 변경 이벤트를 등록합니다.
@@ -148,6 +148,8 @@ function Map() {
     return () => {
       clearInterval(waitForKakao);
     };
+  // Kakao SDK 초기화는 최초 마운트 때만 실행합니다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 입력된 시도 축약명 또는 정식명을 VWorld/내부 로직에서 사용할 정식 시도명으로 변환
@@ -250,7 +252,7 @@ function Map() {
   };
 
   // 서버에서 단일 토지 상세 정보를 가져오는 함수입니다.
-  const fetchLandDetail = async (landId) => {
+  async function fetchLandDetail(landId) {
     try {
       // landId가 없으면 상세 조회를 하지 않습니다.
       if (!landId) return null;
@@ -278,10 +280,10 @@ function Map() {
       console.error("토지 상세 정보 조회 실패:", error);
       return null;
     }
-  };
+  }
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
-  const fetchRegisteredLands = async () => {
+  async function fetchRegisteredLands() {
     try {
       const response = await fetch("/api/lands");
       const result = await response.json();
@@ -340,7 +342,7 @@ function Map() {
     } catch (error) {
       console.error("등록된 토지 목록 조회 실패:", error);
     }
-  };
+  }
 
   // 필터 조건을 백엔드에 전달할 query string으로 변환합니다.
   const createLandFilterQuery = (filters) => {

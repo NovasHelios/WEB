@@ -208,10 +208,10 @@ const NavBar = ({
         <button
           type="button"
           onClick={handleProfileClick}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8cfba] bg-[#f8f8f8] text-xs font-bold text-[#777777]"
+          className="flex h-9 px-3 items-center justify-center rounded border border-[#d8cfba] bg-[#f8f8f8] text-xs font-bold text-[#777777] whitespace-nowrap"
           aria-label="프로필"
         >
-          {isLoggedIn ? "ME" : "G"}
+          {isLoggedIn ? "로그아웃" : "로그인"}
         </button>
       </nav>
     </header>

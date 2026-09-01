@@ -21,7 +21,6 @@ import {
   LogoWrap,
   Page,
   Row,
-  Subtitle,
   SubmitButton,
   Title,
 } from "./Signin_2.styles";

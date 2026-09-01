@@ -38,8 +38,8 @@ const conditionTabs = {
     cardTitle: "거래 정보",
     valueLabel: "희망 가격",
     prefix: "",
-    suffix: "원",
-    placeholder: "1,500,000,000",
+    suffix: "만원",
+    placeholder: "150000",
   },
   rent: {
     key: "rent",
@@ -47,8 +47,8 @@ const conditionTabs = {
     cardTitle: "거래 정보 | 월",
     valueLabel: "희망 가격",
     prefix: "월",
-    suffix: "원",
-    placeholder: "1,500,000,000",
+    suffix: "만원",
+    placeholder: "350",
   },
   hope: {
     key: "hope",
@@ -56,7 +56,7 @@ const conditionTabs = {
     cardTitle: "거래 정보",
     valueLabel: "희망 가격",
     prefix: "",
-    suffix: "원",
+    suffix: "만원",
     placeholder: "입력 불가",
   },
 };
@@ -92,7 +92,7 @@ function LandRegisterCondition() {
   };
 
   const handleSubmit = async () => {
-    // 마지막 단계에서 저장 가능한 정보를 한 번에 전송합니다.
+    // 마지막 단계에서 만원 단위 가격을 서버에 전송합니다.
     const desiredPrice = Number((selected === "hope" ? "" : values[selected]).replace(/[^\d]/g, ""));
 
     if (selected !== "hope" && Number.isNaN(desiredPrice)) {

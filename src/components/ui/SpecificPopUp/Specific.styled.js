@@ -111,3 +111,95 @@ export const SpecificPlaceholderBox = styled.div`
   color: #9ca3af;
   font-size: 14px;
 `;
+
+export const SpecificHeroGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SpecificImageBox = styled.div`
+  min-height: 260px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eef3df, #c8d7bb);
+`;
+
+export const SpecificImage = styled.img`
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  object-fit: cover;
+  display: block;
+`;
+
+export const SpecificSummaryCard = styled.div`
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #e7dcc8;
+  border-radius: 10px;
+  background: #fffdf8;
+`;
+
+export const SpecificSummaryRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #efe6d6;
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+`;
+
+export const SpecificLabel = styled.span`
+  color: #7b7365;
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+export const SpecificValue = styled.strong`
+  color: ${(props) => (props.$highlight ? "#8a6800" : "#1f2937")};
+  font-size: 16px;
+  font-weight: 800;
+  text-align: right;
+`;
+
+export const SpecificInfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SpecificInfoCard = styled.div`
+  min-height: 86px;
+  padding: 16px;
+  border: 1px solid #e7dcc8;
+  border-radius: 8px;
+  background: #fff;
+`;
+
+export const SpecificDescription = styled.p`
+  min-height: 96px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #e7dcc8;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #374151;
+  font-size: 15px;
+  line-height: 1.7;
+`;

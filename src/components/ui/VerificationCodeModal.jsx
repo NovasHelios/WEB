@@ -20,7 +20,7 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
       }
     };
     if (email) sendCode();
-  }, []);
+  }, [email]);
 
   // 카운트다운 타이머
   useEffect(() => {

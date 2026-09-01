@@ -1,5 +1,5 @@
 // 대표 이미지 변경 상태를 관리하기 위한 React 훅입니다.
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // 상세 패널에서 사용할 아이콘입니다.
 import { Bot, Heart, Info, X } from "lucide-react";
@@ -72,7 +72,7 @@ const fallbackImages = ["#d8c09b", "#e8decf", "#d8dee5"];
 // 숫자 값을 가격 표기로 변환합니다.
 const formatPrice = (value) => {
   // 가격 값이 없으면 기본값을 보여줍니다.
-  if (!value) return "4.5 억원";
+  if (!value) return "가격 없음";
 
   // 숫자로 변환 가능한 가격만 계산합니다.
   const numberValue = Number(value);
@@ -80,34 +80,25 @@ const formatPrice = (value) => {
   // 숫자가 아니면 원본 값을 그대로 보여줍니다.
   if (Number.isNaN(numberValue)) return String(value);
 
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (numberValue >= 100000000) {
-    // 원 단위를 억 단위로 변환합니다.
-    const eok = numberValue / 100000000;
+  // 서버 가격은 만원 단위이므로 화면에서는 조/억/만원 단위로 변환합니다.
+  const jo = Math.floor(numberValue / 100000000);
+  const restAfterJo = numberValue % 100000000;
+  const eok = Math.floor(restAfterJo / 10000);
+  const manwon = restAfterJo % 10000;
 
-    // 소수 첫째 자리까지 표시하되, .0이면 제거합니다.
-    const formattedEok = Number.isInteger(eok) ? eok : eok.toFixed(1);
-
-    // 억 단위 가격을 반환합니다.
-    return `${formattedEok} 억원`;
+  if (jo > 0) {
+    const eokText = eok > 0 ? ` ${eok.toLocaleString()}억원` : "";
+    const manText = manwon > 0 ? ` ${manwon.toLocaleString()}만원` : "";
+    return `${jo.toLocaleString()}조${eokText}${manText}`;
   }
 
-  // 1천만원 이상이면 천만원 단위로 표시합니다.
-  if (numberValue >= 10000000) {
-    // 원 단위를 천만원 단위로 변환합니다.
-    const cheonman = numberValue / 10000000;
-
-    // 소수 첫째 자리까지 표시하되, .0이면 제거합니다.
-    const formattedCheonman = Number.isInteger(cheonman)
-      ? cheonman
-      : cheonman.toFixed(1);
-
-    // 천만원 단위 가격을 반환합니다.
-    return `${formattedCheonman} 천만원`;
+  if (eok > 0 && manwon > 0) {
+    return `${eok.toLocaleString()}억 ${manwon.toLocaleString()}만원`;
   }
 
-  // 천만원 미만은 만원 단위로 표시합니다.
-  const manwon = Math.round(numberValue / 10000);
+  if (eok > 0) {
+    return `${eok.toLocaleString()}억원`;
+  }
 
   // 만원 단위 가격을 반환합니다.
   return `${manwon.toLocaleString()} 만원`;
@@ -133,6 +124,12 @@ const formatArea = (value) => {
 
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
 function Preview({ land, onClose, onOpenSpecific }) {
+  // 현재 선택된 대표 이미지 번호와 토지 식별자를 함께 저장합니다.
+  const [selectedImageState, setSelectedImageState] = useState({
+    landKey: null,
+    index: 0,
+  });
+
   // 선택된 토지가 없으면 상세 패널을 렌더링하지 않습니다.
   if (!land) return null;
 
@@ -168,14 +165,12 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 거래 유형을 서버 필드 기준으로 표시합니다.
   const transactionType = land.transactionType || "매매";
 
-  // 현재 선택된 대표 이미지 번호를 저장합니다.
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  // 다른 토지를 클릭했을 때 첫 번째 이미지부터 보여주기 위한 기준값입니다.
+  const currentLandKey = land.id || address;
 
-  // 다른 토지를 클릭했을 때 첫 번째 이미지로 다시 초기화합니다.
-  useEffect(() => {
-    // 새 토지 상세를 열면 첫 번째 이미지를 대표 이미지로 보여줍니다.
-    setSelectedImageIndex(0);
-  }, [land.id]);
+  // 현재 토지에서 선택된 대표 이미지 번호입니다.
+  const selectedImageIndex =
+    selectedImageState.landKey === currentLandKey ? selectedImageState.index : 0;
 
   // 현재 대표 이미지로 보여줄 항목입니다.
   const selectedImage = detailImages[selectedImageIndex] || detailImages[0];
@@ -236,7 +231,7 @@ function Preview({ land, onClose, onOpenSpecific }) {
               $active={index === selectedImageIndex}
               onClick={() => {
                 // 클릭한 썸네일을 대표 이미지로 변경합니다.
-                setSelectedImageIndex(index);
+                setSelectedImageState({ landKey: currentLandKey, index });
               }}
             >
               {image.type === "image" ? (

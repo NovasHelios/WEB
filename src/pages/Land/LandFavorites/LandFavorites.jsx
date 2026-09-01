@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Heart, Map, Mountain, Camera } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Heart, Mountain, Map, Camera } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
+import {
+  formatMoney,
+  formatArea,
+  normalizeBaseUrl,
+  resolveImageUrl,
+  normalizeWish,
+  getTransactionLabel,
+} from "../landUtils";
 import {
   FavoritesAddress,
   FavoritesBadge,
@@ -34,55 +42,14 @@ import {
   FavoritesTitle,
   FavoritesToolbar,
 } from "./LandFavorites.styles";
-import { getValidAccessToken } from "@/lib/auth";
 
 const favoriteFilters = [
   { key: "all", label: "전체" },
-  { key: "sale", label: "매매" },
-  { key: "rent", label: "임대" },
-  { key: "hope", label: "사업 희망자" },
+  { key: "SALE", label: "매매" },
+  { key: "LEASE", label: "임대" },
 ];
 
-const normalizeBaseUrl = (value) => {
-  const rawValue = value || "https://www.helioss.site";
-  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
-    return rawValue.replace(/\/$/, "");
-  }
-
-  return `https://${rawValue.replace(/\/$/, "")}`;
-};
-
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
-
-const resolveImageUrl = (path) => {
-  if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
-  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
-  return `${API_BASE_URL}/uploads/lands/${path}`;
-};
-
-const formatPrice = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^\d]/g, ""));
-  if (Number.isNaN(numeric)) return String(value);
-
-  return new Intl.NumberFormat("ko-KR").format(numeric);
-};
-
-const formatArea = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-  return Number.isInteger(value) ? value.toLocaleString("ko-KR") : String(value);
-};
-
-const getTransactionLabel = (value) => {
-  if (!value) return "매매";
-  const upper = String(value).toUpperCase();
-  if (upper.includes("LEASE") || upper.includes("RENT")) return "임대";
-  if (upper.includes("HOPE")) return "사업 희망자";
-  return "매매";
-};
 
 function LandFavorites() {
   // 찜 목록 필터 상태
@@ -116,7 +83,7 @@ function LandFavorites() {
         throw new Error(data?.message || data?.data?.message || "관심 토지를 불러오지 못했습니다.");
       }
 
-      const list = Array.isArray(data?.data) ? data.data : [];
+      const list = (Array.isArray(data?.data) ? data.data : []).map(normalizeWish);
       setWishes(list);
     } catch (err) {
       setError(err.message || "관심 토지를 불러오지 못했습니다.");
@@ -126,15 +93,19 @@ function LandFavorites() {
   };
 
   useEffect(() => {
+    // 관심 토지 페이지 진입 시 찜 목록을 조회합니다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchWishes();
   }, []);
 
   const filteredWishes = useMemo(() => {
     if (activeFilter === "all") return wishes;
-    if (activeFilter === "sale") return wishes.filter((wish) => getTransactionLabel(wish.status) === "매매");
-    if (activeFilter === "rent") return wishes.filter((wish) => getTransactionLabel(wish.status) === "임대");
-    if (activeFilter === "hope") return wishes.filter((wish) => getTransactionLabel(wish.status) === "사업 희망");
-    return wishes;
+    return wishes.filter((wish) => {
+      const label = getTransactionLabel(wish.transactionType);
+      if (activeFilter === "SALE") return label === "매매";
+      if (activeFilter === "LEASE") return label === "임대";
+      return true;
+    });
   }, [activeFilter, wishes]);
 
   const handleRemoveWish = async (wish) => {
@@ -174,7 +145,6 @@ function LandFavorites() {
         isSuggestionOpen={false}
         regionSuggestions={[]}
       />
-
       <FavoritesShell>
         {/* 목록 제목과 설명 */}
         <FavoritesHeader>
@@ -221,15 +191,15 @@ function LandFavorites() {
             {/* 관심 토지 카드 목록 */}
             <FavoritesList>
               {filteredWishes.map((wish) => {
-                const transactionLabel = getTransactionLabel(wish.status);
+                const transactionLabel = getTransactionLabel(wish.transactionType);
 
                 return (
-                  <FavoritesItem key={wish.wishId ?? wish.landId}>
+                  <FavoritesItem key={wish.id}>
                     <FavoritesThumbWrap>
                       <FavoritesThumb
                         style={{
                           backgroundImage: wish.landImagePath
-                            ? `linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)), url(${resolveImageUrl(wish.landImagePath)})`
+                            ? `linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)), url(${resolveImageUrl(wish.landImagePath, API_BASE_URL)})`
                             : undefined,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
@@ -265,7 +235,7 @@ function LandFavorites() {
                         <FavoritesMetaItem>
                           <FavoritesMetaLabel>
                             <Map size={14} strokeWidth={2} />
-                            지목
+                            상태
                           </FavoritesMetaLabel>
                           <FavoritesMetaValue>{wish.status || "-"}</FavoritesMetaValue>
                         </FavoritesMetaItem>
@@ -273,9 +243,9 @@ function LandFavorites() {
                         <FavoritesMetaItem>
                           <FavoritesMetaLabel>
                             <Camera size={14} strokeWidth={2} />
-                            용도지역
+                            거래유형
                           </FavoritesMetaLabel>
-                          <FavoritesMetaValue>{wish.status || "-"}</FavoritesMetaValue>
+                          <FavoritesMetaValue>{transactionLabel}</FavoritesMetaValue>
                         </FavoritesMetaItem>
 
                         <FavoritesMetaItem>
@@ -284,14 +254,14 @@ function LandFavorites() {
                             희망 가격
                           </FavoritesMetaLabel>
                           <FavoritesMetaValue $highlight>
-                            {formatPrice(wish.desiredPrice)}
+                            {formatMoney(wish.desiredPrice)}
                           </FavoritesMetaValue>
                         </FavoritesMetaItem>
                       </FavoritesMetaGrid>
 
                       <FavoritesInfoRow>
                         <FavoritesDate>
-                          등록일{" "}
+                          찜한 날짜{" "}
                           {wish.wishedAt ? String(wish.wishedAt).slice(0, 10).replaceAll("-", ".") : "-"}
                         </FavoritesDate>
 

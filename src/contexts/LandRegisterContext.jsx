@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState } from "react";
 
+/* eslint-disable react-refresh/only-export-components */
+
 const defaultRegisterData = {
   address: "",
   isAddressValid: false,

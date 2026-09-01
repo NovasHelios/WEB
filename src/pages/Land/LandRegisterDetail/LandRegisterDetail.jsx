@@ -32,7 +32,7 @@ const MAX_LENGTH = 1000;
 function LandRegisterDetail() {
   const navigate = useNavigate();
   useRequireLogin();
-  const { registerData, setRegisterData } = useLandRegister();
+  const { setRegisterData } = useLandRegister();
   const [memo, setMemo] = useState("");
 
   const memoCount = memo.length;

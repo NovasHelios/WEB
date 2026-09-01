@@ -25,11 +25,7 @@ export const updateLandLayerByZoom = ({
   });
 };
 
-// 가격을 억 단위로 축약해서 표시
-// 예: 350,000,000 -> 3.5억
-// 예: 354,000,000 -> 3.5억
-// 예: 1,000,000,000 -> 10억
-// 서버에서 받은 원 단위 가격을 화면 표시용 문자열로 변환합니다.
+// 서버에서 받은 만원 단위 가격을 지도 마커 표시용 문자열로 변환합니다.
 export const formatPrice = (price) => {
   // 가격 값이 없으면 기본 문구를 표시합니다.
   if (!price) return "가격 없음";
@@ -40,23 +36,23 @@ export const formatPrice = (price) => {
   // 숫자로 변환할 수 없으면 원본 값을 문자열로 표시합니다.
   if (Number.isNaN(numberPrice)) return String(price);
 
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (numberPrice >= 100000000) {
-    // 원 단위를 억 단위로 변환합니다.
-    const eokValue = numberPrice / 100000000;
+  // 만원 단위 값을 조/억/만원 단위로 나눕니다.
+  const joValue = Math.floor(numberPrice / 100000000);
+  const restAfterJo = numberPrice % 100000000;
+  const eokValue = Math.floor(restAfterJo / 10000);
+  const manValue = restAfterJo % 10000;
 
-    // 소수 첫째 자리까지 버림 처리합니다.
-    const floored = Math.floor(eokValue * 10) / 10;
-
-    // 정수면 소수점을 제거하고, 소수면 한 자리까지 표시합니다.
-    const formatted = Number.isInteger(floored) ? floored : floored.toFixed(1);
-
-    // 억 단위 가격을 반환합니다.
-    return `${formatted}억`;
+  if (joValue > 0) {
+    return `${joValue.toLocaleString()}조 ${eokValue.toLocaleString()}억`;
   }
 
-  // 1억 미만은 만원 단위로 표시합니다.
-  const manValue = Math.floor(numberPrice / 10000);
+  if (eokValue > 0 && manValue > 0) {
+    return `${eokValue.toLocaleString()}억 ${manValue.toLocaleString()}만`;
+  }
+
+  if (eokValue > 0) {
+    return `${eokValue.toLocaleString()}억`;
+  }
 
   // 만원 단위 가격을 반환합니다.
   return `${manValue.toLocaleString()} 만원`;
