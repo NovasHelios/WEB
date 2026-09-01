@@ -294,6 +294,12 @@ export const InfoGrid = styled.div`
   margin-top: 12px;
 `;
 
+// 기본 정보와 예상 정보를 세로로 묶는 왼쪽 컬럼입니다.
+export const InfoColumn = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
 // 기본 정보 카드입니다.
 export const InfoCard = styled.section`
   padding: 18px;
@@ -331,24 +337,51 @@ export const ScoreBadge = styled.span`
 // 분석 항목 목록입니다.
 export const AnalysisGrid = styled.div`
   display: grid;
-  gap: 12px;
+  gap: 14px;
 `;
 
 // 분석 항목입니다.
 export const AnalysisItem = styled.div`
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items: center;
-  padding-bottom: 10px;
-  border-bottom: 6px solid #eeeeee;
+  padding-bottom: 13px;
   color: #6b7280;
   font-size: 13px;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 5px;
+    border-radius: 999px;
+  }
+
+  &::before {
+    width: 100%;
+    background: #eeeeee;
+  }
+
+  &::after {
+    width: ${({ $score }) => `${$score || 0}%`};
+    background: #d6b326;
+  }
 
   strong {
     color: #111827;
     font-size: 13px;
   }
+`;
+
+// 아직 지원하지 않는 기능을 표시하는 붉은 문구입니다.
+export const UnsupportedText = styled.strong`
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 700;
 `;
 
 // AI 의견 카드입니다.
