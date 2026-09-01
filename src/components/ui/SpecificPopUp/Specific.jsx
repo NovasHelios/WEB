@@ -1,208 +1,283 @@
-// 상세보기 팝업에서 사용할 닫기 아이콘입니다.
-import { X } from "lucide-react";
+// 상세보기 팝업에서 사용할 아이콘입니다.
+import {
+  Bot,
+  FileText,
+  Image as ImageIcon,
+  Info,
+  X,
+} from "lucide-react";
 
 // 상세보기 팝업 스타일 컴포넌트를 가져옵니다.
 import {
+  AiOpinion,
+  AnalysisCard,
+  AnalysisGrid,
+  AnalysisItem,
+  CloseButton,
+  DetailGrid,
+  DocumentCard,
+  DocumentGrid,
+  DocumentIconBox,
+  DocumentSection,
+  Header,
+  HeroImage,
+  HeroImageBox,
+  ImageCounter,
+  ImagePlaceholder,
+  InfoCard,
+  InfoGrid,
+  InfoList,
+  InfoRow,
+  LocationCard,
+  LocationTitle,
+  MainContent,
+  MetaTable,
+  Panel,
+  PhotoColumn,
+  ScoreBadge,
+  SectionTitle,
   SpecificBackdrop,
-  SpecificPanel,
-  SpecificHeader,
-  SpecificTitle,
-  SpecificTagRow,
-  SpecificTag,
-  SpecificCloseButton,
-  SpecificBody,
-  SpecificSection,
-  SpecificSectionTitle,
-  SpecificDescription,
-  SpecificHeroGrid,
-  SpecificImage,
-  SpecificImageBox,
-  SpecificInfoCard,
-  SpecificInfoGrid,
-  SpecificLabel,
-  SpecificSummaryCard,
-  SpecificSummaryRow,
-  SpecificValue,
+  Tag,
+  TagRow,
+  ThumbButton,
+  ThumbImage,
+  ThumbRow,
+  Title,
 } from "./Specific.styled";
-
-const API_BASE_URL = "https://www.helioss.site";
-
-const resolveImageUrl = (path) => {
-  // 서버 이미지 경로를 브라우저에서 볼 수 있는 URL로 바꿉니다.
-  if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
-  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
-  return `${API_BASE_URL}/uploads/lands/${path}`;
-};
-
-const formatPrice = (value) => {
-  // 서버 가격은 만원 단위로 내려오므로 조/억/만원으로 표시합니다.
-  if (value === null || value === undefined || value === "") return "-";
-  const numeric = Number(String(value).replace(/[^\d]/g, ""));
-  if (Number.isNaN(numeric)) return String(value);
-
-  const jo = Math.floor(numeric / 100000000);
-  const restAfterJo = numeric % 100000000;
-  const eok = Math.floor(restAfterJo / 10000);
-  const man = restAfterJo % 10000;
-
-  if (jo > 0) {
-    const eokText = eok > 0 ? ` ${eok.toLocaleString()}억원` : "";
-    const manText = man > 0 ? ` ${man.toLocaleString()}만원` : "";
-    return `${jo.toLocaleString()}조${eokText}${manText}`;
-  }
-  if (eok > 0 && man > 0) return `${eok.toLocaleString()}억 ${man.toLocaleString()}만원`;
-  if (eok > 0) return `${eok.toLocaleString()}억원`;
-  return `${numeric.toLocaleString()}만원`;
-};
-
-const formatArea = (value) => {
-  // 면적은 제곱미터와 평을 함께 표시합니다.
-  if (!value) return "-";
-  const numeric = Number(value);
-  if (Number.isNaN(numeric)) return String(value);
-  const pyeong = Math.round(numeric / 3.3058).toLocaleString();
-  return `${numeric.toLocaleString()}㎡ (${pyeong}평)`;
-};
-
-const getTransactionLabel = (value) => {
-  // 거래 유형 enum을 한글 라벨로 바꿉니다.
-  const upper = String(value || "").toUpperCase();
-  if (upper === "LEASE" || upper === "RENT") return "임대";
-  if (upper === "SALE") return "매매";
-  return "-";
-};
+import SpecificMiniMap from "./SpecificMiniMap";
+import {
+  buildDocumentList,
+  buildImageList,
+  formatArea,
+  formatPrice,
+  formatTransactionType,
+} from "./specificFormatters";
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
   if (!land) return null;
 
-  // 상세보기 제목에 사용할 주소입니다.
+  // 서버 상세 정보의 주소를 제목으로 사용합니다.
   const address = land.address || land.ldCodeNm || "토지 주소";
-  const imagePath = Array.isArray(land.landImagePaths)
-    ? land.landImagePaths[0]
-    : land.landImagePath;
-  const imageUrl = resolveImageUrl(imagePath);
-  const tags = [land.lcCodeNm, land.regionSido, land.regionSigungu].filter(Boolean);
+
+  // 서버 이미지 경로를 화면 이미지 목록으로 변환합니다.
+  const images = buildImageList(land);
+
+  // 서버 문서 경로를 문서 카드 목록으로 변환합니다.
+  const documents = buildDocumentList(land);
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
     <SpecificBackdrop>
       {/* 실제 상세보기 팝업 박스입니다. */}
-      <SpecificPanel>
-        {/* 팝업 상단 제목 영역입니다. */}
-        <SpecificHeader>
+      <Panel>
+        {/* 팝업 상단 제목과 닫기 버튼 영역입니다. */}
+        <Header>
+          {/* 공개 상태 배지입니다. */}
+          <Tag $soft>{land.status || "상태 정보 없음"}</Tag>
 
-          {/* 닫기 버튼입니다. */}
-          <SpecificCloseButton
-            type="button"
-            onClick={onClose}
-            aria-label="상세보기 닫기"
-          >
+          {/* 팝업 닫기 버튼입니다. */}
+          <CloseButton type="button" onClick={onClose} aria-label="닫기">
             <X size={24} strokeWidth={1.8} />
-          </SpecificCloseButton>
+          </CloseButton>
 
-          {/* 토지 주소 제목입니다. */}
-          <SpecificTitle>{address}</SpecificTitle>
+          {/* 상세 토지 주소 제목입니다. */}
+          <Title>{address}</Title>
 
-          {/* 토지 태그 영역입니다. */}
-          <SpecificTagRow>
-            {(tags.length ? tags : ["토지 정보"]).map((tag) => (
-              <SpecificTag key={tag}>{tag}</SpecificTag>
-            ))}
-          </SpecificTagRow>
-        </SpecificHeader>
+          {/* 서버 필드 기반 토지 태그입니다. */}
+          <TagRow>
+            <Tag>{land.lcCodeNm || "지목 정보 없음"}</Tag>
+            <Tag>{land.regstrSeCodeNm || "대장 정보 없음"}</Tag>
+            <Tag>{land.ldCodeNm || "지역 정보 없음"}</Tag>
+          </TagRow>
+        </Header>
 
-        {/* 팝업 본문 영역입니다. */}
-        <SpecificBody>
-          {/* 상단 핵심 상세 정보 영역입니다. */}
-          <SpecificSection>
-            <SpecificSectionTitle>상단 상세 정보</SpecificSectionTitle>
+        {/* 상세보기 본문 스크롤 영역입니다. */}
+        <MainContent>
+          {/* 상단 이미지, 거래 정보, 위치 요약 영역입니다. */}
+          <DetailGrid>
+            {/* 토지 사진 영역입니다. */}
+            <PhotoColumn>
+              <HeroImageBox>
+                {images[0] ? (
+                  // 서버에서 받은 대표 이미지를 표시합니다.
+                  <HeroImage src={images[0]} alt="토지 대표 이미지" />
+                ) : (
+                  // 이미지가 없으면 임시 이미지 박스를 표시합니다.
+                  <ImagePlaceholder>
+                    <ImageIcon size={34} strokeWidth={1.5} />
+                  </ImagePlaceholder>
+                )}
 
-            {/* 이미지와 핵심 거래 정보를 표시합니다. */}
-            <SpecificHeroGrid>
-              <SpecificImageBox>
-                {imageUrl ? <SpecificImage src={imageUrl} alt={address} /> : null}
-              </SpecificImageBox>
-              <SpecificSummaryCard>
-                <SpecificSummaryRow>
-                  <SpecificLabel>거래 방식</SpecificLabel>
-                  <SpecificValue>{getTransactionLabel(land.transactionType)}</SpecificValue>
-                </SpecificSummaryRow>
-                <SpecificSummaryRow>
-                  <SpecificLabel>희망 가격</SpecificLabel>
-                  <SpecificValue $highlight>{formatPrice(land.desiredPrice)}</SpecificValue>
-                </SpecificSummaryRow>
-                <SpecificSummaryRow>
-                  <SpecificLabel>면적</SpecificLabel>
-                  <SpecificValue>{formatArea(land.area)}</SpecificValue>
-                </SpecificSummaryRow>
-                <SpecificSummaryRow>
-                  <SpecificLabel>등록 상태</SpecificLabel>
-                  <SpecificValue>{land.status || "-"}</SpecificValue>
-                </SpecificSummaryRow>
-              </SpecificSummaryCard>
-            </SpecificHeroGrid>
-          </SpecificSection>
+                {/* 이미지 개수 표시입니다. */}
+                <ImageCounter>▣ 1/{Math.max(images.length, 1)}</ImageCounter>
+              </HeroImageBox>
+
+              {/* 썸네일 영역입니다. */}
+              <ThumbRow>
+                {(images.length ? images : ["", "", ""])
+                  .slice(0, 4)
+                  .map((src, index) => (
+                    <ThumbButton
+                      key={`${src || "empty"}-${index}`}
+                      $active={index === 0}
+                    >
+                      {src ? (
+                        // 실제 이미지 썸네일입니다.
+                        <ThumbImage
+                          src={src}
+                          alt={`토지 썸네일 ${index + 1}`}
+                        />
+                      ) : (
+                        // 이미지가 없을 때 표시하는 빈 썸네일입니다.
+                        <ImageIcon size={20} strokeWidth={1.4} />
+                      )}
+                    </ThumbButton>
+                  ))}
+              </ThumbRow>
+            </PhotoColumn>
+
+            {/* 서버 상세 정보 요약 테이블입니다. */}
+            <MetaTable>
+              <InfoRow>
+                <span>거래 방식</span>
+                <strong>{formatTransactionType(land.transactionType)}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>희망 가격</span>
+                <strong>{formatPrice(land.desiredPrice)}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>면적</span>
+                <strong>{formatArea(land.area)}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>지목</span>
+                <strong>{land.lcCodeNm || "-"}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>등록일</span>
+                <strong>{land.lastUpdtDt || "-"}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>주소</span>
+                <strong>{address}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>PNU</span>
+                <strong>{land.pnu || "-"}</strong>
+              </InfoRow>
+            </MetaTable>
+
+            {/* 위치 요약 카드입니다. */}
+            <LocationCard>
+              <SpecificMiniMap land={land} />
+              <LocationTitle>위치</LocationTitle>
+            </LocationCard>
+          </DetailGrid>
 
           {/* 서류 및 파일 영역입니다. */}
-          <SpecificSection>
-            <SpecificSectionTitle>서류 및 파일</SpecificSectionTitle>
+          <DocumentSection>
+            <SectionTitle>서류 및 파일</SectionTitle>
 
-            {/* 등록된 증명서 파일 상태를 표시합니다. */}
-            <SpecificDescription>
-              {land.documentPath ? `등록된 서류: ${land.documentPath}` : "등록된 서류가 없습니다."}
-            </SpecificDescription>
-          </SpecificSection>
+            <DocumentGrid>
+              {(documents.length
+                ? documents
+                : [{ name: "등록된 파일 없음", url: "" }]
+              ).map((document, index) => (
+                <DocumentCard
+                  key={`${document.name}-${index}`}
+                  as={document.url ? "a" : "div"}
+                  href={document.url || undefined}
+                  target={document.url ? "_blank" : undefined}
+                  rel={document.url ? "noreferrer" : undefined}
+                >
+                  <DocumentIconBox>
+                    <FileText size={18} strokeWidth={1.8} />
+                  </DocumentIconBox>
+                  <div>
+                    <strong>{document.name}</strong>
+                    <span>{land.lastUpdtDt || "-"}</span>
+                  </div>
+                </DocumentCard>
+              ))}
+            </DocumentGrid>
+          </DocumentSection>
 
-          {/* 기본 정보와 분석 영역입니다. */}
-          <SpecificSection>
-            <SpecificSectionTitle>
-              기본 정보 / 태양광 적합도 분석
-            </SpecificSectionTitle>
+          {/* 기본 정보와 분석 카드 영역입니다. */}
+          <InfoGrid>
+            <InfoCard>
+              <SectionTitle>
+                <Info size={18} strokeWidth={2} />
+                기본 정보
+              </SectionTitle>
 
-            {/* VWorld와 자동 조회 결과를 카드로 표시합니다. */}
-            <SpecificInfoGrid>
-              <SpecificInfoCard>
-                <SpecificLabel>PNU</SpecificLabel>
-                <SpecificValue>{land.pnu || "-"}</SpecificValue>
-              </SpecificInfoCard>
-              <SpecificInfoCard>
-                <SpecificLabel>지목</SpecificLabel>
-                <SpecificValue>{land.lcCodeNm || land.regstrSeCodeNm || "-"}</SpecificValue>
-              </SpecificInfoCard>
-              <SpecificInfoCard>
-                <SpecificLabel>공유인 수</SpecificLabel>
-                <SpecificValue>{land.cnrsPsnCo || "-"}</SpecificValue>
-              </SpecificInfoCard>
-              <SpecificInfoCard>
-                <SpecificLabel>법정동</SpecificLabel>
-                <SpecificValue>{land.ldCodeNm || "-"}</SpecificValue>
-              </SpecificInfoCard>
-              <SpecificInfoCard>
-                <SpecificLabel>좌표</SpecificLabel>
-                <SpecificValue>{land.x && land.y ? `${land.y}, ${land.x}` : "-"}</SpecificValue>
-              </SpecificInfoCard>
-              <SpecificInfoCard>
-                <SpecificLabel>최근 갱신일</SpecificLabel>
-                <SpecificValue>{land.lastUpdtDt || "-"}</SpecificValue>
-              </SpecificInfoCard>
-            </SpecificInfoGrid>
-          </SpecificSection>
+              <InfoList>
+                <InfoRow>
+                  <span>용도지역</span>
+                  <strong>{land.ldCodeNm || "-"}</strong>
+                </InfoRow>
+                <InfoRow>
+                  <span>도로 접면</span>
+                  <strong>{land.regstrSeCodeNm || "-"}</strong>
+                </InfoRow>
+                <InfoRow>
+                  <span>공유 인원</span>
+                  <strong>{land.cnrsPsnCo || "-"}</strong>
+                </InfoRow>
+                <InfoRow>
+                  <span>소유자</span>
+                  <strong>{land.ownerEmail || "-"}</strong>
+                </InfoRow>
+              </InfoList>
+            </InfoCard>
 
-          {/* AI 의견 영역입니다. */}
-          <SpecificSection>
-            <SpecificSectionTitle>상세 설명</SpecificSectionTitle>
+            <AnalysisCard>
+              <SectionTitle>
+                <Bot size={18} strokeWidth={2} />
+                태양광 적합도 분석
+                <ScoreBadge>86점 / 100점</ScoreBadge>
+              </SectionTitle>
 
-            {/* 사용자가 입력한 상세 설명을 표시합니다. */}
-            <SpecificDescription>
-              {land.description || "등록된 상세 설명이 없습니다."}
-            </SpecificDescription>
-          </SpecificSection>
-        </SpecificBody>
-      </SpecificPanel>
+              <AnalysisGrid>
+                <AnalysisItem>
+                  <span>일사량</span>
+                  <strong>89점</strong>
+                </AnalysisItem>
+                <AnalysisItem>
+                  <span>경사도</span>
+                  <strong>78점</strong>
+                </AnalysisItem>
+                <AnalysisItem>
+                  <span>전력 인입 용이성</span>
+                  <strong>85점</strong>
+                </AnalysisItem>
+                <AnalysisItem>
+                  <span>도로 접근성</span>
+                  <strong>90점</strong>
+                </AnalysisItem>
+                <AnalysisItem>
+                  <span>인허가 가능성</span>
+                  <strong>92점</strong>
+                </AnalysisItem>
+              </AnalysisGrid>
+            </AnalysisCard>
+          </InfoGrid>
+
+          {/* 판매자가 작성한 상세 설명 영역입니다. */}
+          <AiOpinion>
+            <SectionTitle>상세 설명</SectionTitle>
+            <p>{land.description || "등록된 상세 설명이 없습니다."}</p>
+          </AiOpinion>
+
+          {/* AI 의견은 추후 기능 개발 전까지 준비 중 문구를 표시합니다. */}
+          <AiOpinion>
+            <SectionTitle>AI 의견</SectionTitle>
+            <p>AI 의견은 현재 개발 중입니다.</p>
+          </AiOpinion>
+        </MainContent>
+      </Panel>
     </SpecificBackdrop>
   );
 }

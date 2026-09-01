@@ -185,14 +185,20 @@ export const renderLandMarkers = async ({
   // 새 마커 목록을 저장할 배열을 만듭니다.
   const markers = [];
 
-  // 주소를 좌표로 변환한 토지 목록을 만듭니다.
+  // 서버 좌표 또는 주소 변환 좌표를 사용한 토지 목록을 만듭니다.
   const geocodedLands = await Promise.all(
     lands.map(async (land) => {
-      // 주소가 없으면 지도에 표시할 수 없으므로 제외합니다.
-      if (!land.address) return null;
+      // 서버에서 내려준 좌표를 숫자로 변환합니다.
+      const serverLon = Number(land.x);
+      const serverLat = Number(land.y);
 
-      // 주소를 Kakao 주소 검색으로 좌표 변환합니다.
-      const point = await geocodeAddress(land.address);
+      // 서버 좌표가 있으면 우선 사용하고, 없으면 주소 기반 좌표 변환으로 보완합니다.
+      const point =
+        Number.isFinite(serverLon) && Number.isFinite(serverLat)
+          ? { lat: serverLat, lon: serverLon }
+          : land.address
+            ? await geocodeAddress(land.address)
+            : null;
 
       // 좌표 변환에 실패하면 제외합니다.
       if (!point) return null;
@@ -226,7 +232,7 @@ export const renderLandMarkers = async ({
     // markup.png 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
     const markerImageUrl = createLandMarkerImage({
       priceText: formatPrice(land.desiredPrice),
-      areaText: `${Math.round(Number(land.area) / 3.3058)}평`,
+      areaText: `${Math.round(Number(land.area)).toLocaleString()}㎡`,
       markupImage,
     });
 
