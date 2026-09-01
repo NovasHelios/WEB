@@ -31,28 +31,6 @@ export const fetchLandDetail = async (landId) => {
   }
 };
 
-// 서버에서 등록된 토지 목록을 가져옵니다.
-export const fetchRegisteredLandList = async () => {
-  // 등록된 토지 목록 조회 API를 호출합니다.
-  const response = await fetch("/api/lands");
-
-  // 서버 응답을 JSON으로 변환합니다.
-  const result = await response.json();
-
-  // 서버 응답이 실패하면 호출부에서 처리할 수 있도록 에러를 발생시킵니다.
-  if (!response.ok) {
-    throw new Error(result.message || "등록된 토지 목록 조회에 실패했습니다.");
-  }
-
-  // 서버 응답 data가 배열이 아니면 호출부에서 처리할 수 있도록 에러를 발생시킵니다.
-  if (!Array.isArray(result.data)) {
-    throw new Error("등록된 토지 목록 응답 형식이 올바르지 않습니다.");
-  }
-
-  // 서버에서 받은 토지 목록만 반환합니다.
-  return result.data;
-};
-
 // 필터 조건으로 서버에서 토지 목록을 조회합니다.
 export const fetchFilteredLandList = async (requestBody) => {
   // 백엔드에서 필터링된 토지 목록을 조회합니다.
