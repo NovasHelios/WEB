@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import SideBar from "@/components/layout/box/SideBar";
 import NavBar from "@/components/layout/box/NavBar";
 import LandAdd from "@/components/ui/LandButton/LandAdd";
 import { Api } from "@/contents/apiEndpoints";
