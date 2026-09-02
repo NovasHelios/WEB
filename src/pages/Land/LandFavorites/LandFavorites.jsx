@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Heart, Mountain, Map, Camera } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
 import {
@@ -62,6 +63,10 @@ function LandFavorites() {
   const [error, setError] = useState("");
   // 삭제 중인 항목
   const [removingId, setRemovingId] = useState(null);
+  // 상세보기 팝업에 표시할 토지입니다.
+  const [selectedLand, setSelectedLand] = useState(null);
+  // 상세 정보 조회 중인 토지 ID입니다.
+  const [detailLoadingId, setDetailLoadingId] = useState(null);
   // 페이지네이션은 UI만 먼저 보여주는 상태
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -83,7 +88,31 @@ function LandFavorites() {
         throw new Error(data?.message || data?.data?.message || "관심 토지를 불러오지 못했습니다.");
       }
 
-      const list = (Array.isArray(data?.data) ? data.data : []).map(normalizeWish);
+      const wishList = Array.isArray(data?.data) ? data.data : [];
+      const enrichedList = await Promise.all(
+        wishList.map(async (wish, index) => {
+          // 찜 응답에 없는 이미지와 상세 정보를 토지 상세 API로 보강합니다.
+          if (!wish?.landId) return normalizeWish(wish, index);
+
+          try {
+            const detailResponse = await authFetch(Api.Land(wish.landId), {
+              method: "GET",
+            });
+            const detailContentType = detailResponse.headers.get("content-type") || "";
+            const detailData = detailContentType.includes("application/json")
+              ? await detailResponse.json()
+              : null;
+
+            if (!detailResponse.ok) return normalizeWish(wish, index);
+
+            return normalizeWish({ ...detailData?.data, ...wish }, index);
+          } catch {
+            return normalizeWish(wish, index);
+          }
+        }),
+      );
+
+      const list = enrichedList.sort((a, b) => new Date(b.wishedAt) - new Date(a.wishedAt));
       setWishes(list);
     } catch (err) {
       setError(err.message || "관심 토지를 불러오지 못했습니다.");
@@ -115,7 +144,7 @@ function LandFavorites() {
     setRemovingId(wish.landId);
 
     try {
-      const response = await authFetch(`${Api.Wishes}/${wish.landId}`, {
+      const response = await authFetch(Api.Wish(wish.landId), {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
@@ -132,6 +161,34 @@ function LandFavorites() {
       setError(err.message || "찜을 취소하지 못했습니다.");
     } finally {
       setRemovingId(null);
+    }
+  };
+
+  const handleOpenDetail = async (wish) => {
+    // 관심 토지 상세보기는 페이지 이동 없이 팝업으로 표시합니다.
+    if (!wish?.landId || detailLoadingId) return;
+
+    setDetailLoadingId(wish.landId);
+    setError("");
+
+    try {
+      const response = await authFetch(Api.Land(wish.landId), {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "토지 상세 정보를 불러오지 못했습니다.");
+      }
+
+      setSelectedLand(data?.data || wish);
+    } catch (err) {
+      setError(err.message || "토지 상세 정보를 불러오지 못했습니다.");
+    } finally {
+      setDetailLoadingId(null);
     }
   };
 
@@ -265,7 +322,13 @@ function LandFavorites() {
                           {wish.wishedAt ? String(wish.wishedAt).slice(0, 10).replaceAll("-", ".") : "-"}
                         </FavoritesDate>
 
-                        <FavoritesButton type="button">상세보기</FavoritesButton>
+                        <FavoritesButton
+                          type="button"
+                          onClick={() => handleOpenDetail(wish)}
+                          disabled={detailLoadingId === wish.landId}
+                        >
+                          {detailLoadingId === wish.landId ? "불러오는 중" : "상세보기"}
+                        </FavoritesButton>
                       </FavoritesInfoRow>
                     </FavoritesContent>
                   </FavoritesItem>
@@ -300,6 +363,9 @@ function LandFavorites() {
           </>
         )}
       </FavoritesShell>
+
+      {/* 관심 토지 상세보기 팝업 */}
+      <Specific land={selectedLand} onClose={() => setSelectedLand(null)} />
     </FavoritesPage>
   );
 }

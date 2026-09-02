@@ -10,6 +10,7 @@ export const Api = {
 
   // Land
   Lands: `${BASE}/api/lands`,                                                        // GET 전체조회 / POST 등록 (multipart)
+  MyLands: `${BASE}/api/lands/me`,                                                    // GET 내가 등록한 토지 목록
   Land: (landId) => `${BASE}/api/lands/${landId}`,                                   // GET 상세 / PATCH 수정 / DELETE 삭제
   LandImage: (landId) => `${BASE}/api/lands/${landId}/image`,                        // PATCH 이미지 추가·교체
   LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`,                    // PATCH 소유자 승인
@@ -37,6 +38,10 @@ export const Api = {
   ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
   ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`,                 // PATCH 거절
   ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`,                   // PATCH 종료
+  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws`,                                  // WebSocket STOMP 연결
+  ChatSendMessage: (roomId) => `/app/chat/rooms/${roomId}/messages`,                 // STOMP 텍스트 메시지 전송
+  ChatSubscribeRoom: (roomId) => `/topic/chat/rooms/${roomId}`,                      // STOMP 채팅방 수신
+  ChatSubscribeMessages: (roomId) => `/topic/chat/rooms/${roomId}/messages`,         // STOMP 메시지 수신
 
   // OAuth
   googleLogin: `${BASE}/oauth2/callback`,

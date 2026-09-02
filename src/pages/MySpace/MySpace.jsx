@@ -1,10 +1,11 @@
 import { ChevronDown, CalendarDays, Heart, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
-import { authFetch } from "@/lib/auth";
+import { authFetch, getValidAccessToken } from "@/lib/auth";
+import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 import {
   SpaceActionButton,
   SpaceActionColumn,
@@ -47,45 +48,6 @@ import {
   SpaceWrapper,
 } from "./MySpace.styles";
 
-const fallbackItems = [
-  {
-    id: "fallback-1",
-    title: "경기도 안성시 일죽면 산북리 123",
-    type: "전",
-    region: "계획관리지역",
-    area: "2,023평 (6,689㎡)",
-    date: "2024.05.24",
-    tradeType: "매매",
-    price: "15억원",
-    likes: 8,
-    accent: ["#cfe9a5", "#7fb96c"],
-  },
-  {
-    id: "fallback-2",
-    title: "충청남도 서산시 성연면 에더리 456",
-    type: "답",
-    region: "생산관리지역",
-    area: "1,542평 (5,100㎡)",
-    date: "2024.05.10",
-    tradeType: "매매",
-    price: "12억원",
-    likes: 5,
-    accent: ["#b9e0ff", "#79aedd"],
-  },
-  {
-    id: "fallback-3",
-    title: "전라북도 정읍시 북면 신평리 789",
-    type: "임야",
-    region: "보전관리지역",
-    area: "3,210평 (10,612㎡)",
-    date: "2024.04.28",
-    tradeType: "매매",
-    price: "18억원",
-    likes: 2,
-    accent: ["#d9e5cf", "#a2b18b"],
-  },
-];
-
 const normalizeBaseUrl = (value) => {
   const rawValue = value || "https://www.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
@@ -106,32 +68,8 @@ const resolveImageUrl = (path) => {
 };
 
 const formatPrice = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^\d]/g, ""));
-  if (Number.isNaN(numeric)) return String(value);
-
-  // 서버 가격은 만원 단위이므로 화면에서는 조/억/만원 단위로 변환합니다.
-  const jo = Math.floor(numeric / 100000000);
-  const restAfterJo = numeric % 100000000;
-  const eok = Math.floor(restAfterJo / 10000);
-  const man = restAfterJo % 10000;
-
-  if (jo > 0) {
-    const eokText = eok > 0 ? ` ${eok.toLocaleString("ko-KR")}억원` : "";
-    const manText = man > 0 ? ` ${man.toLocaleString("ko-KR")}만원` : "";
-    return `${jo.toLocaleString("ko-KR")}조${eokText}${manText}`;
-  }
-
-  if (eok > 0 && man > 0) {
-    return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString("ko-KR")}만원`;
-  }
-
-  if (eok > 0) {
-    return `${eok.toLocaleString("ko-KR")}억원`;
-  }
-
-  return `${numeric.toLocaleString("ko-KR")}만원`;
+  // 가격은 서버 기준인 만원 단위로 통일해서 표시합니다.
+  return formatKoreanMoneyFromManwon(value);
 };
 
 const formatArea = (value) => {
@@ -171,39 +109,6 @@ const extractArray = (payload) => {
   ];
 
   return candidates.find(Array.isArray) || [];
-};
-
-const extractUser = (payload) => payload?.data || payload?.result || payload || null;
-
-const getComparableValues = (source) =>
-  // 사용자/토지 객체에서 비교 가능한 식별자 후보를 수집합니다.
-  [
-    source?.id,
-    source?.userId,
-    source?.memberId,
-    source?.ownerId,
-    source?.email,
-    source?.username,
-    source?.name,
-  ]
-    .filter((value) => value !== null && value !== undefined && value !== "")
-    .map((value) => String(value));
-
-const isMineLand = (land, user) => {
-  // 내 토지 전용 API가 없을 때만 소유자 후보 필드로 보조 필터링합니다.
-  const userValues = getComparableValues(user);
-  const owner = land.owner || land.user || land.member || land.createdBy || land.writer;
-  const landValues = getComparableValues({
-    id: land.ownerId ?? land.userId ?? land.memberId ?? land.createdById,
-    userId: land.userId,
-    memberId: land.memberId,
-    ownerId: land.ownerId,
-    email: land.ownerEmail ?? land.userEmail ?? land.email,
-    username: land.username,
-    name: land.ownerName ?? land.userName ?? land.name,
-  }).concat(getComparableValues(owner));
-
-  return landValues.some((value) => userValues.includes(value));
 };
 
 const getTransactionLabel = (value) => {
@@ -262,28 +167,19 @@ function MySpace() {
   const [selectedLand, setSelectedLand] = useState(null);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
 
-  const fetchMyLands = async () => {
-    // 서버에서 토지 목록을 가져옵니다.
+  const fetchMyLands = useCallback(async () => {
+    // 로그인하지 않은 사용자는 내 공간을 볼 수 없으므로 로그인으로 보냅니다.
+    if (!getValidAccessToken()) {
+      navigate("/login");
+      return;
+    }
+
+    // 서버에서 로그인한 사용자의 토지 목록만 가져옵니다.
     setIsLoading(true);
     setError("");
 
     try {
-      const profileResponse = await authFetch(Api.MyProfile, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-      const profileContentType = profileResponse.headers.get("content-type") || "";
-      const profileData = profileContentType.includes("application/json")
-        ? await profileResponse.json()
-        : null;
-
-      if (!profileResponse.ok) {
-        throw new Error(
-          profileData?.message || profileData?.data?.message || "내 정보를 불러오지 못했습니다."
-        );
-      }
-
-      const response = await authFetch(Api.Lands, {
+      const response = await authFetch(Api.MyLands, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -292,25 +188,29 @@ function MySpace() {
       const data = contentType.includes("application/json") ? await response.json() : null;
 
       if (!response.ok) {
+        if (response.status === 401) {
+          navigate("/login");
+          return;
+        }
+
         throw new Error(data?.message || data?.data?.message || "내 토지 목록을 불러오지 못했습니다.");
       }
 
-      const user = extractUser(profileData);
-      const list = extractArray(data).filter((land) => isMineLand(land, user));
+      const list = extractArray(data);
       setLands(list.map(normalizeLand));
     } catch (err) {
       setError(err.message || "내 토지 목록을 불러오지 못했습니다.");
-      setLands(fallbackItems);
+      setLands([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     // 내 공간 페이지 진입 시 내가 등록한 토지를 조회합니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchMyLands();
-  }, []);
+  }, [fetchMyLands]);
 
   const filteredLands = useMemo(() => {
     if (activeFilter === "전체 상태") return lands;

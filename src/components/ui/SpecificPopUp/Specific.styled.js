@@ -194,7 +194,10 @@ export const InfoRow = styled.div`
     color: #111827;
     font-weight: 500;
     line-height: 1.45;
-    overflow-wrap: anywhere;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 

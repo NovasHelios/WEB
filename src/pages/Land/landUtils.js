@@ -1,31 +1,9 @@
 // 공통 유틸리티 - 토지 목록 페이지에서 공유
+import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 
 export const formatMoney = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^\d]/g, ""));
-  if (Number.isNaN(numeric)) return String(value);
-
-  // 서버 가격은 만원 단위이므로 화면에서는 조/억/만원 단위로 변환합니다.
-  const jo = Math.floor(numeric / 100000000);
-  const restAfterJo = numeric % 100000000;
-  const eok = Math.floor(restAfterJo / 10000);
-  const man = restAfterJo % 10000;
-
-  if (jo > 0) {
-    const eokText = eok > 0 ? ` ${eok.toLocaleString("ko-KR")}억원` : "";
-    const manText = man > 0 ? ` ${man.toLocaleString("ko-KR")}만원` : "";
-    return `${jo.toLocaleString("ko-KR")}조${eokText}${manText}`;
-  }
-
-  if (eok > 0 && man > 0) {
-    return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString("ko-KR")}만원`;
-  }
-
-  if (eok > 0) {
-    return `${eok.toLocaleString("ko-KR")}억원`;
-  }
-
-  return `${numeric.toLocaleString("ko-KR")}만원`;
+  // 가격은 모든 화면에서 만원 단위 기준으로 표시합니다.
+  return formatKoreanMoneyFromManwon(value);
 };
 
 export const formatArea = (value) => {

@@ -4,6 +4,10 @@ import Login from "./pages/Login/Login";
 import Signin_2 from "./pages/SignIn/Signin_2.jsx";
 import Map from "./pages/Main/Map";
 import MySpace from "./pages/MySpace";
+import Profile from "./pages/Profile";
+import Chat from "./pages/Chat";
+import BusinessConnections from "./pages/BusinessConnections";
+import Settings from "./pages/Settings";
 import { LandRegisterProvider } from "./contexts/LandRegisterContext";
 import {
   LandRegister,
@@ -30,6 +34,10 @@ function App() {
           <Route path="/land/register/condition" element={<LandRegisterCondition />} />
           <Route path="/land/register/complete" element={<LandRegisterComplete />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/business-connections" element={<BusinessConnections />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/space" element={<MySpace />} />
         </Routes>
       </LandRegisterProvider>

@@ -11,8 +11,6 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
-import { Api } from "@/contents/apiEndpoints";
-import { authFetch } from "@/lib/auth";
 import {
   PhotosCard,
   PhotosCardHeader,
@@ -54,11 +52,10 @@ const MIN_IMAGES = 3;
 function LandRegisterPhotos() {
   const navigate = useNavigate();
   useRequireLogin();
-  const { registerData } = useLandRegister();
+  const { registerData, setRegisterData } = useLandRegister();
 
-  const [images, setImages] = useState([]); // { file: File, preview: DataURL }[]
-  const [document, setDocument] = useState(null); // File | null
-  const [isLoading, setIsLoading] = useState(false);
+  const [images, setImages] = useState(registerData.photos || []); // { file: File, preview: DataURL }[]
+  const [document, setDocument] = useState(registerData.document || null); // File | null
   const [error, setError] = useState("");
 
   const imageInputRef = useRef(null);
@@ -83,7 +80,11 @@ function LandRegisterPhotos() {
         });
       })
     ).then((newImages) => {
-      setImages((prev) => [...prev, ...newImages]);
+      setImages((prev) => {
+        const nextImages = [...prev, ...newImages];
+        setRegisterData((prevData) => ({ ...prevData, photos: nextImages }));
+        return nextImages;
+      });
     });
 
     event.target.value = "";
@@ -91,23 +92,29 @@ function LandRegisterPhotos() {
 
   // 이미지 제거
   const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImages((prev) => {
+      const nextImages = prev.filter((_, i) => i !== index);
+      setRegisterData((prevData) => ({ ...prevData, photos: nextImages }));
+      return nextImages;
+    });
   };
 
   // 서류 선택
   const handleDocumentSelect = (event) => {
     const file = event.target.files?.[0] ?? null;
     setDocument(file);
+    setRegisterData((prev) => ({ ...prev, document: file }));
     event.target.value = "";
   };
 
   // 서류 제거
   const removeDocument = () => {
     setDocument(null);
+    setRegisterData((prev) => ({ ...prev, document: null }));
   };
 
-  // 토지 등록 API 호출 (Swagger 스펙에 맞춤)
-  const handleSubmit = async () => {
+  const handleNext = () => {
+    // 사진과 서류는 마지막 조건 단계에서 한 번에 전송하기 위해 전역 상태에 저장합니다.
     if (images.length < MIN_IMAGES) {
       setError(`이미지를 최소 ${MIN_IMAGES}장 이상 선택해주세요.`);
       return;
@@ -119,64 +126,9 @@ function LandRegisterPhotos() {
       return;
     }
 
-    setIsLoading(true);
     setError("");
-
-    try {
-      // transactionType 정규화 (소문자 → 대문자)
-      const transactionType = (registerData.transactionType || "sale").toUpperCase();
-      const desiredPrice = registerData.price 
-        ? Number(String(registerData.price).replace(/[^\d]/g, ""))
-        : undefined;
-
-      // query string 파라미터 구성
-      const params = new URLSearchParams({
-        address: registerData.address.trim(),
-        transactionType,
-      });
-
-      if (desiredPrice && !Number.isNaN(desiredPrice)) {
-        params.append("desiredPrice", String(desiredPrice));
-      }
-      if (registerData.memo) {
-        params.append("description", registerData.memo.trim());
-      }
-
-      // multipart/form-data 구성
-      const formData = new FormData();
-      images.forEach((img) => formData.append("images", img.file));
-      if (document) formData.append("document", document);
-
-      console.log("🚀 토지 등록 요청:");
-      console.log("  URL:", `${Api.Lands}?${params.toString()}`);
-      console.log("  Images:", images.length, "장");
-      console.log("  Document:", document?.name || "없음");
-      console.log("  Params:", Object.fromEntries(params));
-
-      const response = await authFetch(`${Api.Lands}?${params.toString()}`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const contentType = response.headers.get("content-type") || "";
-      const data = contentType.includes("application/json") ? await response.json() : null;
-
-      console.log("📥 응답:", response.status, data);
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || data?.data?.message || `토지 등록 실패 (${response.status})`
-        );
-      }
-
-      // 성공 시 토지 목록 페이지로 이동
-      navigate("/land");
-    } catch (err) {
-      console.error("❌ 에러:", err);
-      setError(err.message || "토지 등록에 실패했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
+    setRegisterData((prev) => ({ ...prev, photos: images, document }));
+    navigate("/land/register/condition");
   };
 
   return (
@@ -221,7 +173,6 @@ function LandRegisterPhotos() {
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    disabled={isLoading}
                     style={{
                       position: "absolute",
                       top: "4px",
@@ -248,7 +199,6 @@ function LandRegisterPhotos() {
                 <PhotosDropbox
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
-                  disabled={isLoading}
                 >
                   <PhotosDropboxIcon>
                     <ImagePlus size={22} strokeWidth={2} />
@@ -280,7 +230,6 @@ function LandRegisterPhotos() {
             multiple
             onChange={handleImageSelect}
             style={{ display: "none" }}
-            disabled={isLoading}
           />
         </PhotosCard>
 
@@ -309,7 +258,6 @@ function LandRegisterPhotos() {
                 <button
                   type="button"
                   onClick={removeDocument}
-                  disabled={isLoading}
                   style={{
                     border: 0,
                     background: "#d92d20",
@@ -327,7 +275,6 @@ function LandRegisterPhotos() {
                 <PhotosDocAction
                   type="button"
                   onClick={() => documentInputRef.current?.click()}
-                  disabled={isLoading}
                 >
                   파일 선택
                 </PhotosDocAction>
@@ -341,7 +288,6 @@ function LandRegisterPhotos() {
             accept=".pdf,.doc,.docx,.hwp,image/*"
             onChange={handleDocumentSelect}
             style={{ display: "none" }}
-            disabled={isLoading}
           />
         </PhotosCard>
 
@@ -363,18 +309,17 @@ function LandRegisterPhotos() {
             type="button"
             $outline
             onClick={() => navigate("/land/register/detail")}
-            disabled={isLoading}
           >
             <ArrowLeft size={18} strokeWidth={2.4} />
             이전 단계로
           </PhotosPrimaryButton>
           <PhotosPrimaryButton
             type="button"
-            onClick={handleSubmit}
-            disabled={isLoading || images.length < MIN_IMAGES}
+            onClick={handleNext}
+            disabled={images.length < MIN_IMAGES}
           >
-            {isLoading ? "등록 중..." : "토지 등록하기"}
-            {!isLoading && <ChevronRight size={18} strokeWidth={2.4} />}
+            다음 단계로
+            <ChevronRight size={18} strokeWidth={2.4} />
           </PhotosPrimaryButton>
         </PhotosBottomButtons>
       </PhotosTopShell>

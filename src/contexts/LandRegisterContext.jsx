@@ -14,6 +14,7 @@ const defaultRegisterData = {
   price: "",
   transactionType: "sale",
   photos: [],
+  document: null,
   submittedLand: null,
 };
 

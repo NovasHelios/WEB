@@ -78,9 +78,9 @@ function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
   const { registerData } = useLandRegister();
-  const [selected, setSelected] = useState("sale");
+  const [selected, setSelected] = useState(registerData.transactionType || "sale");
 
-  const current = useMemo(() => completionModes[selected], [selected]);
+  const current = useMemo(() => completionModes[selected] || completionModes.sale, [selected]);
 
   return (
     <CompletePage>

@@ -61,16 +61,24 @@ const conditionTabs = {
   },
 };
 
+const toServerTransactionType = (value) => {
+  // 서버는 SALE/LEASE만 받으므로 화면 값을 서버 enum으로 변환합니다.
+  if (value === "rent") return "LEASE";
+  return "SALE";
+};
+
 function LandRegisterCondition() {
   const navigate = useNavigate();
   useRequireLogin();
   const { registerData, setRegisterData } = useLandRegister();
-  const [selected, setSelected] = useState("sale");
+  const [selected, setSelected] = useState(registerData.transactionType || "sale");
   const [values, setValues] = useState({
-    sale: "",
-    rent: "",
+    sale: registerData.transactionType === "sale" ? registerData.price || "" : "",
+    rent: registerData.transactionType === "rent" ? registerData.price || "" : "",
     hope: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const current = useMemo(() => conditionTabs[selected], [selected]);
 
@@ -89,44 +97,87 @@ function LandRegisterCondition() {
         price: nextValue,
       }));
     }
+
+    setError("");
+  };
+
+  const handleTabSelect = (key) => {
+    // 거래 방식 탭을 바꾸면 전역 등록 데이터에도 즉시 반영합니다.
+    setSelected(key);
+    setRegisterData((prev) => ({
+      ...prev,
+      transactionType: key,
+      price: key === "hope" ? "" : values[key],
+    }));
+    setError("");
   };
 
   const handleSubmit = async () => {
-    // 마지막 단계에서 만원 단위 가격을 서버에 전송합니다.
+    // 마지막 조건 단계에서 모든 등록 정보를 한 번에 multipart로 전송합니다.
+    const images = registerData.photos || [];
     const desiredPrice = Number((selected === "hope" ? "" : values[selected]).replace(/[^\d]/g, ""));
 
-    if (selected !== "hope" && Number.isNaN(desiredPrice)) {
+    if (!registerData.address?.trim()) {
+      setError("주소를 먼저 입력해주세요.");
       return;
     }
 
-    const payload = {
-      address: registerData.address,
-      desiredPrice: selected === "hope" ? 0 : desiredPrice,
-      description: registerData.memo || "",
-    };
-
-    const response = await authFetch(Api.Lands, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+    if (images.length < 3) {
+      setError("사진을 최소 3장 이상 업로드해주세요.");
+      return;
     }
 
-    setRegisterData((prev) => ({
-      ...prev,
-      submittedLand: data?.data ?? data,
-      price: selected === "hope" ? "가격 미정" : values[selected],
-      transactionType: selected,
-    }));
+    if (selected !== "hope" && (!desiredPrice || Number.isNaN(desiredPrice))) {
+      setError("희망 가격을 입력해주세요.");
+      return;
+    }
 
-    navigate("/land/register/complete");
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const params = new URLSearchParams({
+        address: registerData.address.trim(),
+        transactionType: toServerTransactionType(selected),
+      });
+
+      if (selected !== "hope") {
+        params.append("desiredPrice", String(desiredPrice));
+      }
+
+      if (registerData.memo?.trim()) {
+        params.append("description", registerData.memo.trim());
+      }
+
+      const formData = new FormData();
+      images.forEach((image) => formData.append("images", image.file));
+      if (registerData.document) formData.append("document", registerData.document);
+
+      const response = await authFetch(`${Api.Lands}?${params.toString()}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+      }
+
+      setRegisterData((prev) => ({
+        ...prev,
+        submittedLand: data?.data ?? data,
+        price: selected === "hope" ? "가격 미정" : values[selected],
+        transactionType: selected,
+      }));
+
+      navigate("/land/register/complete");
+    } catch (err) {
+      setError(err.message || "토지 등록에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -153,7 +204,7 @@ function LandRegisterCondition() {
               key={tab.key}
               type="button"
               $active={selected === tab.key}
-              onClick={() => setSelected(tab.key)}
+              onClick={() => handleTabSelect(tab.key)}
             >
               {tab.label}
             </ConditionButton>
@@ -189,21 +240,30 @@ function LandRegisterCondition() {
           ) : null}
         </ConditionCard>
 
-
+        {error ? (
+          <ConditionCardLabel style={{ color: "#d92d20", marginTop: "16px" }}>
+            {error}
+          </ConditionCardLabel>
+        ) : null}
 
         <ConditionFooterButtons>
-          <ConditionPrimaryButton type="button" $outline onClick={() => navigate("/land/register/photos")}>
+          <ConditionPrimaryButton
+            type="button"
+            $outline
+            onClick={() => navigate("/land/register/photos")}
+            disabled={isLoading}
+          >
             <ArrowLeft size={18} strokeWidth={2.4} />
             이전 단계로
           </ConditionPrimaryButton>
-          <ConditionPrimaryButton type="button" onClick={handleSubmit}>
-            등록
+          <ConditionPrimaryButton type="button" onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? "등록 중..." : "등록"}
           </ConditionPrimaryButton>
         </ConditionFooterButtons>
       </ConditionTopShell>
 
       {/* 진행 단계 사이드바 */}
-      <RegisterWorkflowSidebar activeStep={2} />
+      <RegisterWorkflowSidebar activeStep={5} />
     </ConditionPage>
   );
 }

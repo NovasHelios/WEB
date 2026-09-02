@@ -1,8 +1,8 @@
 // 라우터 이동 기능을 사용하기 위한 훅입니다.
 import { useNavigate } from "react-router-dom";
 
-// 로그인 토큰 확인 및 삭제를 위한 인증 유틸입니다.
-import { clearAccessToken, getValidAccessToken } from "@/lib/auth";
+// 로그인 토큰 확인을 위한 인증 유틸입니다.
+import { getValidAccessToken } from "@/lib/auth";
 
 // 상단 메뉴에 사용할 아이콘입니다.
 import {
@@ -11,6 +11,7 @@ import {
   Map,
   MessageSquare,
   Mountain,
+  UserCircle,
   Search,
   Settings,
 } from "lucide-react";
@@ -54,10 +55,9 @@ const NavBar = ({
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.
   const handleProfileClick = () => {
-    // 로그인 상태이면 임시로 로그아웃 처리 후 로그인 페이지로 보냅니다.
+    // 로그인 상태이면 프로필 페이지로 이동합니다.
     if (isLoggedIn) {
-      clearAccessToken();
-      navigate("/login");
+      navigate("/profile");
       return;
     }
 
@@ -67,7 +67,7 @@ const NavBar = ({
 
   // 아직 기능이 없는 상단 메뉴는 화면 디자인만 유지합니다.
   const menuItems = [
-    { label: "지도 검색", icon: Map, url: "/map" },
+    { label: "지도 검색", icon: Map, url: "/" },
     { label: "내 공간", icon: Mountain, url: "/space" },
     { label: "관심 토지", icon: Heart, url: "/land/favorites" },
     { label: "사업 연결", icon: Handshake, url: "/business-connections" },
@@ -173,7 +173,10 @@ const NavBar = ({
             key={label}
             type="button"
             className="flex items-center gap-2 whitespace-nowrap"
-            onClick={() => url && (window.location.href = url)}
+            onClick={() => {
+              // 상단 메뉴는 SPA 라우터로 화면을 이동합니다.
+              if (url) navigate(url);
+            }}
           >
             {/* 메뉴별 아이콘입니다. */}
             <Icon className="h-4 w-4 text-[#555555]" strokeWidth={1.9} />
@@ -186,32 +189,34 @@ const NavBar = ({
         {/* 메뉴와 설정 영역을 나누는 구분선입니다. */}
         <div className="h-9 w-px bg-[#d8cfba]" />
 
-        {/* 채팅 버튼은 화면 디자인만 유지합니다. */}
+        {/* 채팅 버튼은 채팅 목록 화면으로 이동합니다. */}
         <button
           type="button"
+          onClick={() => navigate(isLoggedIn ? "/chat" : "/login")}
           className="flex items-center justify-center h-9 w-9"
           aria-label="채팅"
         >
           <MessageSquare className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
         </button>
 
-        {/* 설정 버튼은 화면 디자인만 유지합니다. */}
+        {/* 설정 버튼은 개발중 안내 화면으로 이동합니다. */}
         <button
           type="button"
+          onClick={() => navigate("/settings")}
           className="flex items-center justify-center h-9 w-9"
           aria-label="설정"
         >
           <Settings className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
         </button>
 
-        {/* 프로필 버튼은 기존 로그인 이동 기능과 연결합니다. */}
+        {/* 프로필 버튼은 로그인 상태에 따라 프로필 또는 로그인으로 이동합니다. */}
         <button
           type="button"
           onClick={handleProfileClick}
-          className="flex h-9 px-3 items-center justify-center rounded border border-[#d8cfba] bg-[#f8f8f8] text-xs font-bold text-[#777777] whitespace-nowrap"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8cfba] bg-[#f8f8f8] text-[#777777]"
           aria-label="프로필"
         >
-          {isLoggedIn ? "로그아웃" : "로그인"}
+          <UserCircle className="h-5 w-5" strokeWidth={1.9} />
         </button>
       </nav>
     </header>
