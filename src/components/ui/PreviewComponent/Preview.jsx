@@ -408,7 +408,7 @@ function Preview({ land, onClose, onOpenSpecific }) {
         <AiCard>
           <InfoTitle>
             <Bot size={18} strokeWidth={2.2} />
-            AI 사업성 분석
+            AI 사업성 분석 (임시 데이터입니다)
             <BetaBadge>BETA</BetaBadge>
           </InfoTitle>
 

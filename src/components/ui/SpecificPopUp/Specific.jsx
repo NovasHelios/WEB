@@ -330,8 +330,6 @@ function Specific({ land, onClose }) {
           </AiOpinion>
         </MainContent>
       </Panel>
-      {/* 상세보기 팝업의 블러 영역 위에 AI 채팅 위젯을 표시합니다. */}
-      <AiChat />
     </SpecificBackdrop>
   );
 }
