@@ -165,7 +165,7 @@ function Preview({ land, onClose, onOpenSpecific }) {
     .filter((path) => typeof path === "string" && path.trim())
     // 상대경로 이미지를 실제 접근 가능한 URL로 변환합니다.
     .map(resolveImageUrl);
-    
+
   // 프리뷰에서 실제 img src로 사용하는 이미지 주소를 확인합니다.
   console.log("프리뷰 이미지 URL 목록:", landImages);
 
@@ -180,11 +180,23 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 거래 유형을 서버 필드 기준으로 표시합니다.
   const transactionType = land.transactionType || "매매";
 
-  // 현재 대표 이미지로 보여줄 항목입니다.
-  const selectedImage = detailImages[selectedImageIndex] || detailImages[0];
+  // 프리뷰에서 사용할 실제 이미지 목록입니다.
+  const previewImageItems = detailImages.filter(
+    (image) => image.type === "image"
+  );
 
-  // 프리뷰에서는 첫 번째 이미지만 썸네일로 표시합니다.
-  const previewImages = detailImages.slice(0, 1);
+  // 프리뷰 대표 이미지는 선택된 실제 이미지 또는 첫 번째 실제 이미지입니다.
+  const selectedImage =
+    previewImageItems[selectedImageIndex] || previewImageItems[0];
+
+  // 프리뷰 하단 썸네일은 최대 3개까지만 보여줍니다.
+  const previewImages = previewImageItems.slice(0, 3);
+
+  // 서버에서 받은 전체 실제 이미지 개수입니다.
+  const totalImageCount = previewImageItems.length;
+
+  // 프리뷰에서 숨긴 이미지가 있는지 확인합니다.
+  const hasMoreImages = totalImageCount > previewImages.length;
 
   return (
     // 마커 클릭 시 우측에 뜨는 상세 패널입니다.
@@ -219,7 +231,9 @@ function Preview({ land, onClose, onOpenSpecific }) {
             />
           ) : (
             // 선택된 임시 이미지 색상을 대표 이미지 영역에 표시합니다.
-            <ImagePlaceholder style={{ background: selectedImage?.color }} />
+            <ImagePlaceholder
+              style={{ background: selectedImage?.color || "#e8decf" }}
+            />
           )}
 
           {/* 이미지 우측 상단 관심 버튼입니다. */}
@@ -229,15 +243,16 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
           {/* 이미지 개수 표시입니다. */}
           <ImageCounter>
-            ▣ {selectedImageIndex + 1}/{detailImages.length}
+            ▣ {Math.min(selectedImageIndex + 1, totalImageCount)}/
+            {totalImageCount}
           </ImageCounter>
         </div>
 
         {/* 썸네일 이미지 목록입니다. */}
         <ThumbnailGrid>
-          {detailImages.map((image, index) => (
+          {previewImages.map((image, index) => (
             <ThumbButton
-              key={`${image.type}-${image.src || image.color}-${index}`}
+              key={`${image.src}-${index}`}
               type="button"
               $active={index === selectedImageIndex}
               onClick={() => {
@@ -245,15 +260,20 @@ function Preview({ land, onClose, onOpenSpecific }) {
                 setSelectedImageIndex(index);
               }}
             >
-              {image.type === "image" ? (
-                // 실제 이미지 썸네일을 표시합니다.
-                <ThumbnailImage as="img" src={image.src} alt="토지 썸네일" />
-              ) : (
-                // 임시 색상 썸네일을 표시합니다.
-                <ThumbnailImage style={{ background: image.color }} />
-              )}
+              {/* 실제 이미지 썸네일을 표시합니다. */}
+              <ThumbnailImage as="img" src={image.src} alt="" />
             </ThumbButton>
           ))}
+
+          {hasMoreImages && (
+            <ThumbButton
+              type="button"
+              onClick={onOpenSpecific}
+              aria-label="이미지 더보기"
+            >
+              +
+            </ThumbButton>
+          )}
         </ThumbnailGrid>
 
         {/* 기본 정보 카드입니다. */}
