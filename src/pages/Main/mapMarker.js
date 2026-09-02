@@ -1,3 +1,5 @@
+import { formatCompactKoreanMoneyFromManwon } from "@/utils/priceFormat";
+
 // 현재 지도 레벨에 따라 Kakao 마커 표시 상태를 갱신합니다.
 export const updateLandLayerByZoom = ({
   // Kakao 지도 객체를 담은 ref입니다.
@@ -25,41 +27,9 @@ export const updateLandLayerByZoom = ({
   });
 };
 
-// 가격을 억 단위로 축약해서 표시
-// 예: 350,000,000 -> 3.5억
-// 예: 354,000,000 -> 3.5억
-// 예: 1,000,000,000 -> 10억
-// 서버에서 받은 원 단위 가격을 화면 표시용 문자열로 변환합니다.
 export const formatPrice = (price) => {
-  // 가격 값이 없으면 기본 문구를 표시합니다.
-  if (!price) return "가격 없음";
-
-  // 서버 값을 숫자로 변환합니다.
-  const numberPrice = Number(price);
-
-  // 숫자로 변환할 수 없으면 원본 값을 문자열로 표시합니다.
-  if (Number.isNaN(numberPrice)) return String(price);
-
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (numberPrice >= 100000000) {
-    // 원 단위를 억 단위로 변환합니다.
-    const eokValue = numberPrice / 100000000;
-
-    // 소수 첫째 자리까지 버림 처리합니다.
-    const floored = Math.floor(eokValue * 10) / 10;
-
-    // 정수면 소수점을 제거하고, 소수면 한 자리까지 표시합니다.
-    const formatted = Number.isInteger(floored) ? floored : floored.toFixed(1);
-
-    // 억 단위 가격을 반환합니다.
-    return `${formatted}억`;
-  }
-
-  // 1억 미만은 만원 단위로 표시합니다.
-  const manValue = Math.floor(numberPrice / 10000);
-
-  // 만원 단위 가격을 반환합니다.
-  return `${manValue.toLocaleString()} 만원`;
+  // 지도 마커 가격도 서버 기준인 만원 단위로 표시합니다.
+  return formatCompactKoreanMoneyFromManwon(price, "가격 없음");
 };
 
 // 가격/면적 텍스트를 markup.png 마커 디자인 위에 얹어서 canvas 이미지로 생성합니다.

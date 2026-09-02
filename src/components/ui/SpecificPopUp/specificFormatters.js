@@ -1,3 +1,5 @@
+import { formatExactKoreanMoneyFromManwon } from "@/utils/priceFormat";
+
 // API 서버 기본 주소를 안전하게 정리합니다.
 const normalizeBaseUrl = (value) => {
   // 환경변수가 없으면 운영 서버 주소를 기본값으로 사용합니다.
@@ -26,49 +28,16 @@ export const resolveAssetUrl = (path) => {
   // 루트 상대 경로면 API 서버 주소를 앞에 붙입니다.
   if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
 
-  // 일반 상대 경로면 API 서버 주소와 함께 붙입니다.
-  return `${API_BASE_URL}/${path}`;
+  // uploads 경로로 시작하면 API 서버 주소만 붙입니다.
+  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
+
+  // 파일명만 온 경우 토지 이미지 업로드 경로를 붙입니다.
+  return `${API_BASE_URL}/uploads/lands/${path}`;
 };
 
-// 원 단위 가격을 화면용 가격 문구로 변환합니다.
 export const formatPrice = (value) => {
-  // 가격이 없으면 빈 값을 대신 표시합니다.
-  if (value === null || value === undefined || value === "") return "-";
-
-  // 숫자 계산을 위해 가격을 Number로 변환합니다.
-  const numberValue = Number(value);
-
-  // 숫자로 변환할 수 없으면 원본 값을 그대로 표시합니다.
-  if (Number.isNaN(numberValue)) return String(value);
-
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (numberValue >= 100000000) {
-    // 원 단위를 억 단위로 바꿉니다.
-    const eok = numberValue / 100000000;
-
-    // 정수면 소수점을 숨기고, 소수면 첫째 자리까지 표시합니다.
-    const formattedEok = Number.isInteger(eok) ? eok : eok.toFixed(1);
-
-    // 억 단위 문구를 반환합니다.
-    return `${formattedEok}억원`;
-  }
-
-  // 1천만원 이상이면 천만원 단위로 표시합니다.
-  if (numberValue >= 10000000) {
-    // 원 단위를 천만원 단위로 바꿉니다.
-    const cheonman = numberValue / 10000000;
-
-    // 정수면 소수점을 숨기고, 소수면 첫째 자리까지 표시합니다.
-    const formattedCheonman = Number.isInteger(cheonman)
-      ? cheonman
-      : cheonman.toFixed(1);
-
-    // 천만원 단위 문구를 반환합니다.
-    return `${formattedCheonman}천만원`;
-  }
-
-  // 천만원 미만은 만원 단위로 표시합니다.
-  return `${Math.round(numberValue / 10000).toLocaleString()}만원`;
+  // 상세보기 가격은 서버 기준인 만원 단위를 정확하게 모두 표시합니다.
+  return formatExactKoreanMoneyFromManwon(value);
 };
 
 // 제곱미터 면적을 평수와 함께 표시합니다.

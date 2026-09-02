@@ -1,23 +1,46 @@
-import { Route, BrowserRouter, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Background from "./pages/Background";
-import BusinessSignIn from "./pages/SignIn/BusinessSignIn.jsx";
 import Login from "./pages/Login/Login";
+import Signin_2 from "./pages/SignIn/Signin_2.jsx";
 import Map from "./pages/Main/Map";
-import Land from "./pages/Land/Land";
-import SignUpSelect from "./components/ui/SignUpSelect";
-import NormalSignIn from "./pages/SignIn/normal.jsx";
-
+import MySpace from "./pages/MySpace";
+import Profile from "./pages/Profile";
+import Chat from "./pages/Chat";
+import BusinessConnections from "./pages/BusinessConnections";
+import Settings from "./pages/Settings";
+import { LandRegisterProvider } from "./contexts/LandRegisterContext";
+import {
+  LandRegister,
+  LandRegisterComplete,
+  LandRegisterCondition,
+  LandRegisterConfirm,
+  LandRegisterDetail,
+  LandRegisterPhotos,
+  LandFavorites,
+} from "./pages/Land";
 function App() {
   return (
     <Background>
-      <Routes>
-        <Route path="/signup" element={<SignUpSelect />} />
-        <Route path="/signup/business" element={<BusinessSignIn />} />
-        <Route path="/signup/individual" element={<NormalSignIn />} />
-        <Route path="/" element={<Map />} />
-        <Route path="/land" element={<Land />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
+      <LandRegisterProvider>
+        <Routes>
+          <Route path="/signup" element={<Signin_2 />} />
+          <Route path="/" element={<Map />} />
+          <Route path="/land" element={<MySpace />} />
+          <Route path="/land/favorites" element={<LandFavorites />} />
+          <Route path="/land/register" element={<LandRegister />} />
+          <Route path="/land/register/confirm" element={<LandRegisterConfirm />} />
+          <Route path="/land/register/detail" element={<LandRegisterDetail />} />
+          <Route path="/land/register/photos" element={<LandRegisterPhotos />} />
+          <Route path="/land/register/condition" element={<LandRegisterCondition />} />
+          <Route path="/land/register/complete" element={<LandRegisterComplete />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/business-connections" element={<BusinessConnections />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/space" element={<MySpace />} />
+        </Routes>
+      </LandRegisterProvider>
     </Background>
   );
 }

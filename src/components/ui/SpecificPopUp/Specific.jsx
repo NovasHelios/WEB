@@ -1,13 +1,12 @@
+import {useState, useEffect} from "react";
 // 상세보기 팝업에서 사용할 아이콘입니다.
 import {
   Bot,
   FileText,
-  Heart,
   Image as ImageIcon,
   Info,
   X,
 } from "lucide-react";
-
 // 상세보기 팝업 스타일 컴포넌트를 가져옵니다.
 import {
   AiOpinion,
@@ -55,6 +54,8 @@ import {
   formatPrice,
   formatTransactionType,
 } from "./specificFormatters";
+// 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
+import AiChat from "@/components/ui/AiChat/AiChat";
 
 // 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -79,8 +80,23 @@ function Specific({ land, onClose }) {
   // 서버 이미지 경로를 화면 이미지 목록으로 변환합니다.
   const images = buildImageList(land);
 
+  // 상세보기 팝업에서 실제 img src로 사용하는 이미지 주소를 확인합니다.
+  console.log("상세보기 이미지 URL 목록:", images);
+
   // 서버 문서 경로를 문서 카드 목록으로 변환합니다.
   const documents = buildDocumentList(land);
+
+  // 현재 대표 이미지로 보여줄 이미지 번호입니다.
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // 다른 토지를 열면 첫 번째 이미지부터 보여줍니다.
+  useEffect(() => {
+    // 새 토지 상세보기로 바뀔 때 대표 이미지를 초기화합니다.
+    setSelectedImageIndex(0);
+  }, [land.id]);
+
+  // 현재 선택된 대표 이미지 URL입니다.
+  const selectedImage = images[selectedImageIndex] || images[0];
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
@@ -117,7 +133,7 @@ function Specific({ land, onClose }) {
               <HeroImageBox>
                 {images[0] ? (
                   // 서버에서 받은 대표 이미지를 표시합니다.
-                  <HeroImage src={images[0]} alt="토지 대표 이미지" />
+                  <HeroImage src={selectedImage} alt="토지 대표 이미지" />
                 ) : (
                   // 이미지가 없으면 임시 이미지 박스를 표시합니다.
                   <ImagePlaceholder>
@@ -126,7 +142,9 @@ function Specific({ land, onClose }) {
                 )}
 
                 {/* 이미지 개수 표시입니다. */}
-                <ImageCounter>▣ 1/{Math.max(images.length, 1)}</ImageCounter>
+                <ImageCounter>
+                  ▣ {selectedImageIndex + 1}/{Math.max(images.length, 1)}
+                </ImageCounter>
               </HeroImageBox>
 
               {/* 썸네일 영역입니다. */}
@@ -136,13 +154,25 @@ function Specific({ land, onClose }) {
                   .map((src, index) => (
                     <ThumbButton
                       key={`${src || "empty"}-${index}`}
-                      $active={index === 0}
+                      type="button"
+                      $active={index === selectedImageIndex}
+                      onClick={() => {
+                        // 클릭한 썸네일 이미지를 대표 이미지로 변경합니다.
+                        setSelectedImageIndex(index);
+                      }}
                     >
                       {src ? (
                         // 실제 이미지 썸네일입니다.
                         <ThumbImage
                           src={src}
                           alt={`토지 썸네일 ${index + 1}`}
+                          onError={(event) => {
+                            // 상세보기 썸네일 이미지 로드 실패 URL을 확인합니다.
+                            console.log(
+                              "상세보기 썸네일 로드 실패:",
+                              event.currentTarget.src
+                            );
+                          }}
                         />
                       ) : (
                         // 이미지가 없을 때 표시하는 빈 썸네일입니다.
@@ -268,7 +298,7 @@ function Specific({ land, onClose }) {
             <AnalysisCard>
               <SectionTitle>
                 <Bot size={18} strokeWidth={2} />
-                태양광 적합도 분석
+                태양광 적합도 분석 (임시 데이터입니다.)
                 <ScoreBadge>86점 / 100점</ScoreBadge>
               </SectionTitle>
 
@@ -300,6 +330,8 @@ function Specific({ land, onClose }) {
           </AiOpinion>
         </MainContent>
       </Panel>
+      {/* 상세보기 팝업의 블러 영역 위에 AI 채팅 위젯을 표시합니다. */}
+      <AiChat />
     </SpecificBackdrop>
   );
 }

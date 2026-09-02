@@ -80,6 +80,21 @@ export const ImagePlaceholder = styled.div`
   background: linear-gradient(135deg, #b8d2e6, #d8c09b 65%, #8fb57a);
 `;
 
+// 대표 이미지 영역을 감싸는 컨테이너(절대 위치 요소들이 내부에 들어감)
+export const ImageArea = styled.div`
+  position: relative;
+  width: 100%;
+  height: 192px;
+`;
+
+// placeholder를 이미지 뒤에 배치할 때 사용합니다.
+export const PlaceholderBackground = styled(ImagePlaceholder)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+`;
+
 // 이미지 위 관심 버튼입니다.
 export const SaveIconButton = styled.button`
   position: absolute;
@@ -93,14 +108,26 @@ export const SaveIconButton = styled.button`
   border: 0;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.75);
+  color: ${({ $active }) => ($active ? "#d8a900" : "#8f8a78")};
   cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+`;
+
+// 대표 이미지와 이미지 위 버튼들을 묶는 영역입니다.
+export const ImageBox = styled.div`
+  position: relative;
 `;
 
 // 이미지 개수 표시입니다.
 export const ImageCounter = styled.span`
   position: absolute;
-  top: 277px;
-  right: 28px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3; /* 대표 이미지보다 위에 표시되도록 합니다. */
   padding: 3px 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);
@@ -241,6 +268,13 @@ export const ActionBar = styled.div`
   padding: 24px;
   border-top: 1px solid #d9b98f;
   background: #ffffff;
+
+  p {
+    margin: 0;
+    color: #c2410c;
+    font-size: 12px;
+    font-weight: 700;
+  }
 `;
 
 // 관심 등록 버튼입니다.
@@ -252,10 +286,15 @@ export const BookmarkButton = styled.button`
   height: 44px;
   border: 1px solid #d9b98f;
   border-radius: 7px;
-  background: #ffffff;
-  color: #111111;
+  background: ${({ $active }) => ($active ? "#fff8dd" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#8a5a00" : "#111111")};
   font-size: 14px;
   cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
 `;
 
 // 상세 보기와 채팅 버튼입니다.
@@ -267,4 +306,9 @@ export const ContactButton = styled.button`
   color: #111111;
   font-size: 14px;
   cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
 `;

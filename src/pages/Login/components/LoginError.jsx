@@ -2,7 +2,7 @@ const LoginError = ({ message }) => {
   if (!message) return null;
 
   return (
-    <div className="px-4 py-3 mb-4 text-sm text-red-700 border border-red-200 bg-red-50 rounded-2xl">
+    <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       {message}
     </div>
   );

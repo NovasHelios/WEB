@@ -126,6 +126,7 @@ function Map() {
       }, 100);
 
       // 등록된 토지 목록을 불러옵니다.
+      // eslint-disable-next-line react-hooks/immutability
       fetchRegisteredLands();
 
       // Kakao 지도 줌 변경 이벤트를 등록합니다.
@@ -162,6 +163,8 @@ function Map() {
     return () => {
       clearInterval(waitForKakao);
     };
+  // Kakao 지도 초기화는 최초 마운트 때만 실행합니다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 입력된 시도 축약명 또는 정식명을 VWorld/내부 로직에서 사용할 정식 시도명으로 변환
@@ -547,8 +550,8 @@ function Map() {
         )}
       </DetailPanelArea>
 
-      {/* 지도 오른쪽 아래에 표시되는 AI 채팅 위젯입니다. */}
-      <AiChat />
+      {/* 상세보기 팝업이 닫혀 있을 때만 지도 오른쪽 아래 AI 채팅 위젯을 표시합니다. */}
+      {!isSpecificOpen && <AiChat />}
     </MapPage>
   );
 }

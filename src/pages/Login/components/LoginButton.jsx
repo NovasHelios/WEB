@@ -3,10 +3,9 @@ const LoginButton = ({ onClick, isLoading }) => {
     <button
       onClick={onClick}
       disabled={isLoading}
-      className="flex items-center justify-center w-full gap-2 py-4 mb-6 text-lg font-semibold text-white transition-colors rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed"
-      style={{ backgroundColor: "#FFAB03" }}
+      className="flex h-14 w-full items-center justify-center gap-2 bg-[#d6a81b] text-[18px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {isLoading ? "로그인 중..." : "Log In"}
+      {isLoading ? "로그인 중..." : "로그인"}
     </button>
   );
 };

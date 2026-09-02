@@ -4,25 +4,25 @@ const LoginPasswordInput = ({ value, onChange, onKeyDown, disabled }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="mb-8">
-      <label className="block mb-2 text-sm font-medium text-gray-700">
-        Password
+    <div>
+      <label className="mb-3 block text-[14px] font-medium text-[#6a5c4a]">
+        비밀번호
       </label>
       <div className="relative">
         <input
           type={showPassword ? "text" : "password"}
-          placeholder="Enter Your Password"
+          placeholder="비밀번호를 입력해 주세요"
           value={value}
           onChange={onChange}
           onKeyDown={onKeyDown}
           disabled={disabled}
-          className="w-full px-4 py-3 pr-12 text-gray-700 bg-gray-50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full border-0 border-b-2 border-b-[#262626] bg-transparent px-0 pb-3 pr-12 text-[17px] text-[#2b2b2b] outline-none placeholder:text-[#beb7ae] focus:border-b-[#d6a81b] disabled:opacity-50"
         />
         <button
           type="button"
           onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute text-gray-400 -translate-y-1/2 right-4 top-1/2 hover:text-gray-600"
-          tabIndex={-1}
+          className="absolute right-0 top-[2px] text-[#7b6f61] hover:text-[#2c2c2c]"
+          tabIndex={0}
         >
           {showPassword ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
