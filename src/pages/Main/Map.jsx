@@ -3,8 +3,6 @@ import NavBar from "@/components/layout/box/NavBar";
 import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
-import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
-// 지도 필터 UI 컴포넌트를 가져옵니다.
 import Filter from "@/components/ui/Filter/Filter";
 import {
   MapPage,
@@ -113,14 +111,14 @@ function Map() {
       // Kakao 지도 인스턴스를 생성합니다.
       const map = new window.kakao.maps.Map(container, options);
 
+      // 생성한 Kakao 지도 객체를 ref에 저장합니다.
+      mapInstanceRef.current = map;
+
       // 지도 이동 또는 확대/축소가 끝났을 때 현재 화면 영역 기준으로 마커를 다시 조회합니다.
       window.kakao.maps.event.addListener(map, "idle", () => {
         // 현재 필터 조건과 지도 영역을 기준으로 /api/lands/filter API를 다시 호출합니다.
         fetchRegisteredLands();
       });
-
-      // 생성한 Kakao 지도 객체를 ref에 저장합니다.
-      mapInstanceRef.current = map;
 
       // 지도 크기를 다시 계산합니다.
       setTimeout(() => {
@@ -268,17 +266,29 @@ function Map() {
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
     try {
-      // 새 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
+      // 현재 적용된 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
       const requestBody = createLandFilterBody(
         appliedFilters,
         mapInstanceRef.current
       );
+
+      // 초기 조회 또는 지도 이동 시 서버로 보내는 요청 body를 확인합니다.
+      console.log("초기/지도 이동 필터 요청 body:", requestBody);
 
       // /api/lands/filter API로 현재 화면에 보여줄 토지 목록을 조회합니다.
       const { result } = await fetchFilteredLandList(requestBody);
 
       // 서버 응답 data가 배열이면 마커 목록으로 사용하고, 아니면 빈 배열을 사용합니다.
       const lands = Array.isArray(result.data) ? result.data : [];
+
+      // 필터 API 원본 응답 전체를 확인합니다.
+      console.log("필터 API 원본 응답:", result);
+
+      // 필터 API 응답 data 배열 길이를 확인합니다.
+      console.log(
+        "필터 API 응답 개수:",
+        Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
+      );
 
       // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
       await renderLandMarkers({
@@ -339,8 +349,11 @@ function Map() {
     // 새 필터 조건을 state에 저장합니다.
     setAppliedFilters(nextFilters);
 
-    // 필터 조건을 POST body로 변환합니다.
-    const requestBody = createLandFilterBody(nextFilters);
+    // 새 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
+    const requestBody = createLandFilterBody(
+      nextFilters,
+      mapInstanceRef.current
+    );
     // 필터 API로 보내는 요청 body를 확인합니다.
     console.log("필터 요청 body:", requestBody);
 

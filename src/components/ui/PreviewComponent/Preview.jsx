@@ -148,23 +148,26 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 상세 패널 상단에 표시할 주소입니다.
   const address = land.address || "토지 주소";
 
-  // 서버에서 받은 이미지 경로 목록을 구성합니다.
-  const rawImageList =
-    land.landImagePaths ||
-    land.imagePaths ||
-    land.images ||
-    land.imageUrls ||
-    [];
+  // 서버에서 받은 이미지 목록 필드를 하나의 배열로 정규화합니다.
+  const imageList = Array.isArray(land.landImagePaths)
+    ? land.landImagePaths
+    : [
+        land.landImagePath,
+        land.landImagePaths,
+        land.imagePaths,
+        land.images,
+        land.imageUrls,
+      ].flat();
 
-  // 단일 이미지와 여러 이미지 배열을 하나의 배열로 합칩니다.
-  const landImages = [
-    land.landImagePath,
-    ...(Array.isArray(rawImageList) ? rawImageList : []),
-  ]
-    // 비어 있는 이미지 경로를 제거합니다.
-    .filter(Boolean)
+  // 실제로 사용할 수 있는 이미지 경로만 남기고 URL로 변환합니다.
+  const landImages = imageList
+    // 비어 있는 이미지 경로와 배열이 아닌 값을 제거합니다.
+    .filter((path) => typeof path === "string" && path.trim())
     // 상대경로 이미지를 실제 접근 가능한 URL로 변환합니다.
     .map(resolveImageUrl);
+    
+  // 프리뷰에서 실제 img src로 사용하는 이미지 주소를 확인합니다.
+  console.log("프리뷰 이미지 URL 목록:", landImages);
 
   // 실제 이미지가 있으면 이미지 썸네일을 만들고, 없으면 임시 색상 썸네일을 사용합니다.
   const detailImages = landImages.length
@@ -179,6 +182,9 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
   // 현재 대표 이미지로 보여줄 항목입니다.
   const selectedImage = detailImages[selectedImageIndex] || detailImages[0];
+
+  // 프리뷰에서는 첫 번째 이미지만 썸네일로 표시합니다.
+  const previewImages = detailImages.slice(0, 1);
 
   return (
     // 마커 클릭 시 우측에 뜨는 상세 패널입니다.
