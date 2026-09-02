@@ -166,9 +166,6 @@ function Preview({ land, onClose, onOpenSpecific }) {
     // 상대경로 이미지를 실제 접근 가능한 URL로 변환합니다.
     .map(resolveImageUrl);
 
-  // 프리뷰에서 실제 img src로 사용하는 이미지 주소를 확인합니다.
-  console.log("프리뷰 이미지 URL 목록:", landImages);
-
   // 실제 이미지가 있으면 이미지 썸네일을 만들고, 없으면 임시 색상 썸네일을 사용합니다.
   const detailImages = landImages.length
     ? landImages.map((src) => ({ type: "image", src }))

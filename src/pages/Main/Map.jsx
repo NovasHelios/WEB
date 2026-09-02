@@ -354,19 +354,17 @@ function Map() {
       nextFilters,
       mapInstanceRef.current
     );
-    // 필터 API로 보내는 요청 body를 확인합니다.
-    console.log("필터 요청 body:", requestBody);
 
     // 백엔드에서 필터링된 토지 목록을 조회합니다.
     const { status, result } = await fetchFilteredLandList(requestBody);
 
-    // 필터 API 응답 상태와 응답 데이터를 확인합니다.
-    console.log("필터 응답 status:", status);
-    console.log("필터 응답 data:", result);
-    console.log(
-      "필터 결과 개수:",
-      Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
-    );
+    // // 필터 API 응답 상태와 응답 데이터를 확인합니다.
+    // console.log("필터 응답 status:", status);
+    // console.log("필터 응답 data:", result);
+    // console.log(
+    //   "필터 결과 개수:",
+    //   Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
+    // );
 
     // 서버에서 받은 토지 목록만 사용합니다.
     const lands = result.data || [];
