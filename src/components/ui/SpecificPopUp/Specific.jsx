@@ -2,7 +2,6 @@
 import {
   Bot,
   FileText,
-  Heart,
   Image as ImageIcon,
   Info,
   X,

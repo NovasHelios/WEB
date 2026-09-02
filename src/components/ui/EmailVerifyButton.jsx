@@ -15,7 +15,7 @@ const EmailVerifyButton = ({ email }) => {
           if (!email) return;
           setShowModal(true);
         }}
-        style={{ backgroundColor: verified ? "#808080" : "#2C3898", width: "112px", height: "44px" }}
+        style={{ backgroundColor: verified ? "#808080" : "#d6a81b", width: "112px", height: "44px" }}
         className="text-2xl font-semibold text-white transition-opacity rounded-xl hover:opacity-90"
       >
         인증하기

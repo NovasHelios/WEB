@@ -1,8 +1,12 @@
 // 대표 이미지 변경 상태를 관리하기 위한 React 훅입니다.
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // 상세 패널에서 사용할 아이콘입니다.
 import { Bot, Heart, Info, X } from "lucide-react";
+import { Api } from "@/contents/apiEndpoints";
+import { authFetch, getValidAccessToken } from "@/lib/auth";
+import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 // 상세 패널 디자인에 필요한 styled 컴포넌트입니다.
 import {
   ActionBar,
@@ -16,7 +20,8 @@ import {
   DetailHeader,
   DetailTitle,
   ImageCounter,
-  ImagePlaceholder,
+  ImageArea,
+  PlaceholderBackground,
   InfoCard,
   InfoRow,
   InfoTitle,
@@ -71,46 +76,8 @@ const fallbackImages = ["#d8c09b", "#e8decf", "#d8dee5"];
 
 // 숫자 값을 가격 표기로 변환합니다.
 const formatPrice = (value) => {
-  // 가격 값이 없으면 기본값을 보여줍니다.
-  if (!value) return "4.5 억원";
-
-  // 숫자로 변환 가능한 가격만 계산합니다.
-  const numberValue = Number(value);
-
-  // 숫자가 아니면 원본 값을 그대로 보여줍니다.
-  if (Number.isNaN(numberValue)) return String(value);
-
-  // 1억 이상이면 억 단위로 표시합니다.
-  if (numberValue >= 100000000) {
-    // 원 단위를 억 단위로 변환합니다.
-    const eok = numberValue / 100000000;
-
-    // 소수 첫째 자리까지 표시하되, .0이면 제거합니다.
-    const formattedEok = Number.isInteger(eok) ? eok : eok.toFixed(1);
-
-    // 억 단위 가격을 반환합니다.
-    return `${formattedEok} 억원`;
-  }
-
-  // 1천만원 이상이면 천만원 단위로 표시합니다.
-  if (numberValue >= 10000000) {
-    // 원 단위를 천만원 단위로 변환합니다.
-    const cheonman = numberValue / 10000000;
-
-    // 소수 첫째 자리까지 표시하되, .0이면 제거합니다.
-    const formattedCheonman = Number.isInteger(cheonman)
-      ? cheonman
-      : cheonman.toFixed(1);
-
-    // 천만원 단위 가격을 반환합니다.
-    return `${formattedCheonman} 천만원`;
-  }
-
-  // 천만원 미만은 만원 단위로 표시합니다.
-  const manwon = Math.round(numberValue / 10000);
-
-  // 만원 단위 가격을 반환합니다.
-  return `${manwon.toLocaleString()} 만원`;
+  // 상세 패널 가격은 서버 기준인 만원 단위로 표시합니다.
+  return formatKoreanMoneyFromManwon(value, "가격 없음");
 };
 
 // 숫자 값을 면적 표기로 변환합니다.
@@ -133,14 +100,131 @@ const formatArea = (value) => {
 
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
 function Preview({ land, onClose, onOpenSpecific }) {
+  const navigate = useNavigate();
   // 현재 선택된 대표 이미지 번호를 저장합니다.
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  // 현재 토지의 찜 등록 여부입니다.
+  const [isWished, setIsWished] = useState(false);
+  // 찜 요청 중 중복 클릭을 막기 위한 상태입니다.
+  const [isWishLoading, setIsWishLoading] = useState(false);
+  // 찜 요청 실패 메시지입니다.
+  const [wishError, setWishError] = useState("");
+  // 채팅방 생성 요청 중 중복 클릭을 막기 위한 상태입니다.
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  // 채팅방 생성 결과 메시지입니다.
+  const [chatMessage, setChatMessage] = useState("");
+
+  // 서버 응답마다 id 필드명이 다를 수 있어 토지 ID를 한 번 정리합니다.
+  const landId = land?.id ?? land?.landId;
 
   // 다른 토지를 클릭했을 때 첫 번째 이미지로 다시 초기화합니다.
   useEffect(() => {
     // 새 토지 상세을 열면 첫 번째 이미지를 대표 이미지로 보여줍니다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedImageIndex(0);
-  }, [land?.id]);
+  }, [landId]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const syncWishStatus = async () => {
+      // 로그인 전이거나 토지 ID가 없으면 찜 상태를 확인하지 않습니다.
+      if (!landId || !getValidAccessToken()) {
+        setIsWished(false);
+        return;
+      }
+
+      try {
+        const response = await authFetch(Api.Wishes, { method: "GET" });
+        const contentType = response.headers.get("content-type") || "";
+        const data = contentType.includes("application/json") ? await response.json() : null;
+
+        if (!response.ok || ignore) return;
+
+        const wishes = Array.isArray(data?.data) ? data.data : [];
+        setIsWished(wishes.some((wish) => String(wish.landId) === String(landId)));
+      } catch {
+        // 찜 상태 조회 실패는 상세 패널 사용을 막지 않습니다.
+        if (!ignore) setIsWished(false);
+      }
+    };
+
+    // 토지를 바꿀 때 현재 토지가 이미 찜되어 있는지 확인합니다.
+    void syncWishStatus();
+
+    return () => {
+      ignore = true;
+    };
+  }, [landId]);
+
+  const handleToggleWish = async () => {
+    // 비로그인 사용자는 로그인 페이지로 이동시킵니다.
+    if (!getValidAccessToken()) {
+      navigate("/login");
+      return;
+    }
+
+    if (!landId || isWishLoading) return;
+
+    setIsWishLoading(true);
+    setWishError("");
+    setChatMessage("");
+
+    try {
+      const response = await authFetch(Api.Wish(landId), {
+        method: isWished ? "DELETE" : "POST",
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "관심 토지 처리에 실패했습니다.");
+      }
+
+      setIsWished((prev) => !prev);
+    } catch (error) {
+      setWishError(error.message || "관심 토지 처리에 실패했습니다.");
+    } finally {
+      setIsWishLoading(false);
+    }
+  };
+
+  const handleCreateChatRoom = async () => {
+    // 비로그인 사용자는 채팅 요청 전에 로그인하도록 보냅니다.
+    if (!getValidAccessToken()) {
+      navigate("/login");
+      return;
+    }
+
+    if (!landId || isChatLoading) return;
+
+    setIsChatLoading(true);
+    setWishError("");
+    setChatMessage("");
+
+    try {
+      const response = await authFetch(Api.ChatRooms, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          landId: Number(landId),
+          initialMessage: `${address} 토지 상담을 요청합니다.`,
+        }),
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "채팅방을 생성하지 못했습니다.");
+      }
+
+      setChatMessage("채팅 요청이 생성되었습니다.");
+    } catch (error) {
+      setChatMessage(error.message || "채팅방을 생성하지 못했습니다.");
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   // 선택된 토지가 없으면 상세 패널을 렌더링하지 않습니다.
   if (!land) return null;
@@ -171,6 +255,8 @@ function Preview({ land, onClose, onOpenSpecific }) {
     ? landImages.map((src) => ({ type: "image", src }))
     : fallbackImages.map((color) => ({ type: "placeholder", color }));
 
+  
+
   // 지목 또는 용도 정보를 서버 필드 기준으로 표시합니다.
   const category = land.lcCodeNm || land.regstrSeCodeNm || "정보 없음";
 
@@ -200,32 +286,42 @@ function Preview({ land, onClose, onOpenSpecific }) {
       {/* 패널 본문은 스크롤로 내려가며 확인합니다. */}
       <PanelBody>
         {/* 대표 이미지 영역입니다. */}
-        <div>
-          {selectedImage?.type === "image" ? (
-            // 선택된 실제 토지 이미지를 대표 이미지로 표시합니다.
+        <ImageArea>
+          {/* placeholder를 먼저 배치해 이미지가 실패하면 보이도록 합니다. */}
+          {selectedImage?.type === "placeholder" ? (
+            <PlaceholderBackground style={{ background: selectedImage?.color }} />
+          ) : (
+            <PlaceholderBackground />
+          )}
+
+          {/* 선택된 실제 토지 이미지를 대표 이미지로 표시합니다. 실패 시 placeholder가 보입니다. */}
+          {selectedImage?.type === "image" && (
             <LandImage
               src={selectedImage.src}
               alt="토지 이미지"
               onError={(event) => {
-                // 이미지 로드에 실패하면 깨진 이미지 아이콘 대신 임시 배경을 보여줍니다.
                 event.currentTarget.style.display = "none";
               }}
+              style={{ position: "relative", zIndex: 2 }}
             />
-          ) : (
-            // 선택된 임시 이미지 색상을 대표 이미지 영역에 표시합니다.
-            <ImagePlaceholder style={{ background: selectedImage?.color }} />
           )}
 
           {/* 이미지 우측 상단 관심 버튼입니다. */}
-          <SaveIconButton type="button" aria-label="관심 등록">
-            <Heart size={18} fill="#8f8a78" strokeWidth={0} />
+          <SaveIconButton
+            type="button"
+            aria-label={isWished ? "관심 해제" : "관심 등록"}
+            onClick={handleToggleWish}
+            disabled={isWishLoading}
+            $active={isWished}
+          >
+            <Heart size={18} fill="currentColor" strokeWidth={isWished ? 0 : 1.8} />
           </SaveIconButton>
 
           {/* 이미지 개수 표시입니다. */}
           <ImageCounter>
             ▣ {selectedImageIndex + 1}/{detailImages.length}
           </ImageCounter>
-        </div>
+        </ImageArea>
 
         {/* 썸네일 이미지 목록입니다. */}
         <ThumbnailGrid>
@@ -312,9 +408,17 @@ function Preview({ land, onClose, onOpenSpecific }) {
 
       {/* 하단 고정 액션 버튼 영역입니다. */}
       <ActionBar>
-        <BookmarkButton type="button">
-          <Heart size={20} strokeWidth={1.6} />
-          관심 등록
+        {wishError ? <p>{wishError}</p> : null}
+        {chatMessage ? <p>{chatMessage}</p> : null}
+
+        <BookmarkButton
+          type="button"
+          onClick={handleToggleWish}
+          disabled={isWishLoading}
+          $active={isWished}
+        >
+          <Heart size={20} fill={isWished ? "currentColor" : "none"} strokeWidth={1.6} />
+          {isWished ? "관심 해제" : "관심 등록"}
         </BookmarkButton>
 
         {/* 상세보기 팝업을 여는 버튼입니다. */}
@@ -322,7 +426,9 @@ function Preview({ land, onClose, onOpenSpecific }) {
           상세 보기
         </ContactButton>
 
-        <ContactButton type="button">채팅 하기</ContactButton>
+        <ContactButton type="button" onClick={handleCreateChatRoom} disabled={isChatLoading}>
+          {isChatLoading ? "요청 중..." : "채팅 하기"}
+        </ContactButton>
       </ActionBar>
     </Panel>
   );

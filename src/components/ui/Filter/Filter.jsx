@@ -6,9 +6,7 @@ import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 import RegionFilter from "../RegionFilter";
 import { rangeConfig, transactionOptions } from "./filterConfig";
 import {
-  formatAreaLabel,
   formatAreaRangeLabel,
-  formatMoneyLabel,
   formatMoneyRangeLabel,
   getRangePercent,
 } from "./filterFormatters";
