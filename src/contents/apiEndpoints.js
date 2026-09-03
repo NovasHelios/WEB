@@ -38,7 +38,16 @@ export const Api = {
   ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
   ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`,                 // PATCH 거절
   ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`,                   // PATCH 종료
-  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws`,                                  // WebSocket STOMP 연결
+  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws`,                                  // WebSocket STOMP 기본 연결
+  ChatSocketCandidates: (token) => {                                                // WebSocket 연결 후보
+    const encodedToken = encodeURIComponent(token || "");
+    const socketBase = BASE.replace(/^http/, "ws");
+    return [
+      `${socketBase}/ws?token=${encodedToken}`,
+      `${socketBase}/ws/websocket?token=${encodedToken}`,
+      `${socketBase}/ws`,
+    ];
+  },
   ChatSendMessage: (roomId) => `/app/chat/rooms/${roomId}/messages`,                 // STOMP 텍스트 메시지 전송
   ChatSubscribeRoom: (roomId) => `/topic/chat/rooms/${roomId}`,                      // STOMP 채팅방 수신
   ChatSubscribeMessages: (roomId) => `/topic/chat/rooms/${roomId}/messages`,         // STOMP 메시지 수신

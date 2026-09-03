@@ -52,6 +52,18 @@ const resolveFileUrl = (path) => {
   return `${API_BASE_URL}/${path}`;
 };
 
+const resolveLandImageUrl = (path) => {
+  // 토지 이미지는 파일명만 오면 uploads/lands 경로를 붙여 요청합니다.
+  if (!path) return "";
+
+  const normalizedPath = String(path).replace(/^\/+/, "");
+
+  if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")) return normalizedPath;
+  if (normalizedPath.startsWith("uploads/")) return `${API_BASE_URL}/${normalizedPath}`;
+
+  return `${API_BASE_URL}/uploads/lands/${normalizedPath}`;
+};
+
 const formatTime = (value) => {
   // 메시지 시간을 시안처럼 시:분으로 표시합니다.
   if (!value) return "";
@@ -245,69 +257,94 @@ function Chat() {
       return undefined;
     }
 
-    const socket = new WebSocket(Api.ChatSocket);
-    socketRef.current = socket;
+    let socket = null;
+    let socketCandidateIndex = 0;
+    let isClosedByCleanup = false;
+    let isConnected = false;
+    const socketCandidates = Api.ChatSocketCandidates?.(token) || [Api.ChatSocket];
+
     setIsSocketConnected(false);
 
-    socket.onopen = () => {
-      socket.send(
-        createStompFrame("CONNECT", {
-          "accept-version": "1.2",
-          "heart-beat": "10000,10000",
-          Authorization: `Bearer ${token}`,
-        }),
-      );
-    };
+    const connectSocket = () => {
+      // WebSocket 서버 설정 차이를 대비해 가능한 연결 경로를 순서대로 시도합니다.
+      socket = new WebSocket(socketCandidates[socketCandidateIndex]);
+      socketRef.current = socket;
 
-    socket.onmessage = (event) => {
-      parseStompFrames(event.data).forEach((frame) => {
-        if (frame.command === "CONNECTED") {
-          setIsSocketConnected(true);
-          socket.send(createStompFrame("SUBSCRIBE", { id: `room-${selectedRoom.roomId}`, destination: Api.ChatSubscribeRoom(selectedRoom.roomId) }));
-          socket.send(
-            createStompFrame("SUBSCRIBE", {
-              id: `room-message-${selectedRoom.roomId}`,
-              destination: Api.ChatSubscribeMessages(selectedRoom.roomId),
-            }),
-          );
-          return;
-        }
+      socket.onopen = () => {
+        setError("");
+        socket.send(
+          createStompFrame("CONNECT", {
+            "accept-version": "1.2",
+            "heart-beat": "10000,10000",
+            Authorization: `Bearer ${token}`,
+          }),
+        );
+      };
 
-        if (frame.command === "MESSAGE") {
-          try {
-            const incomingMessage = normalizeMessage(JSON.parse(frame.body));
-            if (!incomingMessage) return;
-
-            setMessages((prev) => {
-              const duplicated = prev.some((message) => String(message.messageId) === String(incomingMessage.messageId));
-              return duplicated ? prev : [...prev, incomingMessage];
-            });
-          } catch {
-            setError("메시지 응답을 해석하지 못했습니다.");
+      socket.onmessage = (event) => {
+        parseStompFrames(event.data).forEach((frame) => {
+          if (frame.command === "CONNECTED") {
+            setError("");
+            isConnected = true;
+            setIsSocketConnected(true);
+            socket.send(createStompFrame("SUBSCRIBE", { id: `room-${selectedRoom.roomId}`, destination: Api.ChatSubscribeRoom(selectedRoom.roomId) }));
+            socket.send(
+              createStompFrame("SUBSCRIBE", {
+                id: `room-message-${selectedRoom.roomId}`,
+                destination: Api.ChatSubscribeMessages(selectedRoom.roomId),
+              }),
+            );
+            return;
           }
+
+          if (frame.command === "MESSAGE") {
+            try {
+              const incomingMessage = normalizeMessage(JSON.parse(frame.body));
+              if (!incomingMessage) return;
+
+              setMessages((prev) => {
+                const duplicated = prev.some((message) => String(message.messageId) === String(incomingMessage.messageId));
+                return duplicated ? prev : [...prev, incomingMessage];
+              });
+            } catch {
+              setError("메시지 응답을 해석하지 못했습니다.");
+            }
+            return;
+          }
+
+          if (frame.command === "ERROR") {
+            setError(frame.body || "채팅 서버 연결 중 오류가 발생했습니다.");
+          }
+        });
+      };
+
+      socket.onerror = () => {
+        // 실제 실패 메시지는 close에서 마지막 후보까지 실패한 뒤 표시합니다.
+      };
+
+      socket.onclose = () => {
+        if (isClosedByCleanup) return;
+
+        if (socketCandidateIndex < socketCandidates.length - 1 && !isConnected) {
+          socketCandidateIndex += 1;
+          connectSocket();
           return;
         }
 
-        if (frame.command === "ERROR") {
-          setError(frame.body || "채팅 서버 연결 중 오류가 발생했습니다.");
-        }
-      });
+        if (socketRef.current === socket) setIsSocketConnected(false);
+        setError("채팅 서버에 연결하지 못했습니다.");
+      };
     };
 
-    socket.onerror = () => {
-      setError("채팅 서버에 연결하지 못했습니다.");
-    };
-
-    socket.onclose = () => {
-      if (socketRef.current === socket) setIsSocketConnected(false);
-    };
+    connectSocket();
 
     return () => {
       // 채팅방 이동 시 이전 WebSocket 연결을 정리합니다.
-      if (socket.readyState === WebSocket.OPEN) {
+      isClosedByCleanup = true;
+      if (socket?.readyState === WebSocket.OPEN) {
         socket.send(createStompFrame("DISCONNECT", { receipt: `close-${selectedRoom.roomId}` }));
       }
-      socket.close();
+      socket?.close();
       if (socketRef.current === socket) socketRef.current = null;
     };
   }, [navigate, selectedRoom]);
@@ -535,7 +572,7 @@ function Chat() {
 
           {selectedLand ? (
             <>
-              <ChatLandImage $image={resolveFileUrl(selectedLand.landImagePaths?.[0])} />
+              <ChatLandImage $image={resolveLandImageUrl(selectedLand.landImagePaths?.[0])} />
               <ChatLandInfo>
                 <h3>{selectedLand.address || selectedRoom?.landAddress || "-"}</h3>
                 <ChatLandRow>
