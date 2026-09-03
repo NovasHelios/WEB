@@ -100,6 +100,167 @@ const getTransactionFilterLabel = (filters) => {
   return transactionLabels[transactionType] || transactionType;
 };
 
+// 지역 필터 값을 버튼에 표시할 문구로 변환합니다.
+const getRegionFilterLabel = (filters) => {
+  // 현재 적용된 지역 필터 값을 가져옵니다.
+  const region = filters?.region;
+
+  // 지역 필터가 없으면 기본 버튼명을 표시합니다.
+  if (!region) {
+    return "지역 선택";
+  }
+
+  // 선택된 시도 이름을 가져옵니다.
+  const sidoName = region.sido?.name;
+
+  // 선택된 시군구 이름을 가져옵니다.
+  const sigunguName = region.sigungu?.name;
+
+  // 선택된 읍면동 이름을 가져옵니다.
+  const emdName = region.emd?.name;
+
+  // 선택된 지역 이름만 순서대로 모읍니다.
+  const selectedRegionNames = [sidoName, sigunguName, emdName].filter(Boolean);
+
+  // 선택된 지역이 없으면 기본 버튼명을 표시합니다.
+  if (selectedRegionNames.length === 0) {
+    return "지역 선택";
+  }
+
+  // 선택된 지역을 공백으로 이어 버튼 문구로 표시합니다.
+  return selectedRegionNames.join(" ");
+};
+
+// 금액 필터 값을 버튼에 표시할 문구로 변환합니다.
+const getPriceFilterLabel = (filters) => {
+  // 매매가 필터 표시 문구를 만듭니다.
+  const saleLabel = formatPriceRangeLabel("매매가", filters?.salePrice);
+
+  // 임대가 필터 표시 문구를 만듭니다.
+  const rentLabel = formatPriceRangeLabel("임대가", filters?.rentPrice);
+
+  // 표시 가능한 금액 조건만 모읍니다.
+  const priceLabels = [saleLabel, rentLabel].filter(Boolean);
+
+  // 적용된 금액 조건이 없으면 기본 버튼명을 표시합니다.
+  if (priceLabels.length === 0) {
+    return "금액";
+  }
+
+  // 금액 조건이 하나면 그대로 표시합니다.
+  if (priceLabels.length === 1) {
+    return priceLabels[0];
+  }
+
+  // 금액 조건이 여러 개면 첫 번째 조건과 추가 개수를 표시합니다.
+  return `${priceLabels[0]} +${priceLabels.length - 1}`;
+};
+
+// 토지 크기 필터 값을 버튼에 표시할 문구로 변환합니다.
+const getAreaFilterLabel = (filters) => {
+  // 현재 적용된 면적 필터 값을 가져옵니다.
+  const area = filters?.area;
+
+  // 면적 필터 값이 없으면 기본 버튼명을 표시합니다.
+  if (!area) {
+    return "토지 크기";
+  }
+
+  // 최소 면적 값을 가져옵니다.
+  const minArea = area.min;
+
+  // 최대 면적 값을 가져옵니다.
+  const maxArea = area.max;
+
+  // 최소/최대 면적이 모두 없으면 기본 버튼명을 표시합니다.
+  if (minArea === null && maxArea === null) {
+    return "토지 크기";
+  }
+
+  // 최소/최대 면적이 모두 있으면 범위로 표시합니다.
+  if (minArea !== null && maxArea !== null) {
+    return `${formatAreaValue(minArea)}~${formatAreaValue(maxArea)}`;
+  }
+
+  // 최소 면적만 있으면 이상 조건으로 표시합니다.
+  if (minArea !== null) {
+    return `${formatAreaValue(minArea)}~`;
+  }
+
+  // 최대 면적만 있으면 이하 조건으로 표시합니다.
+  return `~${formatAreaValue(maxArea)}`;
+};
+
+// 면적 숫자를 제곱미터 단위의 화면 표시 문구로 변환합니다.
+const formatAreaValue = (area) => {
+  // 값이 없으면 빈 문구를 반환합니다.
+  if (area === null || area === undefined) {
+    return "";
+  }
+
+  // 천 단위 구분자를 포함한 제곱미터 문구를 반환합니다.
+  return `${area.toLocaleString()}㎡`;
+};
+
+// 금액 숫자를 억/만원 단위의 화면 표시 문구로 변환합니다.
+const formatKoreanPrice = (price) => {
+  // 값이 없으면 빈 문구를 반환합니다.
+  if (price === null || price === undefined) {
+    return "";
+  }
+
+  // 억 단위 값을 계산합니다.
+  const hundredMillion = Math.floor(price / 100000000);
+
+  // 만원 단위 값을 계산합니다.
+  const tenThousand = Math.floor((price % 100000000) / 10000);
+
+  // 억과 만원이 모두 있으면 함께 표시합니다.
+  if (hundredMillion > 0 && tenThousand > 0) {
+    return `${hundredMillion}억 ${tenThousand.toLocaleString()}만`;
+  }
+
+  // 억 단위만 있으면 억만 표시합니다.
+  if (hundredMillion > 0) {
+    return `${hundredMillion}억`;
+  }
+
+  // 만원 단위만 있으면 만원만 표시합니다.
+  return `${tenThousand.toLocaleString()}만`;
+};
+
+// 금액 범위를 버튼에 표시할 문구로 변환합니다.
+const formatPriceRangeLabel = (label, range) => {
+  // 범위 값이 없으면 표시하지 않습니다.
+  if (!range) {
+    return null;
+  }
+
+  // 최소 금액을 가져옵니다.
+  const minPrice = range.min;
+
+  // 최대 금액을 가져옵니다.
+  const maxPrice = range.max;
+
+  // 최소/최대 금액이 모두 없으면 표시하지 않습니다.
+  if (minPrice === null && maxPrice === null) {
+    return null;
+  }
+
+  // 최소/최대 금액이 모두 있으면 범위로 표시합니다.
+  if (minPrice !== null && maxPrice !== null) {
+    return `${label} ${formatKoreanPrice(minPrice)}~${formatKoreanPrice(maxPrice)}`;
+  }
+
+  // 최소 금액만 있으면 이상 조건으로 표시합니다.
+  if (minPrice !== null) {
+    return `${label} ${formatKoreanPrice(minPrice)}~`;
+  }
+
+  // 최대 금액만 있으면 이하 조건으로 표시합니다.
+  return `${label} ~${formatKoreanPrice(maxPrice)}`;
+};
+
 // 지도 필터 컴포넌트입니다.
 function Filter({ filters, onApplyFilters }) {
   // 현재 열려 있는 필터 이름을 저장합니다.
@@ -458,7 +619,8 @@ function Filter({ filters, onApplyFilters }) {
           $active={activeFilter === "region"}
           onClick={() => handleToggleFilter("region")}
         >
-          지역 선택
+          {/* 현재 적용된 지역 필터를 버튼 문구로 표시합니다. */}
+          {getRegionFilterLabel(filters)}
           {activeFilter === "region" ? (
             <ChevronUp size={16} strokeWidth={2.4} />
           ) : (
@@ -491,7 +653,8 @@ function Filter({ filters, onApplyFilters }) {
           $active={activeFilter === "price"}
           onClick={() => handleToggleFilter("price")}
         >
-          금액
+          {/* 현재 적용된 금액 필터를 버튼 문구로 표시합니다. */}
+          {getPriceFilterLabel(filters)}
           {activeFilter === "price" ? (
             <ChevronUp size={16} strokeWidth={2.4} />
           ) : (
@@ -650,7 +813,8 @@ function Filter({ filters, onApplyFilters }) {
           $active={activeFilter === "area"}
           onClick={() => handleToggleFilter("area")}
         >
-          토지 크기
+          {/* 현재 적용된 토지 크기 필터를 버튼 문구로 표시합니다. */}
+          {getAreaFilterLabel(filters)}
           {activeFilter === "area" ? (
             <ChevronUp size={16} strokeWidth={2.4} />
           ) : (
