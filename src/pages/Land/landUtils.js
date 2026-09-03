@@ -2,7 +2,7 @@
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 
 export const formatMoney = (value) => {
-  // 가격은 모든 화면에서 만원 단위 기준으로 표시합니다.
+  // 가격은 모든 화면에서 원 단위 기준으로 표시합니다.
   return formatKoreanMoneyFromManwon(value);
 };
 

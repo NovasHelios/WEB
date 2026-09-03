@@ -91,8 +91,21 @@ const getFirstImagePath = (land) => {
   return land.landImagePath || land.imagePath || land.thumbnailPath || land.thumbnailUrl || "";
 };
 
+const toManwonInput = (value) => {
+  // 서버 원 단위 가격을 수정 폼의 만원 단위 입력값으로 변환합니다.
+  const wonPrice = Number(String(value ?? "").replace(/[^\d]/g, ""));
+  if (!wonPrice || Number.isNaN(wonPrice)) return "";
+  return String(Math.floor(wonPrice / 10000));
+};
+
+const toWonPrice = (value) => {
+  // 수정 폼에서는 만원 단위로 입력받고 서버에는 원 단위로 전송합니다.
+  const manwonPrice = Number(String(value).replace(/[^\d]/g, ""));
+  return Number.isNaN(manwonPrice) ? 0 : manwonPrice * 10000;
+};
+
 const formatPrice = (value) => {
-  // 가격은 서버 기준인 만원 단위로 통일해서 표시합니다.
+  // 가격은 서버 기준인 원 단위로 통일해서 표시합니다.
   return formatKoreanMoneyFromManwon(value);
 };
 
@@ -264,7 +277,7 @@ function MySpace() {
     setEditingLand(land);
     setEditForm({
       address: land.raw?.address || land.title || "",
-      desiredPrice: land.raw?.desiredPrice ?? land.raw?.price ?? "",
+      desiredPrice: toManwonInput(land.raw?.desiredPrice ?? land.raw?.price),
       description: land.raw?.description || "",
       transactionType: land.raw?.transactionType || (land.tradeType === "임대" ? "LEASE" : "SALE"),
     });
@@ -294,7 +307,7 @@ function MySpace() {
       const payload = {
         address: editForm.address.trim(),
         desiredPrice: editForm.desiredPrice
-          ? Number(String(editForm.desiredPrice).replace(/[^\d]/g, ""))
+          ? toWonPrice(editForm.desiredPrice)
           : null,
         description: editForm.description.trim(),
         transactionType: editForm.transactionType,
@@ -597,7 +610,7 @@ function MySpace() {
               <SpaceModalInput
                 value={editForm.desiredPrice}
                 onChange={handleEditChange("desiredPrice")}
-                placeholder="예) 150000"
+                placeholder="예) 15000"
               />
             </SpaceModalField>
 

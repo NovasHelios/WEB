@@ -3,7 +3,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, Heart, Mountain, Map, Camera } 
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
-import { authFetch } from "@/lib/auth";
+import { authFetch, getValidAccessToken } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
 import {
   formatMoney,
   formatArea,
@@ -53,6 +54,7 @@ const favoriteFilters = [
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 function LandFavorites() {
+  const navigate = useNavigate();
   // 찜 목록 필터 상태
   const [activeFilter, setActiveFilter] = useState("all");
   // 찜 목록 데이터
@@ -71,6 +73,12 @@ function LandFavorites() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchWishes = async () => {
+    // 로그인하지 않은 사용자는 관심 토지 조회 전에 로그인 화면으로 이동합니다.
+    if (!getValidAccessToken()) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
     // 찜 목록 조회
     setIsLoading(true);
     setError("");
@@ -126,6 +134,9 @@ function LandFavorites() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchWishes();
   }, []);
+
+  // 로그인하지 않은 사용자는 에러 문구 대신 로그인 화면으로 바로 이동합니다.
+  if (!getValidAccessToken()) return null;
 
   const filteredWishes = useMemo(() => {
     if (activeFilter === "all") return wishes;

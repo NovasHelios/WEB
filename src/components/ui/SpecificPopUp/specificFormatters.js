@@ -41,7 +41,7 @@ export const resolveAssetUrl = (path) => {
 };
 
 export const formatPrice = (value) => {
-  // 상세보기 가격은 서버 기준인 만원 단위를 정확하게 모두 표시합니다.
+  // 상세보기 가격은 서버 기준인 원 단위를 정확하게 모두 표시합니다.
   return formatExactKoreanMoneyFromManwon(value);
 };
 

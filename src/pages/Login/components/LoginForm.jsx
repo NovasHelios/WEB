@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginSigninBox from "../../../components/layout/box/LoginSigninBox";
 import LoginEmailInput from "./LoginInputEmail";
@@ -19,6 +19,21 @@ const LoginForm = () => {
   // UI 상태
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    // 로그인 화면에서 브라우저 뒤로가기를 누르면 홈으로 이동시킵니다.
+    window.history.pushState(null, "", window.location.href);
+
+    const handleBackToHome = () => {
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("popstate", handleBackToHome);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackToHome);
+    };
+  }, [navigate]);
 
   const handleLogin = async () => {
     // 빈 값 입력 방지

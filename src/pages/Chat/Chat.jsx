@@ -61,7 +61,7 @@ const formatTime = (value) => {
 };
 
 const formatPrice = (value) => {
-  // 가격은 서버 기준인 만원 단위로 통일해서 표시합니다.
+  // 가격은 서버 기준인 원 단위로 통일해서 표시합니다.
   return formatKoreanMoneyFromManwon(value);
 };
 
