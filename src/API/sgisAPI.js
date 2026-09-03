@@ -17,7 +17,9 @@ export const getSgisAccessToken = async () => {
   });
 
   // 개발 환경에서는 Vite 프록시를 통해 SGIS 인증 API를 호출합니다.
-  const response = await fetch(`https://sgisapi.kostat.go.kr/OpenAPI3/addr/stage.json?${params}`);
+  const response = await fetch(
+    `/sgis/OpenAPI3/auth/authentication.json?${params}`
+  );
 
   // SGIS 인증 응답을 JSON으로 변환합니다.
   const data = await response.json();
