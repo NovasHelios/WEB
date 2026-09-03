@@ -70,6 +70,36 @@ const renderRangeLabels = (config) => {
   );
 };
 
+// 거래 유형 필터 값을 버튼에 표시할 문구로 변환합니다.
+const getTransactionFilterLabel = (filters) => {
+  // 현재 적용된 거래 유형 값을 가져옵니다.
+  const transactionType = filters?.transactionType;
+
+  // 거래 유형 값이 없거나 전체이면 기본 버튼명을 표시합니다.
+  if (!transactionType || transactionType === "ALL") {
+    return "거래 유형";
+  }
+
+  // 서버/프론트에서 사용하는 거래 유형 값을 화면 표시용 이름으로 바꿉니다.
+  const transactionLabels = {
+    SALE: "매매",
+    LEASE: "임대",
+    JEONSE: "전세",
+    MONTHLY_RENT: "월세",
+    SHORT_RENT: "단기임대",
+  };
+
+  // 거래 유형이 배열이면 여러 값을 쉼표로 이어 표시합니다.
+  if (Array.isArray(transactionType)) {
+    return transactionType
+      .map((type) => transactionLabels[type] || type)
+      .join(", ");
+  }
+
+  // 거래 유형이 문자열이면 해당 값 하나만 표시합니다.
+  return transactionLabels[transactionType] || transactionType;
+};
+
 // 지도 필터 컴포넌트입니다.
 function Filter({ filters, onApplyFilters }) {
   // 현재 열려 있는 필터 이름을 저장합니다.
@@ -381,7 +411,8 @@ function Filter({ filters, onApplyFilters }) {
           $active={activeFilter === "type"}
           onClick={() => handleToggleFilter("type")}
         >
-          거래 유형
+          {/* 현재 적용된 거래 유형 필터를 버튼 문구로 표시합니다. */}
+          {getTransactionFilterLabel(filters)}
           {activeFilter === "type" ? (
             <ChevronUp size={16} strokeWidth={2.4} />
           ) : (
@@ -619,7 +650,7 @@ function Filter({ filters, onApplyFilters }) {
           $active={activeFilter === "area"}
           onClick={() => handleToggleFilter("area")}
         >
-          면적
+          토지 크기
           {activeFilter === "area" ? (
             <ChevronUp size={16} strokeWidth={2.4} />
           ) : (
@@ -645,7 +676,10 @@ function Filter({ filters, onApplyFilters }) {
                 </RangeValueText>
 
                 {/* 면적 직접 입력 팝업을 엽니다. */}
-                <button type="button" onClick={() => setDirectInputTarget("area")}>
+                <button
+                  type="button"
+                  onClick={() => setDirectInputTarget("area")}
+                >
                   <Pencil size={16} />
                 </button>
               </RangeTitleRow>
