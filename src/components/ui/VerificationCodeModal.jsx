@@ -1,7 +1,44 @@
 import { useState, useRef, useEffect } from "react";
 import { Api } from "@/contents/apiEndpoints";
 
-const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
+const parseResponseBody = async (response) => {
+  // 서버 응답이 JSON이 아닐 경우를 대비해 안전하게 파싱합니다.
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  return response.json();
+};
+
+const getEmailErrorMessage = (data, status, fallbackMessage) => {
+  // 인증 API 응답 구조가 달라도 메시지를 한 곳에서 정리합니다.
+  const rawMessage =
+    data?.message ||
+    data?.data?.message ||
+    data?.error ||
+    data?.data?.error ||
+    "";
+
+  const message = String(rawMessage);
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    status === 409 ||
+    normalizedMessage.includes("duplicate") ||
+    normalizedMessage.includes("already") ||
+    normalizedMessage.includes("exist") ||
+    message.includes("이미") ||
+    message.includes("중복")
+  ) {
+    return "이미 가입된 이메일입니다. 로그인하거나 다른 이메일을 사용해주세요.";
+  }
+
+  return message || fallbackMessage;
+};
+
+const VerificationCodeModal = ({ email, onClose, onVerify, onResend, onError }) => {
   const [codes, setCodes] = useState(Array(6).fill(""));
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(60);
@@ -12,15 +49,22 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
   useEffect(() => {
     const sendCode = async () => {
       try {
-        await fetch(`${Api.EmailSend}?email=${encodeURIComponent(email)}`, {
+        const response = await fetch(`${Api.EmailSend}?email=${encodeURIComponent(email)}`, {
           method: "POST",
         });
-      } catch {
-        setError("코드 전송에 실패했습니다.");
+        const data = await parseResponseBody(response);
+
+        if (!response.ok || data?.success === false) {
+          throw new Error(getEmailErrorMessage(data, response.status, "코드 전송에 실패했습니다."));
+        }
+      } catch (err) {
+        const message = err.message || "코드 전송에 실패했습니다.";
+        setError(message);
+        onError?.(message);
       }
     };
     if (email) sendCode();
-  }, [email]);
+  }, [email, onError]);
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -86,10 +130,10 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
         { method: "POST" }
       );
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "인증에 실패했습니다.");
+        throw new Error(getEmailErrorMessage(data, response.status, "인증에 실패했습니다."));
       }
 
       onVerify?.(code);
@@ -106,11 +150,18 @@ const VerificationCodeModal = ({ email, onClose, onVerify, onResend }) => {
     setTimeLeft(60);
 
     try {
-      await fetch(`${Api.EmailResend}?email=${encodeURIComponent(email)}`, {
+      const response = await fetch(`${Api.EmailResend}?email=${encodeURIComponent(email)}`, {
         method: "POST",
       });
-    } catch {
-      setError("재전송에 실패했습니다.");
+      const data = await parseResponseBody(response);
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(getEmailErrorMessage(data, response.status, "재전송에 실패했습니다."));
+      }
+    } catch (err) {
+      const message = err.message || "재전송에 실패했습니다.";
+      setError(message);
+      onError?.(message);
     }
 
     onResend?.();

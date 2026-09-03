@@ -16,6 +16,13 @@ export const LogoWrap = styled.div`
   display: flex;
   justify-content: center;
   margin-bottom: 24px;
+
+  button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+  }
 `;
 
 export const LogoImage = styled.img`

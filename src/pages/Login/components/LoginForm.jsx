@@ -74,11 +74,14 @@ const LoginForm = () => {
   return (
     <LoginSigninBox>
       <div className="flex flex-col items-center text-center">
-        <img
-          src={logoImage}
-          alt="Helios"
-          className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
-        />
+        {/* 로고 클릭 시 뒤로가기 대신 홈으로 명확하게 이동합니다. */}
+        <button type="button" onClick={() => navigate("/")} className="cursor-pointer">
+          <img
+            src={logoImage}
+            alt="Helios"
+            className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
+          />
+        </button>
         <h1 className="mt-6 text-[56px] font-medium leading-none tracking-[-0.07em] text-[#1f1f1f] max-[640px]:text-[40px]">
           만나서 반갑습니다
         </h1>

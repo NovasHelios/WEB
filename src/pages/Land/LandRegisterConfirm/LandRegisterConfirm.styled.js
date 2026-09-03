@@ -18,6 +18,10 @@ export const ConfirmPage = styled.div`
   }
 `;
 
+export const ConfirmNavBarWrap = styled.div`
+  grid-column: 1 / -1;
+`;
+
 export const ConfirmHeaderShell = styled.header`
   height: 72px;
   border-bottom: 2px solid #111;
@@ -182,6 +186,21 @@ export const ConfirmSection = styled.section`
   flex-direction: column;
   gap: 8px;
   margin-bottom: 30px;
+`;
+
+export const ConfirmInfoSection = styled.section`
+  margin: 0 0 22px;
+`;
+
+export const ConfirmInfoTitle = styled.h2`
+  display: inline-block;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #eadfbd;
+  color: #202020;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 `;
 
 export const ConfirmSectionTitle = styled.h1`
@@ -420,6 +439,7 @@ export const ConfirmCardGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 22px;
+  margin-bottom: 18px;
 
   @media (max-width: 1100px) {
     grid-template-columns: 1fr;
@@ -430,7 +450,7 @@ export const ConfirmCard = styled.section`
   min-height: 244px;
   border: 1px solid #d6a81b;
   border-radius: 8px;
-  padding: 18px 20px;
+  padding: 22px 24px;
   box-sizing: border-box;
   background: #fff;
 `;
@@ -463,6 +483,9 @@ export const ConfirmTableValue = styled.div`
   line-height: 1.45;
   color: #2d2d2d;
   text-align: right;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 `;
 
 export const ConfirmPrimaryButton = styled.button`

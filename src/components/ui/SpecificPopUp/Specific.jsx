@@ -6,6 +6,7 @@ import {
   Info,
   X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // 상세보기 팝업 스타일 컴포넌트를 가져옵니다.
 import {
@@ -55,6 +56,14 @@ import {
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
+  // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
+  const [isHeroImageFailed, setIsHeroImageFailed] = useState(false);
+
+  // 다른 토지 상세를 열면 이미지 실패 상태를 초기화합니다.
+  useEffect(() => {
+    setIsHeroImageFailed(false);
+  }, [land?.id, land?.landId]);
+
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
   if (!land) return null;
 
@@ -100,9 +109,16 @@ function Specific({ land, onClose }) {
             {/* 토지 사진 영역입니다. */}
             <PhotoColumn>
               <HeroImageBox>
-                {images[0] ? (
+                {images[0] && !isHeroImageFailed ? (
                   // 서버에서 받은 대표 이미지를 표시합니다.
-                  <HeroImage src={images[0]} alt="토지 대표 이미지" />
+                  <HeroImage
+                    src={images[0]}
+                    alt="토지 대표 이미지"
+                    onError={() => {
+                      // 접근 불가능한 이미지 URL이면 빈 이미지 영역으로 대체합니다.
+                      setIsHeroImageFailed(true);
+                    }}
+                  />
                 ) : (
                   // 이미지가 없으면 임시 이미지 박스를 표시합니다.
                   <ImagePlaceholder>
@@ -128,6 +144,10 @@ function Specific({ land, onClose }) {
                         <ThumbImage
                           src={src}
                           alt={`토지 썸네일 ${index + 1}`}
+                          onError={(event) => {
+                            // 썸네일도 실패하면 깨진 이미지 아이콘을 숨깁니다.
+                            event.currentTarget.style.display = "none";
+                          }}
                         />
                       ) : (
                         // 이미지가 없을 때 표시하는 빈 썸네일입니다.

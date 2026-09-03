@@ -25,6 +25,44 @@ import {
   Title,
 } from "./Signin_2.styles";
 
+const parseResponseBody = async (response) => {
+  // 서버 응답이 JSON이 아닐 수도 있어서 안전하게 파싱합니다.
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  return response.json();
+};
+
+const getSignupErrorMessage = (data, status) => {
+  // 서버 응답 구조가 달라도 실제 메시지 후보를 한 번에 정리합니다.
+  const rawMessage =
+    data?.message ||
+    data?.data?.message ||
+    data?.error ||
+    data?.data?.error ||
+    "";
+
+  const message = String(rawMessage);
+  const normalizedMessage = message.toLowerCase();
+
+  // 이미 가입된 이메일은 사용자에게 바로 이해되는 문구로 표시합니다.
+  if (
+    status === 409 ||
+    normalizedMessage.includes("duplicate") ||
+    normalizedMessage.includes("already") ||
+    normalizedMessage.includes("exist") ||
+    message.includes("이미") ||
+    message.includes("중복")
+  ) {
+    return "이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.";
+  }
+
+  return message || "회원가입에 실패했습니다. 입력 정보를 다시 확인해주세요.";
+};
+
 function Signin_2() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,10 +124,10 @@ function Signin_2() {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
 
-      if (!data.success) {
-        throw new Error(data.message || "회원가입에 실패했습니다.");
+      if (!response.ok || data?.success === false) {
+        throw new Error(getSignupErrorMessage(data, response.status));
       }
 
       navigate("/login");
@@ -107,7 +145,10 @@ function Signin_2() {
   return (
     <Page>
       <LogoWrap>
-        <LogoImage src={logoImage} alt="helios" />
+        {/* 로고 클릭 시 홈 화면으로 돌아갑니다. */}
+        <button type="button" onClick={() => navigate("/")}>
+          <LogoImage src={logoImage} alt="helios" />
+        </button>
       </LogoWrap>
 
       <Card>
@@ -128,7 +169,7 @@ function Signin_2() {
                   placeholder="example@landregister.com"
                 />
               </EmailInputWrap>
-              <EmailVerifyButton email={form.email} />
+              <EmailVerifyButton email={form.email} onError={setError} />
             </EmailRow>
           </InputGroup>
 

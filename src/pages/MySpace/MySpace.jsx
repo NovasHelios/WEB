@@ -67,6 +67,30 @@ const resolveImageUrl = (path) => {
   return `${API_BASE_URL}/uploads/lands/${path}`;
 };
 
+const getFirstImagePath = (land) => {
+  // 서버 이미지 응답이 배열/단일 경로 어느 형태로 와도 첫 이미지를 꺼냅니다.
+  const imageCandidates = [
+    land.landImagePaths,
+    land.imagePaths,
+    land.images,
+    land.imageUrls,
+    land.landImages,
+    land.files,
+  ];
+
+  for (const candidate of imageCandidates) {
+    if (!Array.isArray(candidate)) continue;
+
+    const firstImage = candidate.find(Boolean);
+    if (!firstImage) continue;
+
+    if (typeof firstImage === "string") return firstImage;
+    return firstImage.url || firstImage.path || firstImage.filePath || firstImage.imageUrl || "";
+  }
+
+  return land.landImagePath || land.imagePath || land.thumbnailPath || land.thumbnailUrl || "";
+};
+
 const formatPrice = (value) => {
   // 가격은 서버 기준인 만원 단위로 통일해서 표시합니다.
   return formatKoreanMoneyFromManwon(value);
@@ -121,7 +145,7 @@ const getTransactionLabel = (value) => {
 const normalizeLand = (land, index) => {
   // 서버 응답을 카드에서 쓰기 좋은 형태로 정리합니다.
   const transactionType = land.transactionType || land.status || "SALE";
-  const landImage = land.landImagePath || land.imagePath || land.thumbnailPath || "";
+  const landImage = getFirstImagePath(land);
   const rawPrice = land.desiredPrice ?? land.amount ?? land.price ?? null;
   const accentPool = [
     ["#cfe9a5", "#7fb96c"],

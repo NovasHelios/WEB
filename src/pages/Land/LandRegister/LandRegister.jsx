@@ -3,11 +3,12 @@ import {
   Search,
   MapPinned,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
+import { fetchVworldLandInfo } from "@/API/vworldAPI";
 import {
   LandRegisterBottomButton,
   LandRegisterButtonIcon,
@@ -29,6 +30,7 @@ import {
   LandRegisterAddressFieldWrap,
   LandRegisterAddressInput,
   LandRegisterAddressHelper,
+  LandRegisterKakaoMap,
   LandRegisterVisualCanvas,
   LandRegisterVisualEmpty,
   LandRegisterVisualMapIcon,
@@ -37,10 +39,14 @@ import {
 function LandRegister() {
   const navigate = useNavigate();
   useRequireLogin();
+  const mapElementRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
   const { registerData, setRegisterData } = useLandRegister();
   const [searchResult, setSearchResult] = useState("");
   const [isAddressChecking, setIsAddressChecking] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
+  const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
 
   const previewMessage = useMemo(() => {
     // 검색 결과가 있으면 미리보기 문구로 사용
@@ -53,6 +59,45 @@ function LandRegister() {
     }
     return "주소를 검색하면 지도에 위치가 표시됩니다.";
   }, [addressMessage, searchResult]);
+
+  useEffect(() => {
+    // 검증된 주소 좌표가 있으면 Kakao 지도를 생성하고 위치를 표시합니다.
+    if (!hasValidLocation || !mapElementRef.current || !window.kakao?.maps) return;
+
+    const lat = Number(registerData.latitude);
+    const lng = Number(registerData.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const position = new window.kakao.maps.LatLng(lat, lng);
+
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = new window.kakao.maps.Map(mapElementRef.current, {
+        center: position,
+        level: 3,
+        draggable: false,
+        scrollwheel: false,
+        disableDoubleClick: true,
+        disableDoubleClickZoom: true,
+      });
+    }
+
+    mapInstanceRef.current.setCenter(position);
+    mapInstanceRef.current.setLevel(3);
+    mapInstanceRef.current.setDraggable(false);
+    mapInstanceRef.current.setZoomable(false);
+    mapInstanceRef.current.relayout();
+
+    if (!markerRef.current) {
+      markerRef.current = new window.kakao.maps.Marker({
+        map: mapInstanceRef.current,
+        position,
+      });
+      return;
+    }
+
+    markerRef.current.setMap(mapInstanceRef.current);
+    markerRef.current.setPosition(position);
+  }, [hasValidLocation, registerData.latitude, registerData.longitude]);
 
   const validateAddress = async (value) => {
     // Kakao 주소 검색 결과로 입력 주소의 유효성을 확인합니다.
@@ -94,7 +139,7 @@ function LandRegister() {
     setAddressMessage("주소를 확인하는 중입니다.");
 
     validateAddress(trimmed)
-      .then((result) => {
+      .then(async (result) => {
         if (!result) {
           setSearchResult("");
           setAddressMessage("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
@@ -110,17 +155,24 @@ function LandRegister() {
           return;
         }
 
+        const vworldInfo = await fetchVworldLandInfo(trimmed);
         setSearchResult(`입력된 주소: ${trimmed}`);
         setAddressMessage("유효한 주소로 확인되었습니다.");
         setRegisterData((prev) => ({
           ...prev,
           address: trimmed,
           isAddressValid: true,
-          confirmedAddress: result.address,
+          confirmedAddress: vworldInfo?.confirmedAddress || result.address,
           confirmedRoadAddress: result.roadAddress,
-          confirmedLocation: result.x && result.y ? `${result.y}, ${result.x}` : "",
-          latitude: result.y,
-          longitude: result.x,
+          confirmedLocation: vworldInfo?.confirmedLocation || (result.x && result.y ? `${result.y}, ${result.x}` : ""),
+          latitude: vworldInfo?.latitude || result.y,
+          longitude: vworldInfo?.longitude || result.x,
+          pnu: vworldInfo?.pnu || "",
+          area: vworldInfo?.area || "",
+          landCategory: vworldInfo?.landCategory || "",
+          altitude: vworldInfo?.altitude || "",
+          roadAccess: vworldInfo?.roadAccess || "",
+          shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
         }));
       })
       .finally(() => {
@@ -141,6 +193,12 @@ function LandRegister() {
       confirmedLocation: "",
       latitude: "",
       longitude: "",
+      pnu: "",
+      area: "",
+      landCategory: "",
+      altitude: "",
+      roadAccess: "",
+      shareCount: "",
     }));
   };
 
@@ -196,12 +254,17 @@ function LandRegister() {
               </LandRegisterPanelSubtext>
 
               <LandRegisterVisualCanvas>
-                <LandRegisterVisualMapIcon>
-                  <MapPinned size={34} strokeWidth={1.7} />
-                </LandRegisterVisualMapIcon>
-                <LandRegisterVisualEmpty>
-                  {previewMessage}
-                </LandRegisterVisualEmpty>
+                {hasValidLocation ? <LandRegisterKakaoMap ref={mapElementRef} /> : null}
+                {!hasValidLocation ? (
+                  <>
+                    <LandRegisterVisualMapIcon>
+                      <MapPinned size={34} strokeWidth={1.7} />
+                    </LandRegisterVisualMapIcon>
+                    <LandRegisterVisualEmpty>
+                      {previewMessage}
+                    </LandRegisterVisualEmpty>
+                  </>
+                ) : null}
               </LandRegisterVisualCanvas>
             </LandRegisterCardBody>
           </LandRegisterCard>

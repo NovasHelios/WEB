@@ -3,12 +3,9 @@ import {
   AlertTriangle,
   ArrowLeft,
   ChevronRight,
-  MapPinned,
-  Minus,
-  Plus,
 } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
-import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { RegisterStaticMap, RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   ConfirmAddressBox,
@@ -17,20 +14,18 @@ import {
   ConfirmAddressText,
   ConfirmCard,
   ConfirmCardGrid,
+  ConfirmInfoSection,
+  ConfirmInfoTitle,
+  ConfirmNavBarWrap,
   ConfirmPage,
   ConfirmSection,
   ConfirmTable,
   ConfirmTableCell,
   ConfirmTableRow,
+  ConfirmTableValue,
   ConfirmTopNote,
   ConfirmTopPreview,
-  ConfirmTopPreviewBar,
-  ConfirmTopPreviewContent,
   ConfirmTopPreviewHeader,
-  ConfirmTopPreviewZoom,
-  ConfirmTopPreviewZoomGroup,
-  ConfirmTopPreviewImage,
-  ConfirmTopPreviewPin,
   ConfirmTopRow,
   ConfirmTopRowCard,
   ConfirmTopRowCardTitle,
@@ -52,13 +47,15 @@ function LandRegisterConfirm() {
 
   return (
     <ConfirmPage>
-      <NavBar
-        keyword=""
-        onChangeKeyword={() => {}}
-        onSearch={() => {}}
-        isSuggestionOpen={false}
-        regionSuggestions={[]}
-      />
+      <ConfirmNavBarWrap>
+        <NavBar
+          keyword=""
+          onChangeKeyword={() => {}}
+          onSearch={() => {}}
+          isSuggestionOpen={false}
+          regionSuggestions={[]}
+        />
+      </ConfirmNavBarWrap>
 
       <ConfirmTopShell>
         <ConfirmSection>
@@ -90,68 +87,54 @@ function LandRegisterConfirm() {
             </ConfirmTopPreviewHeader>
 
             <ConfirmTopPreview>
-              <ConfirmTopPreviewZoomGroup>
-                <ConfirmTopPreviewZoom type="button" aria-label="확대">
-                  <Plus size={18} />
-                </ConfirmTopPreviewZoom>
-                <ConfirmTopPreviewZoom type="button" aria-label="축소">
-                  <Minus size={18} />
-                </ConfirmTopPreviewZoom>
-              </ConfirmTopPreviewZoomGroup>
-
-              <ConfirmTopPreviewBar />
-
-              <ConfirmTopPreviewContent>
-                <ConfirmTopPreviewImage />
-                <ConfirmTopPreviewPin>
-                  <MapPinned size={34} strokeWidth={1.5} />
-                </ConfirmTopPreviewPin>
-              </ConfirmTopPreviewContent>
+              <RegisterStaticMap
+                latitude={registerData.latitude}
+                longitude={registerData.longitude}
+                emptyText="주소 검색 후 위치 지도가 표시됩니다."
+              />
             </ConfirmTopPreview>
           </ConfirmTopRowCard>
         </ConfirmTopRow>
 
-        <ConfirmSection>
-          <ConfirmSectionTitle>자동 조회 정보</ConfirmSectionTitle>
-        </ConfirmSection>
+        <ConfirmInfoSection>
+          <ConfirmInfoTitle>자동 조회 정보</ConfirmInfoTitle>
+        </ConfirmInfoSection>
 
         <ConfirmCardGrid>
           <ConfirmCard>
             <ConfirmTable>
               <ConfirmTableRow>
                 <ConfirmTableCell>좌표</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.confirmedLocation || "-"}</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.confirmedLocation || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>공유인 수</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.shareCount || "-"}</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.shareCount || "0명 (단독소유)"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>PNU</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.pnu || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>
-          </ConfirmCardGrid>
 
-          <ConfirmCardGrid>
           <ConfirmCard>
             <ConfirmTable>
               <ConfirmTableRow>
-                <ConfirmTableCell>좌표</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.confirmedLocation || "-"}</ConfirmTableCell>
+                <ConfirmTableCell>면적</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.area || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>공유인 수</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.shareCount || "-"}</ConfirmTableCell>
+                <ConfirmTableCell>고도</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.altitude || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>PNU</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
+                <ConfirmTableCell>지목</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.landCategory || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>PNU</ConfirmTableCell>
-                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
+                <ConfirmTableCell>도로 접근성</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.roadAccess || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>

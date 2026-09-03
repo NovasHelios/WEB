@@ -345,6 +345,12 @@ export const LandRegisterVisualCanvas = styled.div`
   overflow: hidden;
 `;
 
+export const LandRegisterKakaoMap = styled.div`
+  width: 100%;
+  height: 100%;
+  min-height: 258px;
+`;
+
 export const LandRegisterVisualMapIcon = styled.div`
   color: #d6c391;
   display: flex;
