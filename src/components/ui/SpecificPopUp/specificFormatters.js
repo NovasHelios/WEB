@@ -36,8 +36,11 @@ export const resolveAssetUrl = (path) => {
   // 루트 상대 경로면 API 서버 주소를 앞에 붙입니다.
   if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
 
-  // 일반 상대 경로면 API 서버 주소와 함께 붙입니다.
-  return `${API_BASE_URL}/${path}`;
+  // uploads 경로로 시작하면 API 서버 주소만 붙입니다.
+  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
+
+  // 파일명만 온 경우 토지 이미지 업로드 경로를 붙입니다.
+  return `${API_BASE_URL}/uploads/lands/${path}`;
 };
 
 export const formatPrice = (value) => {

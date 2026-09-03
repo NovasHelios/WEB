@@ -5,7 +5,8 @@ export const ChatPanel = styled.section`
   position: fixed;
   right: 28px;
   bottom: 92px;
-  z-index: 1200;
+  // AI 채팅 패널은 미리보기보다 뒤, 지도보다 앞에 표시합니다.
+  z-index: 24;
   width: 300px;
   height: 500px;
   background: #ffffff;
@@ -138,7 +139,8 @@ export const ChatButton = styled.button`
   position: fixed;
   right: 28px;
   bottom: 24px;
-  z-index: 1201;
+  // AI 채팅 버튼은 미리보기보다 뒤, 지도보다 앞에 표시합니다.
+  z-index: 24;
   width: 58px;
   height: 58px;
   padding: 0;

@@ -20,6 +20,7 @@ import {
   DetailHeader,
   DetailTitle,
   ImageCounter,
+  ImageBox,
   ImageArea,
   PlaceholderBackground,
   InfoCard,
@@ -232,21 +233,21 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 상세 패널 상단에 표시할 주소입니다.
   const address = land.address || "토지 주소";
 
-  // 서버에서 받은 이미지 경로 목록을 구성합니다.
-  const rawImageList =
-    land.landImagePaths ||
-    land.imagePaths ||
-    land.images ||
-    land.imageUrls ||
-    [];
+  // 서버에서 받은 이미지 목록 필드를 하나의 배열로 정규화합니다.
+  const imageList = Array.isArray(land.landImagePaths)
+    ? land.landImagePaths
+    : [
+        land.landImagePath,
+        land.landImagePaths,
+        land.imagePaths,
+        land.images,
+        land.imageUrls,
+      ].flat();
 
-  // 단일 이미지와 여러 이미지 배열을 하나의 배열로 합칩니다.
-  const landImages = [
-    land.landImagePath,
-    ...(Array.isArray(rawImageList) ? rawImageList : []),
-  ]
-    // 비어 있는 이미지 경로를 제거합니다.
-    .filter(Boolean)
+  // 실제로 사용할 수 있는 이미지 경로만 남기고 URL로 변환합니다.
+  const landImages = imageList
+    // 비어 있는 이미지 경로와 배열이 아닌 값을 제거합니다.
+    .filter((path) => typeof path === "string" && path.trim())
     // 상대경로 이미지를 실제 접근 가능한 URL로 변환합니다.
     .map(resolveImageUrl);
 
@@ -263,8 +264,23 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 거래 유형을 서버 필드 기준으로 표시합니다.
   const transactionType = land.transactionType || "매매";
 
-  // 현재 대표 이미지로 보여줄 항목입니다.
-  const selectedImage = detailImages[selectedImageIndex] || detailImages[0];
+  // 프리뷰에서 사용할 실제 이미지 목록입니다.
+  const previewImageItems = detailImages.filter(
+    (image) => image.type === "image"
+  );
+
+  // 프리뷰 대표 이미지는 선택된 실제 이미지 또는 첫 번째 실제 이미지입니다.
+  const selectedImage =
+    previewImageItems[selectedImageIndex] || previewImageItems[0];
+
+  // 프리뷰 하단 썸네일은 최대 3개까지만 보여줍니다.
+  const previewImages = previewImageItems.slice(0, 3);
+
+  // 서버에서 받은 전체 실제 이미지 개수입니다.
+  const totalImageCount = previewImageItems.length;
+
+  // 프리뷰에서 숨긴 이미지가 있는지 확인합니다.
+  const hasMoreImages = totalImageCount > previewImages.length;
 
   return (
     // 마커 클릭 시 우측에 뜨는 상세 패널입니다.
@@ -287,47 +303,56 @@ function Preview({ land, onClose, onOpenSpecific }) {
       <PanelBody>
         {/* 대표 이미지 영역입니다. */}
         <ImageArea>
-          {/* placeholder를 먼저 배치해 이미지가 실패하면 보이도록 합니다. */}
-          {selectedImage?.type === "placeholder" ? (
-            <PlaceholderBackground style={{ background: selectedImage?.color }} />
-          ) : (
-            <PlaceholderBackground />
-          )}
+          <ImageBox>
+            {/* placeholder를 먼저 배치해 이미지가 실패하면 보이도록 합니다. */}
+            {selectedImage?.type === "placeholder" ? (
+              <PlaceholderBackground
+                style={{ background: selectedImage?.color }}
+              />
+            ) : (
+              <PlaceholderBackground />
+            )}
 
-          {/* 선택된 실제 토지 이미지를 대표 이미지로 표시합니다. 실패 시 placeholder가 보입니다. */}
-          {selectedImage?.type === "image" && (
-            <LandImage
-              src={selectedImage.src}
-              alt="토지 이미지"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-              style={{ position: "relative", zIndex: 2 }}
-            />
-          )}
+            {/* 선택된 실제 토지 이미지를 대표 이미지로 표시합니다. 실패 시 placeholder가 보입니다. */}
+            {selectedImage?.type === "image" && (
+              <LandImage
+                src={selectedImage.src}
+                alt="토지 이미지"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+                style={{ position: "relative", zIndex: 2 }}
+              />
+            )}
 
-          {/* 이미지 우측 상단 관심 버튼입니다. */}
-          <SaveIconButton
-            type="button"
-            aria-label={isWished ? "관심 해제" : "관심 등록"}
-            onClick={handleToggleWish}
-            disabled={isWishLoading}
-            $active={isWished}
-          >
-            <Heart size={18} fill="currentColor" strokeWidth={isWished ? 0 : 1.8} />
-          </SaveIconButton>
+            {/* 이미지 우측 상단 관심 버튼입니다. */}
+            <SaveIconButton
+              type="button"
+              aria-label={isWished ? "관심 해제" : "관심 등록"}
+              onClick={handleToggleWish}
+              disabled={isWishLoading}
+              $active={isWished}
+            >
+              <Heart
+                size={18}
+                fill="currentColor"
+                strokeWidth={isWished ? 0 : 1.8}
+              />
+            </SaveIconButton>
 
-          {/* 이미지 개수 표시입니다. */}
-          <ImageCounter>
-            ▣ {selectedImageIndex + 1}/{detailImages.length}
-          </ImageCounter>
+            {/* 이미지 개수 표시입니다. */}
+            <ImageCounter>
+              ▣ {Math.min(selectedImageIndex + 1, totalImageCount)}/
+              {totalImageCount}
+            </ImageCounter>
+          </ImageBox>
         </ImageArea>
 
         {/* 썸네일 이미지 목록입니다. */}
         <ThumbnailGrid>
-          {detailImages.map((image, index) => (
+          {previewImages.map((image, index) => (
             <ThumbButton
-              key={`${image.type}-${image.src || image.color}-${index}`}
+              key={`${image.src}-${index}`}
               type="button"
               $active={index === selectedImageIndex}
               onClick={() => {
@@ -335,15 +360,20 @@ function Preview({ land, onClose, onOpenSpecific }) {
                 setSelectedImageIndex(index);
               }}
             >
-              {image.type === "image" ? (
-                // 실제 이미지 썸네일을 표시합니다.
-                <ThumbnailImage as="img" src={image.src} alt="토지 썸네일" />
-              ) : (
-                // 임시 색상 썸네일을 표시합니다.
-                <ThumbnailImage style={{ background: image.color }} />
-              )}
+              {/* 실제 이미지 썸네일을 표시합니다. */}
+              <ThumbnailImage as="img" src={image.src} alt="" />
             </ThumbButton>
           ))}
+
+          {hasMoreImages && (
+            <ThumbButton
+              type="button"
+              onClick={onOpenSpecific}
+              aria-label="이미지 더보기"
+            >
+              +
+            </ThumbButton>
+          )}
         </ThumbnailGrid>
 
         {/* 기본 정보 카드입니다. */}
@@ -378,7 +408,7 @@ function Preview({ land, onClose, onOpenSpecific }) {
         <AiCard>
           <InfoTitle>
             <Bot size={18} strokeWidth={2.2} />
-            AI 사업성 분석
+            AI 사업성 분석 (임시 데이터입니다)
             <BetaBadge>BETA</BetaBadge>
           </InfoTitle>
 
@@ -417,7 +447,11 @@ function Preview({ land, onClose, onOpenSpecific }) {
           disabled={isWishLoading}
           $active={isWished}
         >
-          <Heart size={20} fill={isWished ? "currentColor" : "none"} strokeWidth={1.6} />
+          <Heart
+            size={20}
+            fill={isWished ? "currentColor" : "none"}
+            strokeWidth={1.6}
+          />
           {isWished ? "관심 해제" : "관심 등록"}
         </BookmarkButton>
 
@@ -426,7 +460,11 @@ function Preview({ land, onClose, onOpenSpecific }) {
           상세 보기
         </ContactButton>
 
-        <ContactButton type="button" onClick={handleCreateChatRoom} disabled={isChatLoading}>
+        <ContactButton
+          type="button"
+          onClick={handleCreateChatRoom}
+          disabled={isChatLoading}
+        >
           {isChatLoading ? "요청 중..." : "채팅 하기"}
         </ContactButton>
       </ActionBar>
