@@ -1,4 +1,8 @@
+// 인증 헤더를 포함해 API를 호출합니다.
 import { authFetch } from "@/lib/auth";
+
+// 백엔드 API endpoint 목록을 가져옵니다.
+import { Api } from "@/contents/apiEndpoints";
 
 // 서버에서 단일 토지 상세 정보를 가져옵니다.
 export const fetchLandDetail = async (landId) => {
@@ -6,8 +10,8 @@ export const fetchLandDetail = async (landId) => {
   if (!landId) return null;
 
   try {
-    // Vite proxy를 통해 토지 상세 조회 API를 호출합니다.
-    const response = await fetch(`/api/lands/${landId}`, {
+    // 배포 환경에서도 백엔드 도메인으로 토지 상세 조회 API를 호출합니다.
+    const response = await fetch(Api.Land(landId), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -33,8 +37,8 @@ export const fetchLandDetail = async (landId) => {
 
 // 필터 조건으로 서버에서 토지 목록을 조회합니다.
 export const fetchFilteredLandList = async (requestBody) => {
-  // Vite proxy를 통해 토지 필터 조회 API를 호출합니다.
-  const response = await authFetch("/api/lands/filter", {
+  // 배포 환경에서도 백엔드 도메인으로 토지 필터 조회 API를 호출합니다.
+  const response = await authFetch(Api.LandFilter, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
