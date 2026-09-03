@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -75,7 +75,7 @@ function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
   const { registerData } = useLandRegister();
-  const [selected, setSelected] = useState(registerData.transactionType || "sale");
+  const selected = registerData.transactionType || "sale";
 
   const current = useMemo(() => completionModes[selected] || completionModes.sale, [selected]);
 
@@ -107,7 +107,9 @@ function LandRegisterComplete() {
                 key={mode.key}
                 type="button"
                 $active={selected === mode.key}
-                onClick={() => setSelected(mode.key)}
+                disabled
+                tabIndex={-1}
+                aria-pressed={selected === mode.key}
               >
                 {mode.label}
               </CompleteChoiceButton>

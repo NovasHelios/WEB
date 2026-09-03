@@ -220,8 +220,9 @@ export const CompleteChoiceButton = styled.button`
   font-size: 18px;
   font-weight: 500;
   padding: 0 18px;
-  cursor: pointer;
+  cursor: default;
   box-sizing: border-box;
+  pointer-events: none;
 
   ${({ $active }) =>
     $active &&
@@ -229,6 +230,10 @@ export const CompleteChoiceButton = styled.button`
       border-color: #d6a81b;
       color: #d6a81b;
     `}
+
+  &:disabled {
+    opacity: 1;
+  }
 `;
 
 export const CompleteSummaryCard = styled.section`

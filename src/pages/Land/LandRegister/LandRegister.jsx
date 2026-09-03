@@ -48,6 +48,16 @@ function LandRegister() {
   const [addressMessage, setAddressMessage] = useState("");
   const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
 
+  const clearMapPreview = () => {
+    // 주소 검증이 실패하거나 입력이 바뀌면 이전 지도 인스턴스를 비웁니다.
+    if (markerRef.current) {
+      markerRef.current.setMap(null);
+    }
+
+    markerRef.current = null;
+    mapInstanceRef.current = null;
+  };
+
   const previewMessage = useMemo(() => {
     // 검색 결과가 있으면 미리보기 문구로 사용
     if (addressMessage) {
@@ -81,11 +91,15 @@ function LandRegister() {
       });
     }
 
-    mapInstanceRef.current.setCenter(position);
-    mapInstanceRef.current.setLevel(3);
-    mapInstanceRef.current.setDraggable(false);
-    mapInstanceRef.current.setZoomable(false);
-    mapInstanceRef.current.relayout();
+    // 지도 DOM이 다시 렌더링된 뒤 크기 계산을 맞춥니다.
+    window.setTimeout(() => {
+      if (!mapInstanceRef.current) return;
+      mapInstanceRef.current.relayout();
+      mapInstanceRef.current.setCenter(position);
+      mapInstanceRef.current.setLevel(3);
+      mapInstanceRef.current.setDraggable(false);
+      mapInstanceRef.current.setZoomable(false);
+    }, 0);
 
     if (!markerRef.current) {
       markerRef.current = new window.kakao.maps.Marker({
@@ -99,34 +113,8 @@ function LandRegister() {
     markerRef.current.setPosition(position);
   }, [hasValidLocation, registerData.latitude, registerData.longitude]);
 
-  const validateAddress = async (value) => {
-    // Kakao 주소 검색 결과로 입력 주소의 유효성을 확인합니다.
-    if (!window.kakao?.maps?.services?.Geocoder) {
-      return false;
-    }
-
-    const geocoder = new window.kakao.maps.services.Geocoder();
-
-    return new Promise((resolve) => {
-      geocoder.addressSearch(value, (result, status) => {
-        if (status !== window.kakao.maps.services.Status.OK || result.length === 0) {
-          resolve(null);
-          return;
-        }
-
-        const matched = result[0];
-        resolve({
-          address: matched.address_name || value,
-          roadAddress: matched.road_address?.address_name || "",
-          x: matched.x || "",
-          y: matched.y || "",
-        });
-      });
-    });
-  };
-
-  const handleSearch = (event) => {
-    // 주소 입력 후 유효성 검사를 진행합니다.
+  const handleSearch = async (event) => {
+    // 서버 VWorld API 응답으로 주소 유효성 검증과 자동 조회 정보를 한 번에 처리합니다.
     event.preventDefault();
     const trimmed = registerData.address.trim();
 
@@ -138,50 +126,69 @@ function LandRegister() {
     setIsAddressChecking(true);
     setAddressMessage("주소를 확인하는 중입니다.");
 
-    validateAddress(trimmed)
-      .then(async (result) => {
-        if (!result) {
-          setSearchResult("");
-          setAddressMessage("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
-          setRegisterData((prev) => ({
-            ...prev,
-            isAddressValid: false,
-            confirmedAddress: "",
-            confirmedRoadAddress: "",
-            confirmedLocation: "",
-            latitude: "",
-            longitude: "",
-          }));
-          return;
-        }
+    try {
+      const vworldInfo = await fetchVworldLandInfo(trimmed);
 
-        const vworldInfo = await fetchVworldLandInfo(trimmed);
-        setSearchResult(`입력된 주소: ${trimmed}`);
-        setAddressMessage("유효한 주소로 확인되었습니다.");
-        setRegisterData((prev) => ({
-          ...prev,
-          address: trimmed,
-          isAddressValid: true,
-          confirmedAddress: vworldInfo?.confirmedAddress || result.address,
-          confirmedRoadAddress: result.roadAddress,
-          confirmedLocation: vworldInfo?.confirmedLocation || (result.x && result.y ? `${result.y}, ${result.x}` : ""),
-          latitude: vworldInfo?.latitude || result.y,
-          longitude: vworldInfo?.longitude || result.x,
-          pnu: vworldInfo?.pnu || "",
-          area: vworldInfo?.area || "",
-          landCategory: vworldInfo?.landCategory || "",
-          altitude: vworldInfo?.altitude || "",
-          roadAccess: vworldInfo?.roadAccess || "",
-          shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
-        }));
-      })
-      .finally(() => {
-        setIsAddressChecking(false);
-      });
+      if (!vworldInfo?.latitude || !vworldInfo?.longitude) {
+        throw new Error("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
+      }
+
+      clearMapPreview();
+      setSearchResult(`입력된 주소: ${trimmed}`);
+      setAddressMessage("유효한 주소로 확인되었습니다.");
+      setRegisterData((prev) => ({
+        ...prev,
+        address: trimmed,
+        isAddressValid: true,
+        confirmedAddress: vworldInfo.confirmedAddress,
+        confirmedRoadAddress: vworldInfo.confirmedRoadAddress,
+        confirmedLocation: vworldInfo.confirmedLocation,
+        latitude: vworldInfo.latitude,
+        longitude: vworldInfo.longitude,
+        zoneNo: vworldInfo.zoneNo,
+        buildingName: vworldInfo.buildingName,
+        pnu: vworldInfo.pnu,
+        area: vworldInfo.area,
+        landCategory: vworldInfo.landCategory,
+        registerType: vworldInfo.registerType,
+        legalDong: vworldInfo.legalDong,
+        lastUpdatedAt: vworldInfo.lastUpdatedAt,
+        altitude: vworldInfo.altitude,
+        roadAccess: vworldInfo.roadAccess,
+        shareCount: vworldInfo.shareCount,
+      }));
+    } catch (err) {
+      clearMapPreview();
+      setSearchResult("");
+      setAddressMessage(err.message || "유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
+      setRegisterData((prev) => ({
+        ...prev,
+        isAddressValid: false,
+        confirmedAddress: "",
+        confirmedRoadAddress: "",
+        confirmedLocation: "",
+        latitude: "",
+        longitude: "",
+        zoneNo: "",
+        buildingName: "",
+        pnu: "",
+        area: "",
+        landCategory: "",
+        registerType: "",
+        legalDong: "",
+        lastUpdatedAt: "",
+        altitude: "",
+        roadAccess: "",
+        shareCount: "",
+      }));
+    } finally {
+      setIsAddressChecking(false);
+    }
   };
 
   const handleAddressChange = (event) => {
     // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
+    clearMapPreview();
     setSearchResult("");
     setAddressMessage("");
     setRegisterData((prev) => ({
@@ -193,9 +200,14 @@ function LandRegister() {
       confirmedLocation: "",
       latitude: "",
       longitude: "",
+      zoneNo: "",
+      buildingName: "",
       pnu: "",
       area: "",
       landCategory: "",
+      registerType: "",
+      legalDong: "",
+      lastUpdatedAt: "",
       altitude: "",
       roadAccess: "",
       shareCount: "",

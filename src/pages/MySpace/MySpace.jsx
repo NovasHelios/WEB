@@ -91,11 +91,17 @@ const getFirstImagePath = (land) => {
   return land.landImagePath || land.imagePath || land.thumbnailPath || land.thumbnailUrl || "";
 };
 
+const formatPriceInput = (value) => {
+  // 금액 입력값은 숫자만 남기고 3자리마다 쉼표를 붙입니다.
+  const digits = String(value ?? "").replace(/[^\d]/g, "");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
 const toManwonInput = (value) => {
   // 서버 원 단위 가격을 수정 폼의 만원 단위 입력값으로 변환합니다.
   const wonPrice = Number(String(value ?? "").replace(/[^\d]/g, ""));
   if (!wonPrice || Number.isNaN(wonPrice)) return "";
-  return String(Math.floor(wonPrice / 10000));
+  return formatPriceInput(Math.floor(wonPrice / 10000));
 };
 
 const toWonPrice = (value) => {
@@ -286,7 +292,11 @@ function MySpace() {
 
   const handleEditChange = (field) => (event) => {
     // 수정 입력값을 상태에 반영합니다.
-    setEditForm((prev) => ({ ...prev, [field]: event.target.value }));
+    const value = field === "desiredPrice"
+      ? formatPriceInput(event.target.value)
+      : event.target.value;
+
+    setEditForm((prev) => ({ ...prev, [field]: value }));
     setEditError("");
   };
 
@@ -610,7 +620,7 @@ function MySpace() {
               <SpaceModalInput
                 value={editForm.desiredPrice}
                 onChange={handleEditChange("desiredPrice")}
-                placeholder="예) 15000"
+                placeholder="예) 15,000"
               />
             </SpaceModalField>
 

@@ -39,7 +39,7 @@ const conditionTabs = {
     valueLabel: "희망 가격",
     prefix: "",
     suffix: "만원",
-    placeholder: "150000",
+    placeholder: "150,000",
   },
   rent: {
     key: "rent",
@@ -67,6 +67,12 @@ const toServerTransactionType = (value) => {
   return "SALE";
 };
 
+const formatPriceInput = (value) => {
+  // 금액 입력값은 숫자만 남기고 3자리마다 쉼표를 붙입니다.
+  const digits = String(value ?? "").replace(/[^\d]/g, "");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
 const toWonPrice = (value) => {
   // 화면에서는 만원 단위로 입력받고 서버에는 원 단위로 전송합니다.
   const manwonPrice = Number(String(value).replace(/[^\d]/g, ""));
@@ -79,8 +85,8 @@ function LandRegisterCondition() {
   const { registerData, setRegisterData } = useLandRegister();
   const [selected, setSelected] = useState(registerData.transactionType || "sale");
   const [values, setValues] = useState({
-    sale: registerData.transactionType === "sale" ? registerData.price || "" : "",
-    rent: registerData.transactionType === "rent" ? registerData.price || "" : "",
+    sale: registerData.transactionType === "sale" ? formatPriceInput(registerData.price) : "",
+    rent: registerData.transactionType === "rent" ? formatPriceInput(registerData.price) : "",
     hope: "",
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +95,7 @@ function LandRegisterCondition() {
   const current = useMemo(() => conditionTabs[selected], [selected]);
 
   const handleValueChange = (event) => {
-    const nextValue = event.target.value;
+    const nextValue = formatPriceInput(event.target.value);
 
     setValues((prev) => ({
       ...prev,

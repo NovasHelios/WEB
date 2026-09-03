@@ -322,6 +322,12 @@ const HiddenInput = styled.input`
 const MAX_IMAGES = 5;
 const MIN_IMAGES = 3;
 
+const formatPriceInput = (value) => {
+  // 금액 입력값은 숫자만 남기고 3자리마다 쉼표를 붙입니다.
+  const digits = String(value ?? "").replace(/[^\d]/g, "");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
 const toWonPrice = (value) => {
   // 추가 모달에서는 만원 단위로 입력받고 서버에는 원 단위로 전송합니다.
   const manwonPrice = Number(String(value).replace(/[^\d]/g, ""));
@@ -360,7 +366,11 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
   if (!open) return null;
 
   const handleChange = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    const value = field === "desiredPrice"
+      ? formatPriceInput(event.target.value)
+      : event.target.value;
+
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleTransactionType = (type) => {
@@ -509,7 +519,7 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
             <TextInput
               value={form.desiredPrice}
               onChange={handleChange("desiredPrice")}
-              placeholder="예) 15000"
+              placeholder="예) 15,000"
               disabled={isLoading}
             />
           </Field>

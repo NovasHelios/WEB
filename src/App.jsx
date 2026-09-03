@@ -5,7 +5,7 @@ import Signin_2 from "./pages/SignIn/Signin_2.jsx";
 import Map from "./pages/Main/Map";
 import MySpace from "./pages/MySpace";
 import Profile from "./pages/Profile";
-import Chat from "./pages/Chat";
+import Chat from "./pages/Chat/ChatComingSoon";
 import BusinessConnections from "./pages/BusinessConnections";
 import Settings from "./pages/Settings";
 import { LandRegisterProvider } from "./contexts/LandRegisterContext";

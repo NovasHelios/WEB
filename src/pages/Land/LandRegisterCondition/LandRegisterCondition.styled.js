@@ -13,6 +13,11 @@ export const ConditionPage = styled.div`
   box-sizing: border-box;
   overflow-x: hidden;
 
+  > header {
+    /* 공통 Navbar가 등록 페이지 그리드 전체 폭을 차지하게 합니다. */
+    grid-column: 1 / -1;
+  }
+
   @media (max-width: 1180px) {
     grid-template-columns: 1fr;
   }

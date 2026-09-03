@@ -16,6 +16,7 @@ export const Api = {
   LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`,                    // PATCH 소유자 승인
   LandReject: (landId) => `${BASE}/api/lands/${landId}/reject`,                      // PATCH 소유자 거절
   LandFilter: `${BASE}/api/lands/filter`,                                             // POST 필터 조회
+  VworldLand: `${BASE}/api/vworld/land`,                                              // GET 주소 기반 토지 임야 정보 조회
 
   // User
   MyProfile: `${BASE}/api/users/me`,                                                 // GET 내 정보 / PATCH 수정

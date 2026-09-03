@@ -108,12 +108,16 @@ function LandRegisterConfirm() {
                 <ConfirmTableValue>{registerData.confirmedLocation || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>공유인 수</ConfirmTableCell>
-                <ConfirmTableValue>{registerData.shareCount || "0명 (단독소유)"}</ConfirmTableValue>
+                <ConfirmTableCell>우편번호</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.zoneNo || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>PNU</ConfirmTableCell>
                 <ConfirmTableValue>{registerData.pnu || "-"}</ConfirmTableValue>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>법정동</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.legalDong || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>
@@ -125,16 +129,20 @@ function LandRegisterConfirm() {
                 <ConfirmTableValue>{registerData.area || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>고도</ConfirmTableCell>
-                <ConfirmTableValue>{registerData.altitude || "-"}</ConfirmTableValue>
+                <ConfirmTableCell>대장구분</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.registerType || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>지목</ConfirmTableCell>
                 <ConfirmTableValue>{registerData.landCategory || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>도로 접근성</ConfirmTableCell>
-                <ConfirmTableValue>{registerData.roadAccess || "-"}</ConfirmTableValue>
+                <ConfirmTableCell>공유인 수</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.shareCount || "0명 (단독소유)"}</ConfirmTableValue>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>최종 갱신일</ConfirmTableCell>
+                <ConfirmTableValue>{registerData.lastUpdatedAt || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>

@@ -1,88 +1,76 @@
-const VWORLD_API_KEY = import.meta.env.VITE_VWORLD_API_KEY;
+import { Api } from "@/contents/apiEndpoints";
+import { authFetch } from "@/lib/auth";
 
-const getCoordByType = async (address, type) => {
-  // VWorld 주소 API로 주소를 좌표와 PNU 후보로 변환합니다.
-  if (!VWORLD_API_KEY || !address) return null;
-
-  const params = new URLSearchParams({
-    service: "address",
-    version: "2.0",
-    request: "GetCoord",
-    format: "json",
-    crs: "epsg:4326",
-    refine: "true",
-    simple: "false",
-    address,
-    type,
-    key: VWORLD_API_KEY,
-  });
-
-  const response = await fetch(`/vworld/req/address?${params.toString()}`);
-  const data = await response.json();
-
-  if (!response.ok || data?.response?.status !== "OK") return null;
-
-  const point = data.response.result?.point;
-  const structure = data.response.refined?.structure || {};
-
-  return {
-    longitude: point?.x || "",
-    latitude: point?.y || "",
-    pnu: structure.level4LC || "",
-    refinedAddress: data.response.refined?.text || address,
-  };
+const getResponseData = (payload) => {
+  // 서버 공통 응답 래퍼에서 실제 자동 조회 데이터만 꺼냅니다.
+  return payload?.data ?? {};
 };
 
-const fetchParcelFeature = async (pnu) => {
-  // PNU로 VWorld 연속지적도 속성 정보를 조회합니다.
-  if (!VWORLD_API_KEY || !pnu) return null;
+const getLandInfo = (data) => {
+  // 스웨거 기준 landInfo.ladfrlVOList.ladfrlVOList 배열의 첫 번째 항목을 사용합니다.
+  const list = data?.landInfo?.ladfrlVOList?.ladfrlVOList;
+  return Array.isArray(list) ? list[0] || {} : {};
+};
 
-  const params = new URLSearchParams({
-    service: "data",
-    version: "2.0",
-    request: "GetFeature",
-    format: "json",
-    size: "1",
-    page: "1",
-    geometry: "false",
-    attribute: "true",
-    crs: "EPSG:4326",
-    data: "LP_PA_CBND_BUBUN",
-    attrfilter: `pnu:=:${pnu}`,
-    key: VWORLD_API_KEY,
-  });
+const formatArea = (value) => {
+  // 서버 면적 값은 ㎡ 기준으로 표시하고 평 단위를 함께 계산합니다.
+  const area = Number(String(value ?? "").replace(/[^\d.]/g, ""));
+  if (!area || Number.isNaN(area)) return "";
 
-  const response = await fetch(`/vworld/req/data?${params.toString()}`);
-  const data = await response.json();
-  const feature = data?.response?.result?.featureCollection?.features?.[0];
+  const pyeong = Math.round(area / 3.3058).toLocaleString("ko-KR");
+  return `${area.toLocaleString("ko-KR")}㎡ (${pyeong}평)`;
+};
 
-  if (!response.ok || !feature) return null;
+const formatShareCount = (count, ownerType) => {
+  // 공유인 수와 소유구분을 같이 보여줍니다.
+  const normalizedCount = String(count ?? "").trim();
+  const normalizedOwnerType = String(ownerType ?? "").trim();
 
-  return feature.properties || {};
+  if (normalizedCount) {
+    return normalizedOwnerType ? `${normalizedCount}명 (${normalizedOwnerType})` : `${normalizedCount}명`;
+  }
+
+  return normalizedOwnerType ? `0명 (${normalizedOwnerType})` : "0명 (단독소유)";
 };
 
 export const fetchVworldLandInfo = async (address) => {
-  // 도로명/지번 순서로 조회해서 가능한 자동 조회 정보를 구성합니다.
-  const coordInfo =
-    (await getCoordByType(address, "PARCEL")) ||
-    (await getCoordByType(address, "ROAD"));
+  // 스웨거의 /api/vworld/land 엔드포인트로 주소 기반 자동 조회 정보를 가져옵니다.
+  const trimmedAddress = String(address || "").trim();
+  if (!trimmedAddress) return null;
 
-  if (!coordInfo) return null;
+  const params = new URLSearchParams({ address: trimmedAddress });
+  const response = await authFetch(`${Api.VworldLand}?${params.toString()}`, {
+    method: "GET",
+  });
 
-  const parcel = await fetchParcelFeature(coordInfo.pnu);
+  const contentType = response.headers.get("content-type") || "";
+  const payload = contentType.includes("application/json") ? await response.json() : {};
+
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.data?.message || "자동 조회 정보를 불러오지 못했습니다.");
+  }
+
+  const data = getResponseData(payload);
+  const landInfo = getLandInfo(data);
+  const latitude = data.y ?? "";
+  const longitude = data.x ?? "";
 
   return {
-    pnu: coordInfo.pnu,
-    latitude: coordInfo.latitude,
-    longitude: coordInfo.longitude,
-    confirmedLocation: coordInfo.latitude && coordInfo.longitude
-      ? `${coordInfo.latitude}, ${coordInfo.longitude}`
-      : "",
-    confirmedAddress: coordInfo.refinedAddress,
-    area: parcel?.lndpclAr ? `${Number(parcel.lndpclAr).toLocaleString("ko-KR")}㎡` : "",
-    landCategory: parcel?.lndcgrCodeNm || parcel?.jibun || "",
+    pnu: data.pnu || landInfo.pnu || "",
+    latitude,
+    longitude,
+    confirmedLocation: latitude && longitude ? `${latitude}, ${longitude}` : "",
+    confirmedAddress: data.addressName || trimmedAddress,
+    confirmedRoadAddress: "",
+    zoneNo: data.zoneNo || "",
+    buildingName: data.buildingName || "",
+    area: formatArea(landInfo.lndpclAr),
+    landCategory: landInfo.lndcgrCodeNm || "",
     altitude: "",
     roadAccess: "",
-    shareCount: "0명 (단독소유)",
+    shareCount: formatShareCount(landInfo.cnrsPsnCo, landInfo.posesnSeCodeNm),
+    registerType: landInfo.regstrSeCodeNm || "",
+    legalDong: landInfo.ldCodeNm || "",
+    lastUpdatedAt: landInfo.lastUpdtDt || "",
   };
 };

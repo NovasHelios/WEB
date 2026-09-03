@@ -19,7 +19,9 @@ export const ConfirmPage = styled.div`
 `;
 
 export const ConfirmNavBarWrap = styled.div`
+  /* 공통 Navbar가 등록 페이지 그리드 전체 폭을 차지하게 합니다. */
   grid-column: 1 / -1;
+  min-width: 0;
 `;
 
 export const ConfirmHeaderShell = styled.header`
