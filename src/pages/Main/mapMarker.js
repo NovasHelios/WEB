@@ -28,7 +28,7 @@ export const updateLandLayerByZoom = ({
 };
 
 export const formatPrice = (price) => {
-  // 지도 마커 가격도 서버 기준인 만원 단위로 표시합니다.
+  // 지도 마커 가격도 서버 기준인 원 단위로 표시합니다.
   return formatCompactKoreanMoneyFromManwon(price, "가격 없음");
 };
 

@@ -77,7 +77,7 @@ const fallbackImages = ["#d8c09b", "#e8decf", "#d8dee5"];
 
 // 숫자 값을 가격 표기로 변환합니다.
 const formatPrice = (value) => {
-  // 상세 패널 가격은 서버 기준인 만원 단위로 표시합니다.
+  // 상세 패널 가격은 서버 기준인 원 단위로 표시합니다.
   return formatKoreanMoneyFromManwon(value, "가격 없음");
 };
 

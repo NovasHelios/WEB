@@ -8,7 +8,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
-import { useRequireLogin } from "../shared";
+import { RegisterStaticMap, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   CompleteCardBody,
@@ -16,10 +16,7 @@ import {
   CompleteCardDivider,
   CompleteCardImage,
   CompleteCardImageBadge,
-  CompleteCardImageCaption,
   CompleteCardImageFrame,
-  CompleteCardImageInner,
-  CompleteCardImageLabel,
   CompleteCardInfo,
   CompleteCardInfoItem,
   CompleteCardInfoLabel,
@@ -126,11 +123,13 @@ function LandRegisterComplete() {
             <CompleteSummaryWrap>
               <CompleteCardImage>
                 <CompleteCardImageFrame>
+                  {/* 등록 완료 카드에서도 검색된 좌표 기준의 지도를 보여준다. */}
+                  <RegisterStaticMap
+                    latitude={registerData.latitude}
+                    longitude={registerData.longitude}
+                    emptyText="등록 이후 위치 지도가 표시됩니다."
+                  />
                   <CompleteCardImageBadge>{current.badge}</CompleteCardImageBadge>
-                  <CompleteCardImageInner>
-                    <CompleteCardImageLabel>토지 등록 화면 미리보기</CompleteCardImageLabel>
-                    <CompleteCardImageCaption>등록 이후 확인 가능한 요약 이미지가 표시됩니다.</CompleteCardImageCaption>
-                  </CompleteCardImageInner>
                 </CompleteCardImageFrame>
 
                 <CompleteCardButton type="button">

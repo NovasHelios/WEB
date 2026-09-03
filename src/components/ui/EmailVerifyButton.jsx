@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import VerificationCodeModal from "./VerificationCodeModal";
 
-const EmailVerifyButton = ({ email }) => {
+const EmailVerifyButton = ({ email, onError }) => {
   const [showModal, setShowModal] = useState(false);
   const [verified, setVerified] = useState(false);
 
@@ -12,7 +12,10 @@ const EmailVerifyButton = ({ email }) => {
         type="button"
         onClick={() => {
           if (verified) return;
-          if (!email) return;
+          if (!email) {
+            onError?.("이메일을 먼저 입력해주세요.");
+            return;
+          }
           setShowModal(true);
         }}
         style={{ backgroundColor: verified ? "#808080" : "#d6a81b", width: "112px", height: "44px" }}
@@ -25,6 +28,7 @@ const EmailVerifyButton = ({ email }) => {
           email={email}
           onClose={() => setShowModal(false)}
           onVerify={() => { setShowModal(false); setVerified(true); }}
+          onError={onError}
         />,
         document.body
       )}

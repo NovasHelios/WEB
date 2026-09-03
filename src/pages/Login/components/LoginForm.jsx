@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginSigninBox from "../../../components/layout/box/LoginSigninBox";
 import LoginEmailInput from "./LoginInputEmail";
@@ -19,6 +19,21 @@ const LoginForm = () => {
   // UI 상태
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    // 로그인 화면에서 브라우저 뒤로가기를 누르면 홈으로 이동시킵니다.
+    window.history.pushState(null, "", window.location.href);
+
+    const handleBackToHome = () => {
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("popstate", handleBackToHome);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackToHome);
+    };
+  }, [navigate]);
 
   const handleLogin = async () => {
     // 빈 값 입력 방지
@@ -74,11 +89,14 @@ const LoginForm = () => {
   return (
     <LoginSigninBox>
       <div className="flex flex-col items-center text-center">
-        <img
-          src={logoImage}
-          alt="Helios"
-          className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
-        />
+        {/* 로고 클릭 시 뒤로가기 대신 홈으로 명확하게 이동합니다. */}
+        <button type="button" onClick={() => navigate("/")} className="cursor-pointer">
+          <img
+            src={logoImage}
+            alt="Helios"
+            className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
+          />
+        </button>
         <h1 className="mt-6 text-[56px] font-medium leading-none tracking-[-0.07em] text-[#1f1f1f] max-[640px]:text-[40px]">
           만나서 반갑습니다
         </h1>

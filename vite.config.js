@@ -27,6 +27,13 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/sgis/, ""),
       },
+      // VWorld API는 개발 서버 프록시를 통해 호출해 CORS 문제를 피합니다.
+      "/vworld": {
+        target: "https://api.vworld.kr",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/vworld/, ""),
+      },
     },
   },
 });

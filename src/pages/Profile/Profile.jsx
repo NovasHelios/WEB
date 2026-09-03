@@ -30,12 +30,37 @@ const normalizeBaseUrl = (value) => {
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
-const resolveImageUrl = (path) => {
+const resolveImageUrl = (path, cacheKey = "") => {
   // 프로필 이미지가 없으면 기본 이니셜 UI를 사용합니다.
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
-  return `${API_BASE_URL}/${path}`;
+
+  const normalizedPath = String(path).replace(/^\/+/, "");
+
+  const resolvedPath = path.startsWith("http://") || path.startsWith("https://")
+    ? path
+    : normalizedPath.startsWith("uploads/profiles/")
+      ? `${API_BASE_URL}/${normalizedPath}`
+      : `${API_BASE_URL}/uploads/profiles/${normalizedPath}`;
+
+  // 같은 이미지 URL이 재사용될 때 브라우저 캐시를 우회합니다.
+  if (!cacheKey) return resolvedPath;
+
+  const separator = resolvedPath.includes("?") ? "&" : "?";
+  return `${resolvedPath}${separator}v=${cacheKey}`;
+};
+
+const getProfileImagePath = (user) => {
+  // 서버 프로필 이미지 필드명이 달라도 실제 이미지 경로를 찾습니다.
+  return (
+    user?.profileImagePath ||
+    user?.profileImageUrl ||
+    user?.imagePath ||
+    user?.imageUrl ||
+    user?.profileImage ||
+    user?.url ||
+    user?.path ||
+    ""
+  );
 };
 
 function Profile() {
@@ -82,14 +107,15 @@ function Profile() {
         }
 
         const user = data?.data || {};
+        const profileImagePath = getProfileImagePath(user);
         setProfile({
           email: user.email || "",
           name: user.name || "",
           phone: user.phone || "",
           role: user.role || "",
-          profileImagePath: user.profileImagePath || "",
+          profileImagePath,
         });
-        setPreviewImage(resolveImageUrl(user.profileImagePath || ""));
+        setPreviewImage(resolveImageUrl(profileImagePath));
       } catch (err) {
         setError(err.message || "프로필 정보를 불러오지 못했습니다.");
       } finally {
@@ -168,7 +194,18 @@ function Profile() {
         throw new Error(data?.message || data?.data?.message || "프로필 이미지 수정에 실패했습니다.");
       }
 
-      setPreviewImage(URL.createObjectURL(file));
+      const user = data?.data || data || {};
+      const profileImagePath = getProfileImagePath(user);
+
+      if (profileImagePath) {
+        // 서버에 저장된 새 이미지 경로를 기준으로 화면을 갱신합니다.
+        setProfile((prev) => ({ ...prev, profileImagePath }));
+        setPreviewImage(resolveImageUrl(profileImagePath, Date.now()));
+      } else {
+        // 서버가 이미지 경로를 내려주지 않으면 로컬 미리보기로 즉시 갱신합니다.
+        setPreviewImage(URL.createObjectURL(file));
+      }
+
       setMessage("프로필 이미지가 저장되었습니다.");
     } catch (err) {
       setError(err.message || "프로필 이미지 수정에 실패했습니다.");

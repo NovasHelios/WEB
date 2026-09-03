@@ -67,6 +67,12 @@ const toServerTransactionType = (value) => {
   return "SALE";
 };
 
+const toWonPrice = (value) => {
+  // 화면에서는 만원 단위로 입력받고 서버에는 원 단위로 전송합니다.
+  const manwonPrice = Number(String(value).replace(/[^\d]/g, ""));
+  return Number.isNaN(manwonPrice) ? 0 : manwonPrice * 10000;
+};
+
 function LandRegisterCondition() {
   const navigate = useNavigate();
   useRequireLogin();
@@ -115,7 +121,7 @@ function LandRegisterCondition() {
   const handleSubmit = async () => {
     // 마지막 조건 단계에서 모든 등록 정보를 한 번에 multipart로 전송합니다.
     const images = registerData.photos || [];
-    const desiredPrice = Number((selected === "hope" ? "" : values[selected]).replace(/[^\d]/g, ""));
+    const desiredPrice = toWonPrice(selected === "hope" ? "" : values[selected]);
 
     if (!registerData.address?.trim()) {
       setError("주소를 먼저 입력해주세요.");

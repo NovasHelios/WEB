@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import { useEffect, useState } from "react";
 // 상세보기 팝업에서 사용할 아이콘입니다.
 import {
   Bot,
@@ -71,6 +71,22 @@ const solarAnalysisItems = [
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
+  // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
+  const [isHeroImageFailed, setIsHeroImageFailed] = useState(false);
+  // 현재 대표 이미지로 보여줄 이미지 번호입니다.
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // 다른 토지 상세를 열면 이미지 실패 상태를 초기화합니다.
+  useEffect(() => {
+    setIsHeroImageFailed(false);
+  }, [land?.id, land?.landId]);
+
+  // 다른 토지를 열면 첫 번째 이미지부터 보여줍니다.
+  useEffect(() => {
+    // 새 토지 상세보기로 바뀔 때 대표 이미지를 초기화합니다.
+    setSelectedImageIndex(0);
+  }, [land?.id]);
+
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
   if (!land) return null;
 
@@ -85,15 +101,6 @@ function Specific({ land, onClose }) {
 
   // 서버 문서 경로를 문서 카드 목록으로 변환합니다.
   const documents = buildDocumentList(land);
-
-  // 현재 대표 이미지로 보여줄 이미지 번호입니다.
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-  // 다른 토지를 열면 첫 번째 이미지부터 보여줍니다.
-  useEffect(() => {
-    // 새 토지 상세보기로 바뀔 때 대표 이미지를 초기화합니다.
-    setSelectedImageIndex(0);
-  }, [land.id]);
 
   // 현재 선택된 대표 이미지 URL입니다.
   const selectedImage = images[selectedImageIndex] || images[0];
@@ -131,9 +138,16 @@ function Specific({ land, onClose }) {
             {/* 토지 사진 영역입니다. */}
             <PhotoColumn>
               <HeroImageBox>
-                {images[0] ? (
+                {selectedImage && !isHeroImageFailed ? (
                   // 서버에서 받은 대표 이미지를 표시합니다.
-                  <HeroImage src={selectedImage} alt="토지 대표 이미지" />
+                  <HeroImage
+                    src={selectedImage}
+                    alt="토지 대표 이미지"
+                    onError={() => {
+                      // 접근 불가능한 이미지 URL이면 빈 이미지 영역으로 대체합니다.
+                      setIsHeroImageFailed(true);
+                    }}
+                  />
                 ) : (
                   // 이미지가 없으면 임시 이미지 박스를 표시합니다.
                   <ImagePlaceholder>
@@ -167,11 +181,8 @@ function Specific({ land, onClose }) {
                           src={src}
                           alt={`토지 썸네일 ${index + 1}`}
                           onError={(event) => {
-                            // 상세보기 썸네일 이미지 로드 실패 URL을 확인합니다.
-                            console.log(
-                              "상세보기 썸네일 로드 실패:",
-                              event.currentTarget.src
-                            );
+                            // 썸네일도 실패하면 깨진 이미지 아이콘을 숨깁니다.
+                            event.currentTarget.style.display = "none";
                           }}
                         />
                       ) : (

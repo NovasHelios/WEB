@@ -322,6 +322,12 @@ const HiddenInput = styled.input`
 const MAX_IMAGES = 5;
 const MIN_IMAGES = 3;
 
+const toWonPrice = (value) => {
+  // 추가 모달에서는 만원 단위로 입력받고 서버에는 원 단위로 전송합니다.
+  const manwonPrice = Number(String(value).replace(/[^\d]/g, ""));
+  return Number.isNaN(manwonPrice) ? 0 : manwonPrice * 10000;
+};
+
 function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
   const [form, setForm] = useState({
     address: "",
@@ -415,7 +421,7 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
 
     try {
       const desiredPrice = form.desiredPrice
-        ? Number(form.desiredPrice.replace(/[^\d]/g, ""))
+        ? toWonPrice(form.desiredPrice)
         : undefined;
 
       // query string 파라미터 구성
@@ -503,7 +509,7 @@ function LandAdd({ open = true, onClose = () => {}, onSuccess = () => {} }) {
             <TextInput
               value={form.desiredPrice}
               onChange={handleChange("desiredPrice")}
-              placeholder="예) 150000"
+              placeholder="예) 15000"
               disabled={isLoading}
             />
           </Field>

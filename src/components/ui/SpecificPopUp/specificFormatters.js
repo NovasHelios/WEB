@@ -22,6 +22,14 @@ export const resolveAssetUrl = (path) => {
   // 경로가 없으면 빈 값을 반환합니다.
   if (!path) return "";
 
+  // 서버가 이미지 객체를 내려줄 때 실제 경로 후보를 꺼냅니다.
+  if (typeof path === "object") {
+    return resolveAssetUrl(path.url || path.path || path.filePath || path.imageUrl || path.landImagePath || "");
+  }
+
+  // 문자열이 아닌 값은 이미지 경로로 쓰지 않습니다.
+  if (typeof path !== "string") return "";
+
   // 이미 완전한 URL이면 그대로 사용합니다.
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
@@ -36,7 +44,7 @@ export const resolveAssetUrl = (path) => {
 };
 
 export const formatPrice = (value) => {
-  // 상세보기 가격은 서버 기준인 만원 단위를 정확하게 모두 표시합니다.
+  // 상세보기 가격은 서버 기준인 원 단위를 정확하게 모두 표시합니다.
   return formatExactKoreanMoneyFromManwon(value);
 };
 
@@ -75,12 +83,25 @@ export const formatTransactionType = (value) => {
 export const buildImageList = (land) => {
   // 서버에서 여러 이미지 배열을 줄 가능성을 대비합니다.
   const extraImages =
-    land.landImagePaths || land.imagePaths || land.images || land.imageUrls || [];
+    land.landImagePaths ||
+    land.imagePaths ||
+    land.images ||
+    land.imageUrls ||
+    land.landImages ||
+    land.files ||
+    [];
 
   // 대표 이미지와 추가 이미지를 하나의 배열로 합칩니다.
-  return [land.landImagePath, ...(Array.isArray(extraImages) ? extraImages : [])]
+  return [
+    land.landImagePath,
+    land.imagePath,
+    land.thumbnailPath,
+    land.thumbnailUrl,
+    ...(Array.isArray(extraImages) ? extraImages : []),
+  ]
     .filter(Boolean)
-    .map(resolveAssetUrl);
+    .map(resolveAssetUrl)
+    .filter(Boolean);
 };
 
 // 상세보기에서 사용할 문서 목록을 구성합니다.
