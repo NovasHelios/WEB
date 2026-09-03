@@ -84,9 +84,6 @@ const getTransactionFilterLabel = (filters) => {
   const transactionLabels = {
     SALE: "매매",
     LEASE: "임대",
-    JEONSE: "전세",
-    MONTHLY_RENT: "월세",
-    SHORT_RENT: "단기임대",
   };
 
   // 거래 유형이 배열이면 여러 값을 쉼표로 이어 표시합니다.
