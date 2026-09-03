@@ -6,7 +6,7 @@ export const fetchLandDetail = async (landId) => {
   if (!landId) return null;
 
   try {
-    // 서버의 단일 토지 상세 조회 API를 호출합니다.
+    // Vite proxy를 통해 토지 상세 조회 API를 호출합니다.
     const response = await fetch(`/api/lands/${landId}`, {
       method: "GET",
       headers: {
@@ -33,7 +33,7 @@ export const fetchLandDetail = async (landId) => {
 
 // 필터 조건으로 서버에서 토지 목록을 조회합니다.
 export const fetchFilteredLandList = async (requestBody) => {
-  // 백엔드에서 필터링된 토지 목록을 조회합니다.
+  // Vite proxy를 통해 토지 필터 조회 API를 호출합니다.
   const response = await authFetch("/api/lands/filter", {
     method: "POST",
     headers: {

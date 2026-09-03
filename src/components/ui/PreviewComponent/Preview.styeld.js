@@ -117,11 +117,17 @@ export const SaveIconButton = styled.button`
   }
 `;
 
+// 대표 이미지와 이미지 위 버튼들을 묶는 영역입니다.
+export const ImageBox = styled.div`
+  position: relative;
+`;
+
 // 이미지 개수 표시입니다.
 export const ImageCounter = styled.span`
   position: absolute;
-  top: 277px;
-  right: 28px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3; /* 대표 이미지보다 위에 표시되도록 합니다. */
   padding: 3px 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);
