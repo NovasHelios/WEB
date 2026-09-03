@@ -26,6 +26,7 @@ import {
   ImageCounter,
   ImagePlaceholder,
   InfoCard,
+  InfoColumn,
   InfoGrid,
   InfoList,
   InfoRow,
@@ -44,6 +45,7 @@ import {
   ThumbImage,
   ThumbRow,
   Title,
+  UnsupportedText,
 } from "./Specific.styled";
 import SpecificMiniMap from "./SpecificMiniMap";
 import {
@@ -53,6 +55,18 @@ import {
   formatPrice,
   formatTransactionType,
 } from "./specificFormatters";
+
+// 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
+const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
+
+// 태양광 적합도 분석에서 임시로 표시할 항목 점수입니다.
+const solarAnalysisItems = [
+  { label: "일사량", score: 89 },
+  { label: "경사도", score: 78 },
+  { label: "전력 인입 용이성", score: 85 },
+  { label: "도로 접근성", score: 90 },
+  { label: "인허가 가능성", score: 92 },
+];
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
@@ -227,31 +241,48 @@ function Specific({ land, onClose }) {
 
           {/* 기본 정보와 분석 카드 영역입니다. */}
           <InfoGrid>
-            <InfoCard>
-              <SectionTitle>
-                <Info size={18} strokeWidth={2} />
-                기본 정보
-              </SectionTitle>
+            <InfoColumn>
+              <InfoCard>
+                <SectionTitle>
+                  <Info size={18} strokeWidth={2} />
+                  기본 정보
+                </SectionTitle>
 
-              <InfoList>
-                <InfoRow>
-                  <span>용도지역</span>
-                  <strong>{land.ldCodeNm || "-"}</strong>
-                </InfoRow>
-                <InfoRow>
-                  <span>도로 접면</span>
-                  <strong>{land.regstrSeCodeNm || "-"}</strong>
-                </InfoRow>
-                <InfoRow>
-                  <span>공유 인원</span>
-                  <strong>{land.cnrsPsnCo || "-"}</strong>
-                </InfoRow>
-                <InfoRow>
-                  <span>소유자</span>
-                  <strong>{land.ownerEmail || "-"}</strong>
-                </InfoRow>
-              </InfoList>
-            </InfoCard>
+                <InfoList>
+                  <InfoRow>
+                    <span>용도지역</span>
+                    <strong>{land.ldCodeNm || "-"}</strong>
+                  </InfoRow>
+                  <InfoRow>
+                    <span>도로 접면</span>
+                    <strong>{land.regstrSeCodeNm || "-"}</strong>
+                  </InfoRow>
+                  <InfoRow>
+                    <span>공유 인원</span>
+                    <strong>{land.cnrsPsnCo || "-"}</strong>
+                  </InfoRow>
+                  <InfoRow>
+                    <span>소유자</span>
+                    <strong>{land.ownerEmail || "-"}</strong>
+                  </InfoRow>
+                </InfoList>
+              </InfoCard>
+
+              <InfoCard>
+                <SectionTitle>예상 정보</SectionTitle>
+
+                <InfoList>
+                  <InfoRow>
+                    <span>설치 용량</span>
+                    <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
+                  </InfoRow>
+                  <InfoRow>
+                    <span>발전량</span>
+                    <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
+                  </InfoRow>
+                </InfoList>
+              </InfoCard>
+            </InfoColumn>
 
             <AnalysisCard>
               <SectionTitle>
@@ -261,26 +292,16 @@ function Specific({ land, onClose }) {
               </SectionTitle>
 
               <AnalysisGrid>
-                <AnalysisItem>
-                  <span>일사량</span>
-                  <strong>89점</strong>
+                <AnalysisItem $score={86}>
+                  <span>종합 적합도</span>
+                  <strong>86점 / 100점</strong>
                 </AnalysisItem>
-                <AnalysisItem>
-                  <span>경사도</span>
-                  <strong>78점</strong>
-                </AnalysisItem>
-                <AnalysisItem>
-                  <span>전력 인입 용이성</span>
-                  <strong>85점</strong>
-                </AnalysisItem>
-                <AnalysisItem>
-                  <span>도로 접근성</span>
-                  <strong>90점</strong>
-                </AnalysisItem>
-                <AnalysisItem>
-                  <span>인허가 가능성</span>
-                  <strong>92점</strong>
-                </AnalysisItem>
+                {solarAnalysisItems.map((item) => (
+                  <AnalysisItem key={item.label} $score={item.score}>
+                    <span>{item.label}</span>
+                    <strong>{item.score}점</strong>
+                  </AnalysisItem>
+                ))}
               </AnalysisGrid>
             </AnalysisCard>
           </InfoGrid>
@@ -294,7 +315,7 @@ function Specific({ land, onClose }) {
           {/* AI 의견은 추후 기능 개발 전까지 준비 중 문구를 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
-            <p>AI 의견은 현재 개발 중입니다.</p>
+            <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
           </AiOpinion>
         </MainContent>
       </Panel>
