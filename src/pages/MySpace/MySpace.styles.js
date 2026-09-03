@@ -296,3 +296,114 @@ export const SpaceActionButton = styled.button`
   cursor: pointer;
 `;
 
+export const SpaceModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.38);
+  box-sizing: border-box;
+`;
+
+export const SpaceModal = styled.form`
+  width: min(100%, 520px);
+  border: 1px solid #d9aa1f;
+  border-radius: 8px;
+  background: #fffdf8;
+  padding: 28px;
+  box-sizing: border-box;
+  box-shadow: 0 18px 44px rgba(56, 43, 20, 0.18);
+`;
+
+export const SpaceModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: #1f1c17;
+  }
+`;
+
+export const SpaceModalClose = styled.button`
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d8c5a2;
+  border-radius: 4px;
+  background: #fffaf1;
+  color: #5d5445;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+`;
+
+export const SpaceModalField = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #5d5445;
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+export const SpaceModalInput = styled.input`
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-bottom: 2px solid #2f2a23;
+  background: transparent;
+  color: #1f1c17;
+  font-size: 16px;
+  outline: none;
+`;
+
+export const SpaceModalSelect = styled.select`
+  width: 100%;
+  height: 42px;
+  border: 1px solid #d8c5a2;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1c17;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 0 12px;
+  outline: none;
+`;
+
+export const SpaceModalTextarea = styled.textarea`
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid #d8c5a2;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1c17;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 12px;
+  outline: none;
+  box-sizing: border-box;
+`;
+
+export const SpaceModalError = styled.p`
+  margin: 4px 0 14px;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+export const SpaceModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+`;

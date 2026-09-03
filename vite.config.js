@@ -20,6 +20,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      // SGIS API는 브라우저 직접 호출 대신 개발 서버 프록시를 통해 호출합니다.
+      "/sgis": {
+        target: "https://sgisapi.kostat.go.kr",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/sgis/, ""),
+      },
     },
   },
 });

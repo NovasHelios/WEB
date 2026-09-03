@@ -312,7 +312,14 @@ export const LandRegisterPrimaryButton = styled.button`
   justify-content: center;
   gap: 6px;
   padding: 0 18px;
-  cursor: default;
+  cursor: pointer;
+
+  &:disabled {
+    background: #d8d0bb;
+    color: #fff9ef;
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
 
   ${({ $ghost }) =>
     $ghost &&
@@ -376,7 +383,14 @@ export const LandRegisterBottomButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  cursor: default;
+  cursor: pointer;
+
+  &:disabled {
+    background: #d8d0bb;
+    color: #fff9ef;
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
 `;
 
 export const LandRegisterButtonIcon = styled.span`

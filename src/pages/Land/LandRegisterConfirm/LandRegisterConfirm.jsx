@@ -7,7 +7,9 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   ConfirmAddressBox,
   ConfirmAddressChangeButton,
@@ -45,10 +47,18 @@ import {
 
 function LandRegisterConfirm() {
   const navigate = useNavigate();
+  useRequireLogin();
+  const { registerData } = useLandRegister();
 
   return (
     <ConfirmPage>
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       <ConfirmTopShell>
         <ConfirmSection>
@@ -63,8 +73,10 @@ function LandRegisterConfirm() {
             <ConfirmTopRowCardTitle>입력 주소</ConfirmTopRowCardTitle>
             <ConfirmAddressBox>
               <ConfirmAddressLabel>입력 주소</ConfirmAddressLabel>
-              <ConfirmAddressText>경기도 안성시 일죽면 산북리 123</ConfirmAddressText>
-              <ConfirmTopRowCaption>지번 : 산북리 123</ConfirmTopRowCaption>
+              <ConfirmAddressText>{registerData.address || "입력된 주소가 없습니다."}</ConfirmAddressText>
+              <ConfirmTopRowCaption>
+                {registerData.confirmedRoadAddress || registerData.confirmedAddress || "주소를 다시 입력해 주세요."}
+              </ConfirmTopRowCaption>
               <ConfirmAddressChangeButton type="button" onClick={() => navigate("/land/register")}>
                 주소 변경
               </ConfirmAddressChangeButton>
@@ -108,20 +120,41 @@ function LandRegisterConfirm() {
             <ConfirmTable>
               <ConfirmTableRow>
                 <ConfirmTableCell>좌표</ConfirmTableCell>
-                <ConfirmTableCell />
+                <ConfirmTableCell>{registerData.confirmedLocation || "-"}</ConfirmTableCell>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>공유인 수</ConfirmTableCell>
-                <ConfirmTableCell />
+                <ConfirmTableCell>{registerData.shareCount || "-"}</ConfirmTableCell>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>PNU</ConfirmTableCell>
-                <ConfirmTableCell />
+                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>
+          </ConfirmCardGrid>
 
-          <ConfirmCard aria-hidden="true" />
+          <ConfirmCardGrid>
+          <ConfirmCard>
+            <ConfirmTable>
+              <ConfirmTableRow>
+                <ConfirmTableCell>좌표</ConfirmTableCell>
+                <ConfirmTableCell>{registerData.confirmedLocation || "-"}</ConfirmTableCell>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>공유인 수</ConfirmTableCell>
+                <ConfirmTableCell>{registerData.shareCount || "-"}</ConfirmTableCell>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>PNU</ConfirmTableCell>
+                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>PNU</ConfirmTableCell>
+                <ConfirmTableCell>{registerData.pnu || "-"}</ConfirmTableCell>
+              </ConfirmTableRow>
+            </ConfirmTable>
+          </ConfirmCard>
         </ConfirmCardGrid>
 
         <ConfirmTopNote>

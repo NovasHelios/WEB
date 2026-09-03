@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
+import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
-import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 // 지도 필터 UI 컴포넌트를 가져옵니다.
 import Filter from "@/components/ui/Filter/Filter";
 import {
@@ -14,6 +14,11 @@ import {
 } from "./Map.styled";
 import markupImage from "@/images/markup.png";
 import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
+import {
+  fetchFilteredLandList,
+  fetchLandDetail,
+} from "./landApi";
+import { createLandFilterBody } from "./landFilterMapper";
 
 function Map() {
   // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
@@ -34,7 +39,11 @@ function Map() {
     transactionType: "ALL",
 
     // 지역 선택 필터입니다.
-    region: "",
+    region: {
+      sido: null,
+      sigungu: null,
+      emd: null,
+    },
 
     // 매매가 범위 필터입니다.
     salePrice: {
@@ -103,6 +112,12 @@ function Map() {
       // Kakao 지도 인스턴스를 생성합니다.
       const map = new window.kakao.maps.Map(container, options);
 
+      // 지도 이동 또는 확대/축소가 끝났을 때 현재 화면 영역 기준으로 마커를 다시 조회합니다.
+      window.kakao.maps.event.addListener(map, "idle", () => {
+        // 현재 필터 조건과 지도 영역을 기준으로 /api/lands/filter API를 다시 호출합니다.
+        fetchRegisteredLands();
+      });
+
       // 생성한 Kakao 지도 객체를 ref에 저장합니다.
       mapInstanceRef.current = map;
 
@@ -112,6 +127,7 @@ function Map() {
       }, 100);
 
       // 등록된 토지 목록을 불러옵니다.
+      // eslint-disable-next-line react-hooks/immutability
       fetchRegisteredLands();
 
       // Kakao 지도 줌 변경 이벤트를 등록합니다.
@@ -148,6 +164,8 @@ function Map() {
     return () => {
       clearInterval(waitForKakao);
     };
+  // Kakao 지도 초기화는 최초 마운트 때만 실행합니다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 입력된 시도 축약명 또는 정식명을 VWorld/내부 로직에서 사용할 정식 시도명으로 변환
@@ -249,46 +267,22 @@ function Map() {
     });
   };
 
-  // 서버에서 단일 토지 상세 정보를 가져오는 함수입니다.
-  const fetchLandDetail = async (landId) => {
-    try {
-      // landId가 없으면 상세 조회를 하지 않습니다.
-      if (!landId) return null;
-
-      // 서버의 단일 토지 상세 조회 API를 호출합니다.
-      const response = await fetch(`/api/lands/${landId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      // 서버 응답이 실패하면 에러를 발생시킵니다.
-      if (!response.ok) {
-        throw new Error("토지 상세 정보 조회에 실패했습니다.");
-      }
-
-      // 서버 응답 JSON을 파싱합니다.
-      const result = await response.json();
-
-      // 서버 응답의 data만 상세 정보로 사용합니다.
-      return result.data || null;
-    } catch (error) {
-      // 상세 조회 실패 시 기존 마커 정보를 사용할 수 있도록 null을 반환합니다.
-      console.error("토지 상세 정보 조회 실패:", error);
-      return null;
-    }
-  };
-
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
   const fetchRegisteredLands = async () => {
     try {
-      const response = await fetch("/api/lands");
-      const result = await response.json();
+      // 새 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
+      const requestBody = createLandFilterBody(
+        appliedFilters,
+        mapInstanceRef.current
+      );
 
-      // 서버 응답 구조에서 실제 토지 배열만 꺼냅니다.
-      const lands = result.data || [];
+      // /api/lands/filter API로 현재 화면에 보여줄 토지 목록을 조회합니다.
+      const { result } = await fetchFilteredLandList(requestBody);
 
+      // 서버 응답 data가 배열이면 마커 목록으로 사용하고, 아니면 빈 배열을 사용합니다.
+      const lands = Array.isArray(result.data) ? result.data : [];
+
+      // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
       await renderLandMarkers({
         // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
         mapRef: mapInstanceRef,
@@ -342,71 +336,26 @@ function Map() {
     }
   };
 
-  // 필터 조건을 백엔드에 전달할 query string으로 변환합니다.
-  const createLandFilterQuery = (filters) => {
-    // URL query parameter를 만들기 위한 객체입니다.
-    const params = new URLSearchParams();
-
-    // 거래 유형 조건을 추가합니다.
-    if (filters.transactionType && filters.transactionType !== "ALL") {
-      params.append("transactionType", filters.transactionType);
-    }
-
-    // 지역 조건을 추가합니다.
-    if (filters.region) {
-      params.append("region", filters.region);
-    }
-
-    // 매매가 최소 조건을 추가합니다.
-    if (filters.salePrice.min !== null) {
-      params.append("salePriceMin", filters.salePrice.min);
-    }
-
-    // 매매가 최대 조건을 추가합니다.
-    if (filters.salePrice.max !== null) {
-      params.append("salePriceMax", filters.salePrice.max);
-    }
-
-    // 임대가 최소 조건을 추가합니다.
-    if (filters.rentPrice.min !== null) {
-      params.append("rentPriceMin", filters.rentPrice.min);
-    }
-
-    // 임대가 최대 조건을 추가합니다.
-    if (filters.rentPrice.max !== null) {
-      params.append("rentPriceMax", filters.rentPrice.max);
-    }
-
-    // 토지 면적 최소 조건을 추가합니다.
-    if (filters.area.min !== null) {
-      params.append("areaMin", filters.area.min);
-    }
-
-    // 토지 면적 최대 조건을 추가합니다.
-    if (filters.area.max !== null) {
-      params.append("areaMax", filters.area.max);
-    }
-
-    // 완성된 query string을 반환합니다.
-    return params.toString();
-  };
-
   // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
   const handleApplyFilters = async (nextFilters) => {
     // 새 필터 조건을 state에 저장합니다.
     setAppliedFilters(nextFilters);
 
-    // 필터 조건을 query string으로 변환합니다.
-    const queryString = createLandFilterQuery(nextFilters);
-
-    // 필터 조건이 있으면 query string을 붙이고, 없으면 전체 목록을 요청합니다.
-    const requestUrl = queryString ? `/api/lands?${queryString}` : "/api/lands";
+    // 필터 조건을 POST body로 변환합니다.
+    const requestBody = createLandFilterBody(nextFilters);
+    // 필터 API로 보내는 요청 body를 확인합니다.
+    console.log("필터 요청 body:", requestBody);
 
     // 백엔드에서 필터링된 토지 목록을 조회합니다.
-    const response = await fetch(requestUrl);
+    const { status, result } = await fetchFilteredLandList(requestBody);
 
-    // 서버 응답을 JSON으로 변환합니다.
-    const result = await response.json();
+    // 필터 API 응답 상태와 응답 데이터를 확인합니다.
+    console.log("필터 응답 status:", status);
+    console.log("필터 응답 data:", result);
+    console.log(
+      "필터 결과 개수:",
+      Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
+    );
 
     // 서버에서 받은 토지 목록만 사용합니다.
     const lands = result.data || [];
@@ -588,6 +537,9 @@ function Map() {
           />
         )}
       </DetailPanelArea>
+
+      {/* 지도 오른쪽 아래에 표시되는 AI 채팅 위젯입니다. */}
+      <AiChat />
     </MapPage>
   );
 }

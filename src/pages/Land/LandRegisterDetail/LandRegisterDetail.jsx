@@ -5,7 +5,9 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
-import { RegisterPageHeader, RegisterWorkflowSidebar } from "../shared";
+import NavBar from "@/components/layout/box/NavBar";
+import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
+import { useLandRegister } from "@/contexts/LandRegisterContext";
 import {
   DetailPage,
   DetailSection,
@@ -29,6 +31,8 @@ const MAX_LENGTH = 1000;
 
 function LandRegisterDetail() {
   const navigate = useNavigate();
+  useRequireLogin();
+  const { setRegisterData } = useLandRegister();
   const [memo, setMemo] = useState("");
 
   const memoCount = memo.length;
@@ -40,7 +44,13 @@ function LandRegisterDetail() {
   return (
     <DetailPage>
       {/* 공통 헤더 */}
-      <RegisterPageHeader />
+      <NavBar
+        keyword=""
+        onChangeKeyword={() => {}}
+        onSearch={() => {}}
+        isSuggestionOpen={false}
+        regionSuggestions={[]}
+      />
 
       {/* 상세 메모 입력 */}
       <DetailTopShell>
@@ -52,9 +62,13 @@ function LandRegisterDetail() {
           <DetailTextareaCardHeader>추가 정보 (선택)</DetailTextareaCardHeader>
           <DetailTextareaLabel>기타 참고 사항</DetailTextareaLabel>
           <DetailTextareaWrap>
-            <DetailTextarea
-              value={memo}
-              onChange={(event) => setMemo(event.target.value.slice(0, MAX_LENGTH))}
+              <DetailTextarea
+                value={memo}
+              onChange={(event) => {
+                const nextMemo = event.target.value.slice(0, MAX_LENGTH);
+                setMemo(nextMemo);
+                setRegisterData((prev) => ({ ...prev, memo: nextMemo }));
+              }}
               maxLength={MAX_LENGTH}
               placeholder="특이사항이나 추가 요청사항을 입력해주세요."
             />

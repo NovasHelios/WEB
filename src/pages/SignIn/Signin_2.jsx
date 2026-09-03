@@ -21,7 +21,6 @@ import {
   LogoWrap,
   Page,
   Row,
-  Subtitle,
   SubmitButton,
   Title,
 } from "./Signin_2.styles";
@@ -99,6 +98,10 @@ function Signin_2() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = Api.googleLogin;
   };
 
   return (
@@ -184,7 +187,9 @@ function Signin_2() {
           </SubmitButton>
 
           <GoogleRow>
-            <GoogleButton type="button">G Google</GoogleButton>
+            <GoogleButton type="button" onClick={handleGoogleLogin}>
+              G Google
+            </GoogleButton>
           </GoogleRow>
 
           <BottomText>
