@@ -131,10 +131,20 @@ const getRegionFilterLabel = (filters) => {
 // 금액 필터 값을 버튼에 표시할 문구로 변환합니다.
 const getPriceFilterLabel = (filters) => {
   // 매매가 필터 표시 문구를 만듭니다.
-  const saleLabel = formatPriceRangeLabel("매매가", filters?.salePrice);
+  const saleLabel = formatPriceRangeLabel(
+    "매매가",
+    filters?.salePrice,
+    0,
+    4000000000
+  );
 
   // 임대가 필터 표시 문구를 만듭니다.
-  const rentLabel = formatPriceRangeLabel("임대가", filters?.rentPrice);
+  const rentLabel = formatPriceRangeLabel(
+    "임대가",
+    filters?.rentPrice,
+    0,
+    5000000
+  );
 
   // 표시 가능한 금액 조건만 모읍니다.
   const priceLabels = [saleLabel, rentLabel].filter(Boolean);
@@ -160,18 +170,18 @@ const getAreaFilterLabel = (filters) => {
 
   // 면적 필터 값이 없으면 기본 버튼명을 표시합니다.
   if (!area) {
-    return "토지 크기";
+    return "토지 면적";
   }
 
-  // 최소 면적 값을 가져옵니다.
-  const minArea = area.min;
+  // 최소 면적이 기본 최소값이면 전체 조건으로 보기 위해 null로 변환합니다.
+  const minArea = area.min === 0 ? null : area.min;
 
-  // 최대 면적 값을 가져옵니다.
-  const maxArea = area.max;
+  // 최대 면적이 기본 최대값이면 전체 조건으로 보기 위해 null로 변환합니다.
+  const maxArea = area.max === 500 ? null : area.max;
 
   // 최소/최대 면적이 모두 없으면 기본 버튼명을 표시합니다.
   if (minArea === null && maxArea === null) {
-    return "토지 크기";
+    return "토지 면적";
   }
 
   // 최소/최대 면적이 모두 있으면 범위로 표시합니다.
@@ -226,18 +236,47 @@ const formatKoreanPrice = (price) => {
   return `${tenThousand.toLocaleString()}만`;
 };
 
+// 금액 직접 입력값을 확정할 때 최소 단위인 1,000만 미만이면 1,000만으로 보정합니다.
+const normalizeConfirmedPriceInput = (value) => {
+  // 빈 값은 전체 조건으로 처리하기 위해 null을 유지합니다.
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  // 입력값을 숫자로 변환합니다.
+  const numberValue = Number(value);
+
+  // 숫자로 변환할 수 없으면 전체 조건으로 처리합니다.
+  if (Number.isNaN(numberValue)) {
+    return null;
+  }
+
+  // 0은 전체 조건으로 남겨둡니다.
+  if (numberValue === 0) {
+    return null;
+  }
+
+  // 1,000만 미만이면 1,000만으로 보정합니다.
+  if (numberValue < 1000) {
+    return 1000;
+  }
+
+  // 1,000만 이상이면 입력값을 그대로 사용합니다.
+  return numberValue;
+};
+
 // 금액 범위를 버튼에 표시할 문구로 변환합니다.
-const formatPriceRangeLabel = (label, range) => {
+const formatPriceRangeLabel = (label, range, defaultMin, defaultMax) => {
   // 범위 값이 없으면 표시하지 않습니다.
   if (!range) {
     return null;
   }
 
-  // 최소 금액을 가져옵니다.
-  const minPrice = range.min;
+  // 최소 금액이 기본 최소값이면 전체 조건으로 보기 위해 null로 변환합니다.
+  const minPrice = range.min === defaultMin ? null : range.min;
 
-  // 최대 금액을 가져옵니다.
-  const maxPrice = range.max;
+  // 최대 금액이 기본 최대값이면 전체 조건으로 보기 위해 null로 변환합니다.
+  const maxPrice = range.max === defaultMax ? null : range.max;
 
   // 최소/최대 금액이 모두 없으면 표시하지 않습니다.
   if (minPrice === null && maxPrice === null) {
@@ -421,52 +460,21 @@ function Filter({ filters, onApplyFilters }) {
     return `${manValue.toLocaleString()}만`;
   };
 
-  // 직접 입력 값을 변경합니다.
+  // 직접 입력 중에는 숫자만 허용하고 최소값 보정은 하지 않습니다.
   const handleChangeDirectInput = (filterKey, side, value) => {
-    // 입력을 다시 시작하면 기존 에러 메시지를 숨깁니다.
-    setDirectInputError("");
+    // 숫자가 아닌 문자는 제거합니다.
+    const numericValue = value.replace(/[^0-9]/g, "");
 
-    // 콤마가 포함된 입력값에서 숫자만 추출합니다.
-    const onlyNumberValue = parseNumberInput(value);
-
-    // 입력값이 비어 있으면 조건 없음으로 처리합니다.
-    if (onlyNumberValue === "") {
-      setDraftFilters((prev) => ({
-        ...prev,
-        [filterKey]: {
-          ...prev[filterKey],
-          [side]: null,
-        },
-      }));
-
-      return;
-    }
-
-    // 입력값을 숫자로 변환합니다.
-    const numberValue = Number(onlyNumberValue);
-
-    // 숫자가 아니거나 음수이면 값을 반영하지 않습니다.
-    if (Number.isNaN(numberValue) || numberValue < 0) return;
-
-    // 가격 필터는 만원 단위 입력값을 원 단위로 변환하고, 면적은 입력값을 그대로 사용합니다.
-    const rawValue =
-      directInputConfig?.unit === "원"
-        ? convertManToWon(numberValue)
-        : numberValue;
-
-    // 직접 입력 대상의 허용 최소값과 최대값을 가져옵니다.
-    const minValue = directInputConfig?.minValue ?? 0;
-    const maxValue = directInputConfig?.maxValue ?? Infinity;
-
-    // 허용 범위를 벗어난 값은 저장 전에 잘라냅니다.
-    const clampedValue = Math.min(Math.max(rawValue, minValue), maxValue);
-
-    // 변환 및 보정된 값을 임시 필터에 저장합니다.
+    // 사용자가 입력 중인 값은 그대로 임시 필터에 저장합니다.
     setDraftFilters((prev) => ({
       ...prev,
+
+      // 현재 직접 입력 중인 필터 범위를 갱신합니다.
       [filterKey]: {
         ...prev[filterKey],
-        [side]: clampedValue,
+
+        // 빈 문자열은 null로 저장하고, 숫자가 있으면 숫자로 저장합니다.
+        [side]: numericValue === "" ? null : Number(numericValue),
       },
     }));
   };
