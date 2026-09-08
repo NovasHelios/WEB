@@ -58,11 +58,6 @@ export const getRegions = async (code = null) => {
   // SGIS 지역 조회 응답을 JSON으로 변환합니다.
   const data = await response.json();
 
-  // SGIS에서 받은 지역 조회 요청 코드와 원본 응답을 확인합니다.
-  console.log("SGIS 지역 조회 요청 코드:", code);
-  console.log("SGIS 지역 조회 원본 응답:", data);
-  console.log("SGIS 지역 목록:", data.result);
-
   // SGIS 에러 응답이면 화면에서 처리할 수 있도록 에러를 발생시킵니다.
   if (String(data.errCd) !== "0") {
     throw new Error(data.errMsg || "SGIS 지역 조회에 실패했습니다.");
