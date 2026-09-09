@@ -2,8 +2,13 @@ const ACCESS_TOKEN_KEY = "accessToken";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
+const normalizeAccessToken = (token) => {
+  // 서버가 Bearer 접두어를 포함해 내려줘도 순수 JWT만 저장합니다.
+  return String(token || "").replace(/^Bearer\s+/i, "").trim();
+};
+
 export const setAccessToken = (token) => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.setItem(ACCESS_TOKEN_KEY, normalizeAccessToken(token));
 };
 
 export const clearAccessToken = () => {
@@ -43,7 +48,7 @@ export const getValidAccessToken = () => {
 };
 
 export const buildAuthHeaders = (headers = {}) => {
-  const token = getValidAccessToken();
+  const token = normalizeAccessToken(getValidAccessToken());
 
   if (!token) return headers;
 

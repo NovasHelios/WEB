@@ -38,14 +38,11 @@ export const Api = {
   ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
   ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`,                 // PATCH 거절
   ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`,                   // PATCH 종료
-  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws`,                                  // WebSocket STOMP 기본 연결
-  ChatSocketCandidates: (token) => {                                                // WebSocket 연결 후보
-    const encodedToken = encodeURIComponent(token || "");
+  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws/chat`,                             // WebSocket STOMP 기본 연결
+  ChatSocketCandidates: () => {                                                     // 서버는 STOMP CONNECT 헤더 인증만 사용합니다.
     const socketBase = BASE.replace(/^http/, "ws");
     return [
-      `${socketBase}/ws?token=${encodedToken}`,
-      `${socketBase}/ws/websocket?token=${encodedToken}`,
-      `${socketBase}/ws`,
+      `${socketBase}/ws/chat`,
     ];
   },
   ChatSendMessage: (roomId) => `/app/chat/rooms/${roomId}/messages`,                 // STOMP 텍스트 메시지 전송

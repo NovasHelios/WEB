@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Client } from "@stomp/stompjs";
 import { ChevronUp, LogOut, Paperclip, Search, Send, Map } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
@@ -92,34 +93,6 @@ const extractArray = (payload) => {
   return candidates.find(Array.isArray) || [];
 };
 
-const createStompFrame = (command, headers = {}, body = "") => {
-  // 외부 패키지 없이 STOMP 프레임을 만들어 WebSocket으로 전송합니다.
-  const headerLines = Object.entries(headers)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
-    .map(([key, value]) => `${key}:${value}`);
-
-  return `${command}\n${headerLines.join("\n")}\n\n${body}\0`;
-};
-
-const parseStompFrames = (data) => {
-  // 서버에서 들어온 STOMP 프레임을 command/header/body 구조로 분리합니다.
-  return String(data)
-    .split("\0")
-    .filter(Boolean)
-    .map((rawFrame) => {
-      const [headerBlock = "", body = ""] = rawFrame.split("\n\n");
-      const [command = "", ...headerLines] = headerBlock.split("\n");
-      const headers = headerLines.reduce((acc, line) => {
-        const separatorIndex = line.indexOf(":");
-        if (separatorIndex === -1) return acc;
-        acc[line.slice(0, separatorIndex)] = line.slice(separatorIndex + 1);
-        return acc;
-      }, {});
-
-      return { command, headers, body };
-    });
-};
-
 const normalizeMessage = (payload) => {
   // 서버 응답이 data로 감싸져도 실제 메시지만 꺼냅니다.
   if (!payload) return null;
@@ -128,10 +101,39 @@ const normalizeMessage = (payload) => {
   return message;
 };
 
+const mergeMessages = (serverMessages, pendingMessages = []) => {
+  // 서버 저장 확인 전 임시 메시지는 목록 재조회 후에도 잠시 유지합니다.
+  const serverKeys = new Set(
+    serverMessages.map((message) => String(message.messageId || `${message.sentAt}-${message.content}`)),
+  );
+  const unresolvedPendingMessages = pendingMessages.filter((message) => {
+    const hasSameContent = serverMessages.some(
+      (serverMessage) =>
+        serverMessage.content === message.content &&
+        serverMessage.senderEmail === message.senderEmail,
+    );
+    return !serverKeys.has(String(message.messageId)) && !hasSameContent;
+  });
+
+  return [...serverMessages, ...unresolvedPendingMessages];
+};
+
+const markPendingMessageAsFailed = (pendingMessageId) => {
+  // 서버 저장 확인이 끝난 임시 메시지에 실패 상태를 표시합니다.
+  return (messages) =>
+    messages.map((message) =>
+      message.messageId === pendingMessageId
+        ? { ...message, pendingFailed: true }
+        : message,
+    );
+};
+
 function Chat() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const socketRef = useRef(null);
+  const clientRef = useRef(null);
+  const confirmTimersRef = useRef([]);
+  const messageEndRef = useRef(null);
   const [keyword, setKeyword] = useState("");
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -149,6 +151,51 @@ function Chat() {
     () => rooms.find((room) => String(room.roomId) === String(selectedRoomId)) || null,
     [rooms, selectedRoomId],
   );
+
+  const refreshMessages = useCallback(async (roomId) => {
+    // 서버에 저장된 메시지 목록을 다시 불러와 화면 상태를 맞춥니다.
+    if (!roomId) return;
+
+    const response = await authFetch(Api.ChatMessages(roomId), { method: "GET" });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.data?.message || data?.message || "메시지를 불러오지 못했습니다.");
+    }
+
+    const serverMessages = extractArray(data);
+    setMessages((prev) => mergeMessages(serverMessages, prev.filter((message) => message.pending)));
+    return serverMessages;
+  }, []);
+
+  const handleSocketMessage = useCallback((message) => {
+    // STOMP로 수신한 메시지를 화면 메시지 목록에 반영합니다.
+    try {
+      const incomingMessage = normalizeMessage(JSON.parse(message.body));
+      if (!incomingMessage) return;
+
+      setMessages((prev) => {
+        const duplicated = prev.some(
+          (prevMessage) =>
+            String(prevMessage.messageId) === String(incomingMessage.messageId) ||
+            (prevMessage.pending &&
+              prevMessage.content === incomingMessage.content &&
+              prevMessage.senderEmail === incomingMessage.senderEmail),
+        );
+        return duplicated
+          ? prev.map((prevMessage) =>
+              prevMessage.pending &&
+              prevMessage.content === incomingMessage.content &&
+              prevMessage.senderEmail === incomingMessage.senderEmail
+                ? incomingMessage
+                : prevMessage,
+            )
+          : [...prev, incomingMessage];
+      });
+    } catch {
+      setError("메시지 응답을 해석하지 못했습니다.");
+    }
+  }, []);
 
   const filteredRooms = useMemo(() => {
     // 검색어에 맞는 채팅방만 표시합니다.
@@ -217,23 +264,19 @@ function Chat() {
       setError("");
 
       try {
-        const [messagesResponse, landResponse] = await Promise.all([
-          authFetch(Api.ChatMessages(selectedRoom.roomId), { method: "GET" }),
-          selectedRoom.landId
-            ? authFetch(Api.Land(selectedRoom.landId), { method: "GET" })
-            : Promise.resolve(null),
-        ]);
-
-        const messagesData = await messagesResponse.json();
+        const landResponse = selectedRoom.landId
+          ? await authFetch(Api.Land(selectedRoom.landId), { method: "GET" })
+          : null;
         const landData = landResponse ? await landResponse.json() : null;
 
-        if (!messagesResponse.ok) {
-          throw new Error("메시지를 불러오지 못했습니다.");
-        }
-
-        setMessages(extractArray(messagesData));
+        await refreshMessages(selectedRoom.roomId);
         setSelectedLand(landResponse?.ok ? landData?.data : null);
       } catch (err) {
+        if (err.message?.includes("로그인") || err.message?.includes("인증")) {
+          navigate("/login", { replace: true });
+          return;
+        }
+
         setError(err.message || "채팅방 정보를 불러오지 못했습니다.");
       } finally {
         setIsMessageLoading(false);
@@ -242,8 +285,7 @@ function Chat() {
 
     // 선택한 채팅방의 메시지와 토지 정보를 조회합니다.
     void fetchRoomDetail();
-  }, [selectedRoom]);
-
+  }, [navigate, refreshMessages, selectedRoom]);
   useEffect(() => {
     // 선택된 채팅방 기준으로 STOMP WebSocket을 연결합니다.
     if (!selectedRoom) {
@@ -257,103 +299,69 @@ function Chat() {
       return undefined;
     }
 
-    let socket = null;
-    let socketCandidateIndex = 0;
     let isClosedByCleanup = false;
-    let isConnected = false;
-    const socketCandidates = Api.ChatSocketCandidates?.(token) || [Api.ChatSocket];
 
     setIsSocketConnected(false);
 
-    const connectSocket = () => {
-      // WebSocket 서버 설정 차이를 대비해 가능한 연결 경로를 순서대로 시도합니다.
-      socket = new WebSocket(socketCandidates[socketCandidateIndex]);
-      socketRef.current = socket;
-
-      socket.onopen = () => {
+    const client = new Client({
+      brokerURL: Api.ChatSocket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+      reconnectDelay: 0,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+      onConnect: () => {
+        // 연결 후 현재 채팅방 topic을 구독합니다.
         setError("");
-        socket.send(
-          createStompFrame("CONNECT", {
-            "accept-version": "1.2",
-            "heart-beat": "10000,10000",
-            Authorization: `Bearer ${token}`,
-          }),
-        );
-      };
-
-      socket.onmessage = (event) => {
-        parseStompFrames(event.data).forEach((frame) => {
-          if (frame.command === "CONNECTED") {
-            setError("");
-            isConnected = true;
-            setIsSocketConnected(true);
-            socket.send(createStompFrame("SUBSCRIBE", { id: `room-${selectedRoom.roomId}`, destination: Api.ChatSubscribeRoom(selectedRoom.roomId) }));
-            socket.send(
-              createStompFrame("SUBSCRIBE", {
-                id: `room-message-${selectedRoom.roomId}`,
-                destination: Api.ChatSubscribeMessages(selectedRoom.roomId),
-              }),
-            );
-            return;
-          }
-
-          if (frame.command === "MESSAGE") {
-            try {
-              const incomingMessage = normalizeMessage(JSON.parse(frame.body));
-              if (!incomingMessage) return;
-
-              setMessages((prev) => {
-                const duplicated = prev.some((message) => String(message.messageId) === String(incomingMessage.messageId));
-                return duplicated ? prev : [...prev, incomingMessage];
-              });
-            } catch {
-              setError("메시지 응답을 해석하지 못했습니다.");
-            }
-            return;
-          }
-
-          if (frame.command === "ERROR") {
-            setError(frame.body || "채팅 서버 연결 중 오류가 발생했습니다.");
-          }
-        });
-      };
-
-      socket.onerror = () => {
-        // 실제 실패 메시지는 close에서 마지막 후보까지 실패한 뒤 표시합니다.
-      };
-
-      socket.onclose = () => {
+        setIsSocketConnected(true);
+        client.subscribe(Api.ChatSubscribeRoom(selectedRoom.roomId), handleSocketMessage);
+        client.subscribe(Api.ChatSubscribeMessages(selectedRoom.roomId), handleSocketMessage);
+      },
+      onStompError: (frame) => {
+        setIsSocketConnected(false);
+        setError(frame.body || frame.headers?.message || "채팅 서버 연결 중 오류가 발생했습니다.");
+      },
+      onWebSocketClose: () => {
         if (isClosedByCleanup) return;
-
-        if (socketCandidateIndex < socketCandidates.length - 1 && !isConnected) {
-          socketCandidateIndex += 1;
-          connectSocket();
-          return;
-        }
-
-        if (socketRef.current === socket) setIsSocketConnected(false);
+        setIsSocketConnected(false);
         setError("채팅 서버에 연결하지 못했습니다.");
-      };
-    };
+      },
+      onWebSocketError: () => {
+        if (isClosedByCleanup) return;
+        setIsSocketConnected(false);
+      },
+    });
 
-    connectSocket();
+    clientRef.current = client;
+    client.activate();
 
     return () => {
-      // 채팅방 이동 시 이전 WebSocket 연결을 정리합니다.
+      // 채팅방 이동 시 이전 STOMP 연결을 정리합니다.
       isClosedByCleanup = true;
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(createStompFrame("DISCONNECT", { receipt: `close-${selectedRoom.roomId}` }));
-      }
-      socket?.close();
-      if (socketRef.current === socket) socketRef.current = null;
+      void client.deactivate();
+      if (clientRef.current === client) clientRef.current = null;
     };
-  }, [navigate, selectedRoom]);
+  }, [handleSocketMessage, navigate, selectedRoom]);
+
+  useEffect(() => {
+    // 새 메시지가 추가되면 최신 메시지가 보이도록 이동합니다.
+    messageEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      // 페이지 이탈 시 저장 확인 타이머를 정리합니다.
+      confirmTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      confirmTimersRef.current = [];
+    };
+  }, []);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     // 텍스트 메시지는 서버 STOMP destination으로 전송합니다.
     const content = messageInput.trim();
-    const socket = socketRef.current;
+    const client = clientRef.current;
     const token = getValidAccessToken();
 
     if (!content || !selectedRoom) return;
@@ -361,37 +369,72 @@ function Chat() {
       navigate("/login", { replace: true });
       return;
     }
-    if (!isSocketConnected || socket?.readyState !== WebSocket.OPEN) {
+    if (!isSocketConnected || !client?.connected) {
       setError("채팅 서버 연결 후 다시 전송해주세요.");
       return;
     }
 
-    socket.send(
-      createStompFrame(
-        "SEND",
-        {
-          destination: Api.ChatSendMessage(selectedRoom.roomId),
+    const pendingMessageId = `pending-${Date.now()}`;
+    try {
+      client.publish({
+        destination: Api.ChatSendMessage(selectedRoom.roomId),
+        headers: {
+          // Spring 메시지 컨버터가 JSON 본문으로 인식하도록 content-type만 명시합니다.
           "content-type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        JSON.stringify({ roomId: selectedRoom.roomId, content }),
-      ),
-    );
+        body: JSON.stringify({ roomId: selectedRoom.roomId, content }),
+      });
+    } catch {
+      setError("메시지를 전송하지 못했습니다.");
+      return;
+    }
 
     setMessages((prev) => [
       ...prev,
       {
-        messageId: `local-${Date.now()}`,
+        messageId: pendingMessageId,
         roomId: selectedRoom.roomId,
         senderEmail: myEmail,
         senderName: "나",
         content,
         sentAt: new Date().toISOString(),
+        pending: true,
       },
     ]);
     setMessageInput("");
-    setStatusMessage("");
+    setStatusMessage("메시지 전송 후 서버 저장 상태를 확인하는 중입니다.");
     setError("");
+
+    const confirmSavedMessage = async (retryCount = 0) => {
+      // 서버 저장/브로드캐스트 지연을 감안해 메시지 목록을 여러 번 확인합니다.
+      const serverMessages = await refreshMessages(selectedRoom.roomId);
+      const savedMessage = serverMessages.some(
+        (message) =>
+          message.content === content &&
+          (!message.senderEmail || !myEmail || message.senderEmail === myEmail),
+      );
+
+      if (savedMessage) {
+        setStatusMessage("");
+        return;
+      }
+
+      if (retryCount < 2) {
+        const timerId = window.setTimeout(() => {
+          void confirmSavedMessage(retryCount + 1);
+        }, 1000);
+        confirmTimersRef.current.push(timerId);
+        return;
+      }
+
+      setMessages(markPendingMessageAsFailed(pendingMessageId));
+      setStatusMessage("");
+    };
+
+    const timerId = window.setTimeout(() => {
+      void confirmSavedMessage();
+    }, 1000);
+    confirmTimersRef.current.push(timerId);
   };
 
   const handleFileUpload = async (event) => {
@@ -435,9 +478,16 @@ function Chat() {
       const response = await authFetch(Api.ChatClose(selectedRoom.roomId), {
         method: "PATCH",
       });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
 
       if (!response.ok) {
-        throw new Error("채팅방을 나가지 못했습니다.");
+        if (response.status === 409) {
+          setStatusMessage(data?.data?.message || data?.message || "이미 종료되었거나 나갈 수 없는 채팅방입니다.");
+          return;
+        }
+
+        throw new Error(data?.data?.message || data?.message || "채팅방을 나가지 못했습니다.");
       }
 
       setRooms((prev) => prev.filter((room) => room.roomId !== selectedRoom.roomId));
@@ -524,6 +574,12 @@ function Chat() {
                       {!mine ? <ChatAvatar>{(message.senderName || "H")[0]}</ChatAvatar> : null}
                       <ChatBubble $mine={mine}>
                         {message.content || message.attachmentOriginalName || "첨부파일"}
+                        {message.pending && !message.pendingFailed ? (
+                          <div>서버 저장 확인 중</div>
+                        ) : null}
+                        {message.pendingFailed ? (
+                          <div>서버 저장 확인 안 됨</div>
+                        ) : null}
                         {attachmentUrl ? (
                           <div>
                             <a href={attachmentUrl} target="_blank" rel="noreferrer">
@@ -536,6 +592,7 @@ function Chat() {
                     </ChatMessageRow>
                   );
                 })}
+                <div ref={messageEndRef} />
               </ChatMessageArea>
 
               <ChatComposer onSubmit={handleSubmit}>
