@@ -30,6 +30,9 @@ function Map() {
   // 등록된 토지 Kakao 마커 목록을 담는 ref입니다.
   const landMarkerLayerRef = useRef(null);
 
+  // 선택한 토지의 붉은색 필지 경계 polygon을 저장하는 ref입니다.
+  const selectedLandBoundaryRef = useRef(null);
+
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
 
@@ -342,10 +345,20 @@ function Map() {
         // 서버에서 landId 기준 단일 상세 정보를 조회합니다.
         const landDetail = await fetchLandDetail(land.id);
 
+        // 상세 API 좌표가 배열이면 상세 좌표를 쓰고, 없으면 필터 API에서 받은 좌표를 유지합니다.
+        const boundaryCoordinates = Array.isArray(landDetail?.coordinates)
+          ? landDetail.coordinates
+          : land.coordinates;
+
+        // 선택한 토지의 필지 경계를 지도에 표시하고 해당 위치로 지도를 맞춥니다.
+        showSelectedLandBoundary(boundaryCoordinates);
+
         // 상세 API 정보와 마커 좌표 정보를 합쳐 미리보기에 전달합니다.
         setSelectedLand({
           ...land,
           ...(landDetail || {}),
+          // 상세 API에 좌표가 없거나 빈 객체로 오더라도 필터 API 좌표가 사라지지 않게 유지합니다.
+          coordinates: boundaryCoordinates,
           position: land.position,
           lat: land.lat,
           lon: land.lon,
@@ -362,6 +375,41 @@ function Map() {
           markerLayerRef: landMarkerLayerRef,
         }),
     });
+  };
+
+  // 서버에서 받은 필지 경계 좌표를 Kakao Polygon path로 변환합니다.
+  const createPolygonPathFromCoordinates = (coordinates) => {
+    // 좌표가 배열이 아니면 빈 path를 반환합니다.
+    if (!Array.isArray(coordinates)) {
+      return [];
+    }
+
+    // 현재 서버 좌표는 [[[[lng, lat], ...]]]] 형태이므로 첫 번째 polygon ring을 꺼냅니다.
+    const firstRing = coordinates?.[0]?.[0];
+
+    // polygon ring이 배열이 아니면 빈 path를 반환합니다.
+    if (!Array.isArray(firstRing)) {
+      return [];
+    }
+
+    // [경도, 위도] 좌표를 Kakao LatLng(위도, 경도) 객체로 변환합니다.
+    return firstRing
+      .filter((point) => Array.isArray(point) && point.length >= 2)
+      .map(([lng, lat]) => new window.kakao.maps.LatLng(lat, lng));
+  };
+
+  // 지도에 표시된 기존 선택 필지 경계를 제거합니다.
+  const clearSelectedLandBoundary = () => {
+    // 기존에 그려진 필지 경계가 없으면 제거하지 않습니다.
+    if (!selectedLandBoundaryRef.current) {
+      return;
+    }
+
+    // 기존 필지 경계를 Kakao 지도에서 제거합니다.
+    selectedLandBoundaryRef.current.setMap(null);
+
+    // 제거된 필지 경계 객체 참조를 비웁니다.
+    selectedLandBoundaryRef.current = null;
   };
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
@@ -397,6 +445,86 @@ function Map() {
     } catch (error) {
       console.error("등록된 토지 목록 조회 실패:", error);
     }
+  };
+
+  // 서버 좌표로 선택한 필지 경계를 지도에 붉은색 Polygon으로 표시합니다.
+  const drawSelectedLandBoundary = (coordinates) => {
+    // 이전에 표시된 필지 경계를 먼저 제거합니다.
+    clearSelectedLandBoundary();
+
+    // 현재 Kakao 지도 객체를 가져옵니다.
+    const map = mapInstanceRef.current;
+
+    // 지도 객체나 Kakao Maps SDK가 준비되지 않았으면 표시하지 않습니다.
+    if (!map || !window.kakao?.maps) {
+      return null;
+    }
+
+    // 서버 좌표를 Kakao Polygon path로 변환합니다.
+    const path = createPolygonPathFromCoordinates(coordinates);
+
+    // Polygon을 만들 수 있는 좌표가 부족하면 표시하지 않습니다.
+    if (path.length < 3) {
+      return null;
+    }
+
+    // 선택된 필지 경계를 붉은색 Polygon 객체로 생성합니다.
+    const polygon = new window.kakao.maps.Polygon({
+      path,
+      strokeWeight: 3,
+      strokeColor: "#ef4444",
+      strokeOpacity: 0.95,
+      fillColor: "#ef4444",
+      fillOpacity: 0.18,
+    });
+
+    // 생성한 Polygon을 현재 지도 위에 표시합니다.
+    polygon.setMap(map);
+
+    // 다음 클릭 때 제거할 수 있도록 Polygon 객체를 ref에 저장합니다.
+    selectedLandBoundaryRef.current = polygon;
+
+    // 생성된 Polygon 객체를 반환합니다.
+    return polygon;
+  };
+
+  // 선택한 필지 경계가 화면 안에 들어오도록 지도의 표시 범위를 맞춥니다.
+  const focusMapToBoundary = (coordinates) => {
+    // 현재 Kakao 지도 객체를 가져옵니다.
+    const map = mapInstanceRef.current;
+
+    // 지도 객체나 Kakao Maps SDK가 준비되지 않았으면 이동하지 않습니다.
+    if (!map || !window.kakao?.maps) {
+      return;
+    }
+
+    // 서버 좌표를 Kakao Polygon path로 변환합니다.
+    const path = createPolygonPathFromCoordinates(coordinates);
+
+    // 지도 범위를 계산할 좌표가 없으면 이동하지 않습니다.
+    if (path.length === 0) {
+      return;
+    }
+
+    // 필지 경계 전체를 포함할 Kakao 지도 bounds 객체를 생성합니다.
+    const bounds = new window.kakao.maps.LatLngBounds();
+
+    // 모든 경계 좌표를 bounds에 포함시킵니다.
+    path.forEach((position) => {
+      bounds.extend(position);
+    });
+
+    // 계산된 bounds가 화면 안에 들어오도록 지도를 이동하고 확대/축소합니다.
+    map.setBounds(bounds);
+  };
+
+  // 선택한 토지 좌표로 필지 경계를 표시하고 지도 범위를 맞춥니다.
+  const showSelectedLandBoundary = (coordinates) => {
+    // 선택한 필지 경계를 지도에 표시합니다.
+    drawSelectedLandBoundary(coordinates);
+
+    // 선택한 필지 경계가 보이도록 지도 범위를 맞춥니다.
+    focusMapToBoundary(coordinates);
   };
 
   // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
