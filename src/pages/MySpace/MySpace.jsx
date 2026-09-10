@@ -1,4 +1,4 @@
-import { ChevronDown, CalendarDays, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
@@ -536,9 +536,6 @@ function MySpace() {
                           </SpaceBadgeRow>
                         </div>
 
-                        <button type="button" aria-label="더보기" className="text-[#6d6a5f]">
-                          <MoreVertical size={22} strokeWidth={2.4} />
-                        </button>
                       </SpaceCardHeader>
 
                       <SpaceCardMeta>

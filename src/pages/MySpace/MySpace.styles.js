@@ -3,7 +3,7 @@ import styled from "styled-components";
 export const SpaceWrapper = styled.div`
   width: 100vw;
   min-height: 100vh;
-  background: #faf6ee;
+  background: var(--color-page-bg);
   overflow: hidden;
 `;
 
@@ -14,37 +14,37 @@ export const SpaceMain = styled.main`
 
 export const SpacePage = styled.div`
   min-height: calc(100vh - 56px);
-  background: #faf6ee;
+  background: var(--color-page-bg);
 `;
 
 export const SpaceInner = styled.div`
   width: 100%;
-  padding: 34px 28px 48px;
+  padding: 16px;
   box-sizing: border-box;
 
   @media (max-width: 760px) {
-    padding: 24px 18px 36px;
+    padding: 16px;
   }
 `;
 
 export const SpaceHeader = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 26px;
-  margin-bottom: 26px;
+  gap: 16px;
+  margin-bottom: 16px;
 `;
 
 export const SpaceTitle = styled.h1`
   margin: 0;
-  font-size: 32px;
-  font-weight: 800;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-bold);
   letter-spacing: -0.05em;
   color: #1f1c17;
 `;
 
 export const SpaceTopNote = styled.p`
   margin: 10px 0 0;
-  font-size: 17px;
+  font-size: var(--font-md);
   line-height: 1.6;
   color: #6f6658;
 `;
@@ -53,19 +53,19 @@ export const SpaceTopRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   flex-wrap: wrap;
 `;
 
 export const SpaceStatText = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.5;
   color: #2f2a23;
 
   strong {
     color: #8a6a00;
-    font-weight: 800;
+    font-weight: var(--font-bold);
   }
 `;
 
@@ -80,8 +80,8 @@ export const SpaceTopAction = styled.button`
   border-radius: 4px;
   background: #d9aa1f;
   color: #1f1c17;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
@@ -89,8 +89,8 @@ export const SpaceToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 `;
 
@@ -117,23 +117,23 @@ export const SpaceFilterButton = styled.button`
   padding: 0 14px;
   border-radius: 9px;
   border: 1px solid ${(props) => (props.$active ? "#8e6b00" : "#d8c5a2")};
-  background: ${(props) => (props.$active ? "#8e6b00" : "#fffdf8")};
+  background: ${(props) => (props.$active ? "#8e6b00" : "var(--color-surface)")};
   color: ${(props) => (props.$active ? "#fff" : "#5d5445")};
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
 export const SpaceContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
 `;
 
 export const SpaceCard = styled.article`
   border: 1px solid #eadfc8;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--color-surface);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
   overflow: hidden;
 `;
@@ -141,8 +141,8 @@ export const SpaceCard = styled.article`
 export const SpaceCardRow = styled.div`
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) 170px;
-  gap: 18px;
-  padding: 20px 18px 20px 18px;
+  gap: 16px;
+  padding: 16px;
   align-items: stretch;
 
   @media (max-width: 1100px) {
@@ -175,8 +175,8 @@ export const SpaceCardImage = styled.div`
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.82);
     color: #6c5d31;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--font-xs);
+    font-weight: var(--font-bold);
   }
 `;
 
@@ -187,9 +187,9 @@ export const SpaceCardHeader = styled.div`
 
   h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: var(--font-lg);
     line-height: 1.4;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     color: #2a261f;
   }
 `;
@@ -211,15 +211,15 @@ export const SpaceBadge = styled.span`
   border-radius: 4px;
   background: #f8f3ea;
   color: #7d725f;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 export const SpaceCardMeta = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 28px;
-  padding-top: 18px;
+  gap: 12px 16px;
+  padding-top: 12px;
   border-top: 1px solid #efe4cf;
 
   @media (max-width: 760px) {
@@ -237,20 +237,20 @@ export const SpaceCardMetaLabel = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
   color: #7b7365;
 `;
 
 export const SpaceCardMetaValue = styled.div`
-  font-size: ${(props) => (props.$highlight ? "18px" : "16px")};
-  font-weight: 800;
+  font-size: ${(props) => (props.$highlight ? "var(--font-lg)" : "var(--font-md)")};
+  font-weight: var(--font-bold);
   color: ${(props) => (props.$highlight ? "#9a7400" : "#2a251c")};
 `;
 
 export const SpaceInfoRow = styled.div`
   display: flex;
-  gap: 48px;
+  gap: 16px;
   flex-wrap: wrap;
   padding-top: 8px;
 `;
@@ -260,8 +260,8 @@ export const SpaceCardFooter = styled.div`
   justify-content: flex-end;
   margin-top: auto;
   color: #6a6458;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 export const SpaceActionColumn = styled.div`
@@ -291,8 +291,8 @@ export const SpaceActionButton = styled.button`
   border-radius: 2px;
   background: ${(props) => (props.$danger ? "#f7f2e9" : props.$secondary ? "#fffaf1" : "#fffdf5")};
   color: ${(props) => (props.$danger ? "#8f7a58" : "#8a6800")};
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
@@ -303,7 +303,7 @@ export const SpaceModalOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 16px;
   background: rgba(0, 0, 0, 0.38);
   box-sizing: border-box;
 `;
@@ -313,7 +313,7 @@ export const SpaceModal = styled.form`
   border: 1px solid #d9aa1f;
   border-radius: 8px;
   background: #fffdf8;
-  padding: 28px;
+  padding: 16px;
   box-sizing: border-box;
   box-shadow: 0 18px 44px rgba(56, 43, 20, 0.18);
 `;
@@ -323,12 +323,12 @@ export const SpaceModalHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 
   h2 {
     margin: 0;
-    font-size: 22px;
-    font-weight: 800;
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
     color: #1f1c17;
   }
 `;
@@ -340,8 +340,8 @@ export const SpaceModalClose = styled.button`
   border-radius: 4px;
   background: #fffaf1;
   color: #5d5445;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
@@ -351,8 +351,8 @@ export const SpaceModalField = styled.label`
   gap: 8px;
   margin-bottom: 16px;
   color: #5d5445;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 export const SpaceModalInput = styled.input`
@@ -362,7 +362,7 @@ export const SpaceModalInput = styled.input`
   border-bottom: 2px solid #2f2a23;
   background: transparent;
   color: #1f1c17;
-  font-size: 16px;
+  font-size: var(--font-md);
   outline: none;
 `;
 
@@ -373,8 +373,8 @@ export const SpaceModalSelect = styled.select`
   border-radius: 4px;
   background: #fff;
   color: #1f1c17;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   padding: 0 12px;
   outline: none;
 `;
@@ -387,7 +387,7 @@ export const SpaceModalTextarea = styled.textarea`
   border-radius: 4px;
   background: #fff;
   color: #1f1c17;
-  font-size: 15px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   padding: 12px;
   outline: none;
@@ -397,13 +397,13 @@ export const SpaceModalTextarea = styled.textarea`
 export const SpaceModalError = styled.p`
   margin: 4px 0 14px;
   color: #b42318;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 export const SpaceModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 22px;
+  margin-top: 16px;
 `;

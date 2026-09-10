@@ -17,8 +17,8 @@ export const FilterButton = styled.button`
   border-radius: 999px;
   background: ${({ $active }) => ($active ? "#111111" : "#ffffff")};
   color: ${({ $active }) => ($active ? "#ffffff" : "#111111")};
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +50,8 @@ export const DropdownHeader = styled.div`
   position: relative;
   height: 34px;
   color: #111111;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   text-align: center;
 `;
 
@@ -89,8 +89,8 @@ export const SegmentButton = styled.button`
   border-right: 1.5px solid #111111;
   background: ${({ $active }) => ($active ? "#f7edd0" : "#ffffff")};
   color: #111111;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   cursor: pointer;
 
   &:last-child {
@@ -106,8 +106,8 @@ export const ApplyButton = styled.button`
   border-radius: 5px;
   background: #d2ad23;
   color: #111111;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
@@ -124,8 +124,8 @@ export const RangeTitleRow = styled.div`
   gap: 16px;
   margin-bottom: 8px;
   color: #111111;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  font-weight: var(--font-semibold);
 
   button {
     border: 0;
@@ -138,8 +138,8 @@ export const RangeTitleRow = styled.div`
 // 현재 선택된 범위 표시 텍스트입니다.
 export const RangeValueText = styled.span`
   color: #d2ad23;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -246,8 +246,8 @@ export const RangeLabel = styled.span`
   white-space: nowrap;
 
   color: #111111;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  font-weight: var(--font-semibold);
 `;
 
 // 하단 버튼을 배치하는 영역입니다.
@@ -279,8 +279,8 @@ export const DirectInputBox = styled.input`
   border: 1px solid #dddddd;
   border-radius: 8px;
   color: #111111;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  font-weight: var(--font-semibold);
 
   // Chrome, Safari, Edge에서 number input 스피너를 제거합니다.
   &::-webkit-outer-spin-button,
@@ -299,8 +299,8 @@ export const DirectInputBox = styled.input`
 export const RegionPath = styled.div`
   margin-bottom: 12px;
   color: #111111;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
 
   span {
     color: #6b7280;
@@ -323,8 +323,8 @@ export const RegionButton = styled.button`
   border-radius: 4px;
   background: ${({ $active }) => ($active ? "#fffaf0" : "#f3f4f6")};
   color: ${({ $active }) => ($active ? "#d2ad23" : "#111111")};
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;
 
@@ -352,8 +352,8 @@ export const DirectInputHeader = styled.div`
   position: relative;
   height: 34px;
   color: #111111;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   text-align: center;
 `;
 
@@ -389,22 +389,22 @@ export const DirectInputUnit = styled.span`
   top: 15px;
   right: 18px;
   color: #111111;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 // 직접 입력값 아래 읽기용 금액 문구입니다.
 export const DirectInputHint = styled.span`
   min-height: 20px;
   color: #6b7280;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
 `;
 
 // 직접 입력 에러 메시지입니다.
 export const DirectInputError = styled.p`
   margin: -12px 0 18px;
   color: #ff3030;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;

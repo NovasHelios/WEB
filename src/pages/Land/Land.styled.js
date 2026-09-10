@@ -36,8 +36,8 @@ export const LandAddButton = styled.button`
   border-radius: 10px;
   background: #f1a332;
   color: #000;
-  font-size: 20px;
-  font-weight: 900;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   cursor: pointer;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
   letter-spacing: -0.02em;
@@ -49,7 +49,7 @@ export const LandAddButton = styled.button`
   @media (max-width: 760px) {
     min-width: 220px;
     height: 48px;
-    font-size: 18px;
+    font-size: var(--font-lg);
   }
 `;
 
@@ -102,24 +102,24 @@ export const LandCardBody = styled.div`
   justify-content: flex-start;
   gap: 14px;
   color: #111;
-  font-weight: 800;
+  font-weight: var(--font-bold);
 `;
 
 export const LandMeta = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  font-size: 15px;
+  font-size: var(--font-sm);
   line-height: 1.55;
 
   strong {
-    font-weight: 800;
+    font-weight: var(--font-bold);
   }
 `;
 
 export const LandDescription = styled.p`
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-sm);
   line-height: 1.7;
   word-break: keep-all;
 `;
@@ -131,8 +131,8 @@ export const LandCardPreview = styled.div`
 `;
 
 export const LandCardPreviewLabel = styled.span`
-  font-size: 13px;
-  font-weight: 900;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: #444;
   letter-spacing: -0.03em;
 `;
@@ -160,8 +160,8 @@ export const LandCardPreviewEmpty = styled.div`
   align-items: center;
   justify-content: center;
   color: #6b7280;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 export const LandCardActions = styled.div`
@@ -177,8 +177,8 @@ export const LandEditButton = styled.button`
   border-radius: 999px;
   background: #111;
   color: #fff;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
   padding: 0 16px;
 
@@ -189,7 +189,7 @@ export const LandEditButton = styled.button`
   @media (max-width: 760px) {
     min-width: 120px;
     height: 38px;
-    font-size: 13px;
+    font-size: var(--font-sm);
   }
 `;
 
@@ -227,8 +227,8 @@ export const LandImageModalHeader = styled.div`
 
 export const LandImageModalTitle = styled.h3`
   margin: 0;
-  font-size: 20px;
-  font-weight: 900;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   letter-spacing: -0.05em;
 `;
 
@@ -236,17 +236,17 @@ export const LandImageModalClose = styled.button`
   border: 0;
   background: transparent;
   padding: 0;
-  font-size: 36px;
+  font-size: var(--font-3xl);
   line-height: 0.8;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   color: #000;
   cursor: pointer;
 `;
 
 export const LandImageModalMeta = styled.p`
   margin: 0;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: #555;
   word-break: keep-all;
 `;
@@ -254,8 +254,8 @@ export const LandImageModalMeta = styled.p`
 export const LandImageModalError = styled.p`
   margin: 0;
   color: #d92d20;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 export const LandImageModalSubmit = styled.button`
@@ -265,8 +265,8 @@ export const LandImageModalSubmit = styled.button`
   border-radius: 16px;
   background: #ffb000;
   color: #fff;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   cursor: pointer;
   margin-top: 0;
 

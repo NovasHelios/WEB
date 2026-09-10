@@ -13,7 +13,7 @@ export const SpecificBackdrop = styled.div`
   align-items: center;
   justify-content: center;
 
-  padding: 40px 32px;
+  padding: 16px;
   box-sizing: border-box;
 `;
 
@@ -28,20 +28,20 @@ export const Panel = styled.div`
   display: flex;
   flex-direction: column;
 
-  /* 팝업 박스 전체를 아래로 10px 이동 */
-  transform: translateY(20px);
+  /* 상세보기 팝업은 화면 중앙에 고정합니다. */
+  transform: translateY(0);
 `;
 
 // 팝업 상단 헤더 영역입니다.
 export const Header = styled.div`
-  padding: 28px 48px 20px;
+  padding: 16px;
 `;
 
 // 팝업 닫기 버튼입니다.
 export const CloseButton = styled.button`
   position: absolute;
-  top: 30px;
-  right: 34px;
+  top: 16px;
+  right: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -55,8 +55,10 @@ export const CloseButton = styled.button`
 
 // 상세보기 제목입니다.
 export const Title = styled.h2`
-  font-size: 34px;
-  line-height: 1.25;
+  margin: 12px 44px 12px 0;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-bold);
+  line-height: var(--line-tight);
 `;
 
 // 토지 태그 목록 영역입니다.
@@ -76,8 +78,8 @@ export const Tag = styled.span`
   border-radius: ${({ $soft }) => ($soft ? "999px" : "4px")};
   background: ${({ $soft }) => ($soft ? "#fff8de" : "#f1eeee")};
   color: ${({ $soft }) => ($soft ? "#bd9500" : "#4b5563")};
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-xs);
+  font-weight: var(--font-semibold);
 `;
 
 // 팝업 본문 스크롤 영역입니다.
@@ -85,14 +87,14 @@ export const MainContent = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 28px 48px 40px;
+  padding: 16px;
 `;
 
 // 상단 이미지, 정보, 위치 카드 그리드입니다.
 export const DetailGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(260px, 1.25fr) minmax(240px, 1fr) 190px;
-  gap: 22px;
+  gap: 16px;
   align-items: start;
 `;
 
@@ -139,8 +141,8 @@ export const ImageCounter = styled.span`
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.94);
   color: #111111;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // 썸네일 목록입니다.
@@ -181,18 +183,19 @@ export const MetaTable = styled.div`
 // 정보 한 줄입니다.
 export const InfoRow = styled.div`
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 20px;
-  min-height: 52px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 40px;
   align-items: center;
   border-bottom: 1px solid #eeeeee;
   color: #6b7280;
-  font-size: 14px;
+  font-size: var(--font-sm);
 
   strong {
     min-width: 0;
     color: #111827;
-    font-weight: 500;
+    font-size: var(--font-md);
+    font-weight: var(--font-semibold);
     line-height: 1.45;
     text-align: right;
     white-space: nowrap;
@@ -222,12 +225,12 @@ export const LocationTitle = styled.div`
   justify-content: center;
   height: 44px;
   color: #111827;
-  font-size: 14px;
+  font-size: var(--font-sm);
 `;
 
 // 문서 영역입니다.
 export const DocumentSection = styled.section`
-  margin-top: 28px;
+  margin-top: 16px;
 `;
 
 // 섹션 제목입니다.
@@ -235,26 +238,26 @@ export const SectionTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: #111827;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--font-lg);
+  font-weight: var(--font-semibold);
 `;
 
 // 문서 카드 그리드입니다.
 export const DocumentGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 `;
 
 // 문서 카드입니다.
 export const DocumentCard = styled.a`
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   min-height: 74px;
-  padding: 14px 16px;
+  padding: 12px;
   border: 1px solid #eeeeee;
   border-radius: 8px;
   background: #ffffff;
@@ -265,15 +268,15 @@ export const DocumentCard = styled.a`
   strong {
     display: block;
     color: #111827;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
   }
 
   span {
     display: block;
     margin-top: 4px;
     color: #6b7280;
-    font-size: 12px;
+    font-size: var(--font-xs);
   }
 `;
 
@@ -293,7 +296,7 @@ export const DocumentIconBox = styled.div`
 export const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 16px;
   margin-top: 12px;
 `;
 
@@ -305,7 +308,7 @@ export const InfoColumn = styled.div`
 
 // 기본 정보 카드입니다.
 export const InfoCard = styled.section`
-  padding: 18px;
+  padding: 16px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;
@@ -319,7 +322,7 @@ export const InfoList = styled.div`
 
 // 분석 카드입니다.
 export const AnalysisCard = styled.section`
-  padding: 18px;
+  padding: 16px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;
@@ -333,14 +336,14 @@ export const ScoreBadge = styled.span`
   border-radius: 6px;
   background: #f0fdf4;
   color: #16a34a;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // 분석 항목 목록입니다.
 export const AnalysisGrid = styled.div`
   display: grid;
-  gap: 14px;
+  gap: 12px;
 `;
 
 // 분석 항목입니다.
@@ -352,7 +355,7 @@ export const AnalysisItem = styled.div`
   align-items: center;
   padding-bottom: 13px;
   color: #6b7280;
-  font-size: 13px;
+  font-size: var(--font-sm);
 
   &::before,
   &::after {
@@ -376,21 +379,21 @@ export const AnalysisItem = styled.div`
 
   strong {
     color: #111827;
-    font-size: 13px;
+    font-size: var(--font-sm);
   }
 `;
 
 // 아직 지원하지 않는 기능을 표시하는 붉은 문구입니다.
 export const UnsupportedText = styled.strong`
   color: #ef4444;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 // AI 의견 카드입니다.
 export const AiOpinion = styled.section`
-  margin-top: 28px;
-  padding: 24px;
+  margin-top: 16px;
+  padding: 16px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;
@@ -402,7 +405,7 @@ export const AiOpinion = styled.section`
   p {
     margin: 0;
     color: #111827;
-    font-size: 15px;
+    font-size: var(--font-sm);
     line-height: 1.75;
     white-space: pre-wrap;
   }

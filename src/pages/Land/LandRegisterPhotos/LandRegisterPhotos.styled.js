@@ -47,9 +47,9 @@ export const PhotosHeaderLogo = styled.div`
 `;
 
 export const PhotosHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -81,7 +81,7 @@ export const PhotosHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -109,9 +109,9 @@ export const PhotosHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -188,14 +188,14 @@ export const PhotosSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 48px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const PhotosSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -211,8 +211,8 @@ export const PhotosCard = styled.section`
 
 export const PhotosCardTitle = styled.h2`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #202020;
 `;
 
@@ -225,14 +225,14 @@ export const PhotosCardHeader = styled.div`
 
 export const PhotosCardSubtext = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #6f6f6f;
 `;
 
 export const PhotosCardLabel = styled.p`
   margin: 0 0 14px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #7d7d7d;
 `;
 
@@ -249,7 +249,7 @@ export const PhotosCardRow = styled.div`
 
 export const PhotosUploadCaption = styled.p`
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #6b5b3a;
   white-space: nowrap;
@@ -285,7 +285,7 @@ export const PhotosThumbBadge = styled.span`
   border-radius: 2px;
   background: rgba(255, 248, 225, 0.9);
   color: #574c2d;
-  font-size: 11px;
+  font-size: var(--font-xs);
   line-height: 1;
 `;
 
@@ -303,7 +303,7 @@ export const PhotosThumbPlaceholder = styled.div`
 `;
 
 export const PhotosThumbText = styled.span`
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.2;
   color: #4b4b4b;
 `;
@@ -331,7 +331,7 @@ export const PhotosDropboxIcon = styled.span`
 `;
 
 export const PhotosDropboxHint = styled.span`
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.2;
   color: #5e5e5e;
 `;
@@ -379,27 +379,27 @@ export const PhotosDocInputRow = styled.div`
 
 export const PhotosDocTitle = styled.h3`
   margin: 0;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   color: #222;
 `;
 
 export const PhotosDocBadge = styled.span`
   margin-left: 6px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: #7f6a2d;
 `;
 
 export const PhotosDocText = styled.p`
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.5;
   color: #6f6f6f;
 `;
 
 export const PhotosDocName = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #222;
 `;
@@ -410,7 +410,7 @@ export const PhotosDocAction = styled.button`
   border: 1px solid #d8c39d;
   background: #fff;
   color: #5b4e28;
-  font-size: 12px;
+  font-size: var(--font-xs);
   padding: 0 10px;
   box-sizing: border-box;
   cursor: default;
@@ -419,7 +419,7 @@ export const PhotosDocAction = styled.button`
 export const PhotosDocSize = styled.span`
   grid-column: 3;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: #a07a09;
   justify-self: end;
 `;
@@ -427,7 +427,7 @@ export const PhotosDocSize = styled.span`
 export const PhotosDocStatus = styled.span`
   grid-column: 3;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: #8b8b8b;
   justify-self: end;
 `;
@@ -436,7 +436,7 @@ export const PhotosFooterNote = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.55;
   color: #6e5a25;
   margin-top: 10px;
@@ -466,8 +466,8 @@ export const PhotosPrimaryButton = styled.button`
   padding: 0 20px;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -491,7 +491,7 @@ export const PhotosPrimaryButton = styled.button`
       background: #fff;
       color: #d6a81b;
       border: 1px solid #d6a81b;
-      font-size: 15px;
+      font-size: var(--font-sm);
     `}
 `;
 
@@ -528,8 +528,8 @@ export const PhotosStepWrapper = styled.section`
 
 export const PhotosSideCardTitle = styled.h3`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -569,7 +569,7 @@ export const PhotosStepCircle = styled.div`
 export const PhotosStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? "#b98d00" : "#666")};
@@ -578,7 +578,7 @@ export const PhotosStepTitle = styled.h4`
 export const PhotosStepDesc = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -598,7 +598,7 @@ export const PhotosGuideText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 
@@ -622,7 +622,7 @@ export const PhotosGuideCard = styled.section`
 
 export const PhotosAddressHint = styled.p`
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #8d7852;
 `;
@@ -631,7 +631,7 @@ export const PhotosCountText = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: #8d7852;
 `;
 

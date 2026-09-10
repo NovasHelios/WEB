@@ -104,10 +104,10 @@ const LoginForm = () => {
             className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
           />
         </button>
-        <h1 className="mt-6 text-[56px] font-medium leading-none tracking-[-0.07em] text-[#1f1f1f] max-[640px]:text-[40px]">
+        <h1 className="mt-6 text-3xl font-medium leading-none tracking-[-0.07em] text-[#1f1f1f]">
           만나서 반갑습니다
         </h1>
-        <p className="mt-4 text-[18px] leading-7 text-[#6f6251] max-[640px]:text-base">
+        <p className="mt-4 text-lg leading-7 text-[#6f6251] max-[640px]:text-base">
           로그인하여 당신만의 엄선된 공간을 확인해 보세요.
         </p>
       </div>
@@ -132,7 +132,7 @@ const LoginForm = () => {
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-4 text-sm max-[640px]:flex-col max-[640px]:items-start">
-          <label className="flex items-center gap-3 text-[16px] text-[#3a352e]">
+          <label className="flex items-center gap-3 text-base text-[#3a352e]">
             <input
               type="checkbox"
               className="h-5 w-5 rounded-full border-[#9c8e74] text-[#d6a81b] focus:ring-[#d6a81b]"
@@ -153,7 +153,7 @@ const LoginForm = () => {
 
         <div className="mt-8 flex items-center gap-4 text-[#6f6251]">
           <div className="h-px flex-1 bg-[#e0d2b7]" />
-          <span className="whitespace-nowrap text-[15px]">또는 다음 계정으로 계속하기</span>
+          <span className="whitespace-nowrap text-sm">또는 다음 계정으로 계속하기</span>
           <div className="h-px flex-1 bg-[#e0d2b7]" />
         </div>
 
@@ -161,14 +161,14 @@ const LoginForm = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-12 min-w-[160px] items-center justify-center gap-2 border border-[#d9c9af] bg-white px-5 text-[15px] font-medium text-[#232323]"
+            className="flex h-12 min-w-[160px] items-center justify-center gap-2 border border-[#d9c9af] bg-white px-5 text-sm font-medium text-[#232323]"
           >
-            <span className="text-[17px] font-bold text-[#444]">G</span>
+            <span className="text-lg font-bold text-[#444]">G</span>
             Google
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[16px] text-[#5f5a52]">
+        <p className="mt-8 text-center text-base text-[#5f5a52]">
           아직 계정이 없으신가요?{" "}
           <a href="/signup" className="font-semibold text-[#b18600] underline underline-offset-4">
             회원가입

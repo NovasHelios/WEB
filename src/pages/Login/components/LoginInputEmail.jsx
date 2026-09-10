@@ -1,7 +1,7 @@
 const LoginEmailInput = ({ value, onChange, onKeyDown, disabled, error }) => {
   return (
     <div>
-      <label className="mb-3 block text-[14px] font-medium text-[#6a5c4a]">
+      <label className="mb-3 block text-sm font-medium text-[#6a5c4a]">
         이메일 / 아이디
       </label>
       <input
@@ -11,7 +11,7 @@ const LoginEmailInput = ({ value, onChange, onKeyDown, disabled, error }) => {
         onChange={onChange}
         onKeyDown={onKeyDown}
         disabled={disabled}
-        className={`w-full border-0 border-b-2 bg-transparent px-0 pb-3 text-[17px] text-[#2b2b2b] outline-none placeholder:text-[#beb7ae] disabled:opacity-50 ${
+        className={`w-full border-0 border-b-2 bg-transparent px-0 pb-3 text-lg text-[#2b2b2b] outline-none placeholder:text-[#beb7ae] disabled:opacity-50 ${
           error ? "border-b-red-400 text-red-600 placeholder:text-red-300" : "border-b-[#262626] focus:border-b-[#d6a81b]"
         }`}
       />

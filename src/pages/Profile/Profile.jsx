@@ -2,13 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
-import { authFetch, clearAccessToken, getValidAccessToken } from "@/lib/auth";
+import {
+  authFetch,
+  clearAccessToken,
+  getValidAccessToken,
+} from "@/lib/auth";
 import {
   ProfileActions,
   ProfileAvatar,
   ProfileAvatarPanel,
   ProfileButton,
   ProfileCard,
+  ProfileDialog,
+  ProfileDialogActions,
+  ProfileDialogBackdrop,
+  ProfileDialogHeader,
   ProfileField,
   ProfileForm,
   ProfileHeader,
@@ -63,6 +71,15 @@ const getProfileImagePath = (user) => {
   );
 };
 
+const formatPhoneNumber = (value) => {
+  // 전화번호는 숫자만 추출한 뒤 휴대폰 번호 형식으로 표시합니다.
+  const digits = String(value || "").replace(/[^\d]/g, "").slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+};
+
 function Profile() {
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
@@ -76,6 +93,8 @@ function Profile() {
   const [previewImage, setPreviewImage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editProfile, setEditProfile] = useState({ phone: "" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -111,7 +130,7 @@ function Profile() {
         setProfile({
           email: user.email || "",
           name: user.name || "",
-          phone: user.phone || "",
+          phone: formatPhoneNumber(user.phone),
           role: user.role || "",
           profileImagePath,
         });
@@ -127,18 +146,37 @@ function Profile() {
     void fetchProfile();
   }, [navigate]);
 
-  const handleChange = (field) => (event) => {
-    // 수정 가능한 프로필 입력값을 변경합니다.
-    setProfile((prev) => ({ ...prev, [field]: event.target.value }));
+  const handleEditChange = (field) => (event) => {
+    // 팝업 안에서만 수정용 프로필 입력값을 변경합니다.
+    const nextValue = field === "phone" ? formatPhoneNumber(event.target.value) : event.target.value;
+    setEditProfile((prev) => ({ ...prev, [field]: nextValue }));
     setMessage("");
+    setError("");
+  };
+
+  const handleOpenEdit = () => {
+    // 현재 프로필 값을 수정 팝업의 초기값으로 복사합니다.
+    setEditProfile({
+      phone: profile.phone,
+    });
+    setMessage("");
+    setError("");
+    setIsEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    // 저장 중에는 중복 동작을 막기 위해 팝업을 닫지 않습니다.
+    if (isSaving) return;
+    setIsEditOpen(false);
+    setEditProfile({ phone: "" });
     setError("");
   };
 
   const handleSave = async (event) => {
     event.preventDefault();
 
-    if (!profile.name.trim() || !profile.phone.trim()) {
-      setError("이름과 휴대폰 번호를 입력해주세요.");
+    if (!editProfile.phone.trim()) {
+      setError("휴대폰 번호를 입력해주세요.");
       return;
     }
 
@@ -151,8 +189,7 @@ function Profile() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: profile.name.trim(),
-          phone: profile.phone.trim(),
+          phone: formatPhoneNumber(editProfile.phone),
         }),
       });
       const contentType = response.headers.get("content-type") || "";
@@ -162,6 +199,12 @@ function Profile() {
         throw new Error(data?.message || data?.data?.message || "프로필 수정에 실패했습니다.");
       }
 
+      const nextProfile = {
+        phone: formatPhoneNumber(editProfile.phone),
+      };
+
+      setProfile((prev) => ({ ...prev, ...nextProfile }));
+      setIsEditOpen(false);
       setMessage("프로필이 저장되었습니다.");
     } catch (err) {
       setError(err.message || "프로필 수정에 실패했습니다.");
@@ -260,7 +303,7 @@ function Profile() {
             />
           </ProfileAvatarPanel>
 
-          <ProfileForm onSubmit={handleSave}>
+          <ProfileForm>
             <ProfileField>
               이메일
               <ProfileInput value={profile.email} disabled />
@@ -271,11 +314,17 @@ function Profile() {
             </ProfileField>
             <ProfileField>
               이름
-              <ProfileInput value={profile.name} onChange={handleChange("name")} disabled={isLoading || isSaving} />
+              <ProfileInput value={profile.name || "-"} disabled />
             </ProfileField>
             <ProfileField>
               휴대폰 번호
-              <ProfileInput value={profile.phone} onChange={handleChange("phone")} disabled={isLoading || isSaving} />
+              <ProfileInput
+                type="tel"
+                inputMode="numeric"
+                maxLength={13}
+                value={profile.phone}
+                disabled
+              />
             </ProfileField>
 
             {message ? <ProfileMessage>{message}</ProfileMessage> : null}
@@ -285,13 +334,58 @@ function Profile() {
               <ProfileButton type="button" $variant="outline" onClick={handleLogout}>
                 로그아웃
               </ProfileButton>
-              <ProfileButton type="submit" disabled={isLoading || isSaving}>
-                {isSaving ? "저장 중..." : "저장하기"}
+              <ProfileButton type="button" onClick={handleOpenEdit} disabled={isLoading || isSaving}>
+                수정하기
               </ProfileButton>
             </ProfileActions>
           </ProfileForm>
         </ProfileCard>
       </ProfileShell>
+
+      {isEditOpen ? (
+        <ProfileDialogBackdrop role="presentation" onMouseDown={handleCloseEdit}>
+          <ProfileDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-edit-title"
+            onMouseDown={(event) => event.stopPropagation()}
+            onSubmit={handleSave}
+          >
+            <ProfileDialogHeader>
+              <h2 id="profile-edit-title">프로필 수정</h2>
+              <p>휴대폰 번호를 수정할 수 있습니다.</p>
+            </ProfileDialogHeader>
+
+            <ProfileField>
+              이름
+              <ProfileInput value={profile.name || "-"} disabled />
+            </ProfileField>
+            <ProfileField>
+              휴대폰 번호
+              <ProfileInput
+                type="tel"
+                inputMode="numeric"
+                maxLength={13}
+                value={editProfile.phone}
+                onChange={handleEditChange("phone")}
+                disabled={isSaving}
+                autoFocus
+              />
+            </ProfileField>
+
+            {error ? <ProfileMessage $error>{error}</ProfileMessage> : null}
+
+            <ProfileDialogActions>
+              <ProfileButton type="button" $variant="outline" onClick={handleCloseEdit} disabled={isSaving}>
+                취소
+              </ProfileButton>
+              <ProfileButton type="submit" disabled={isSaving}>
+                {isSaving ? "저장 중..." : "저장하기"}
+              </ProfileButton>
+            </ProfileDialogActions>
+          </ProfileDialog>
+        </ProfileDialogBackdrop>
+      ) : null}
     </ProfilePage>
   );
 }

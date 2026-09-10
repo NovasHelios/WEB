@@ -35,9 +35,9 @@ export const LandRegisterTopLogo = styled.div`
 `;
 
 export const LandRegisterTopLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -69,7 +69,7 @@ export const LandRegisterHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -97,9 +97,9 @@ export const LandRegisterTopNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -185,14 +185,14 @@ export const LandRegisterSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 49px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const LandRegisterSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -209,8 +209,8 @@ export const LandRegisterCard = styled.section`
 
 export const LandRegisterCardTitle = styled.h2`
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
   color: #232323;
 `;
@@ -223,7 +223,7 @@ export const LandRegisterCardBody = styled.div`
 
 export const LandRegisterCardLabel = styled.p`
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.6;
   color: #6f7685;
   letter-spacing: -0.03em;
@@ -231,16 +231,16 @@ export const LandRegisterCardLabel = styled.p`
 
 export const LandRegisterPanelHeading = styled.h3`
   margin: 0;
-  font-size: 22px;
+  font-size: var(--font-xl);
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
   color: #2a2a2a;
 `;
 
 export const LandRegisterPanelSubtext = styled.p`
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #8d7852;
 `;
@@ -266,9 +266,9 @@ export const LandRegisterAddressInput = styled.input`
   background: transparent;
   padding: 0 0 12px;
   box-sizing: border-box;
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1.45;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   color: #2c2c2c;
   outline: none;
 
@@ -283,7 +283,7 @@ export const LandRegisterAddressInput = styled.input`
 
 export const LandRegisterAddressHelper = styled.p`
   margin: -4px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #8d7852;
 `;
@@ -295,8 +295,8 @@ export const LandRegisterStepBadge = styled.span`
   border-radius: 999px;
   background: rgba(214, 168, 27, 0.12);
   color: #b98d00;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 export const LandRegisterPrimaryButton = styled.button`
@@ -305,8 +305,8 @@ export const LandRegisterPrimaryButton = styled.button`
   border-radius: 0;
   background: #d6a81b;
   color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -366,8 +366,8 @@ export const LandRegisterVisualEmpty = styled.div`
   justify-content: center;
   gap: 10px;
   color: #666;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   text-align: center;
 `;
 
@@ -383,8 +383,8 @@ export const LandRegisterBottomButton = styled.button`
   border: 0;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -459,15 +459,15 @@ export const LandRegisterStepCircle = styled.div`
 `;
 
 export const LandRegisterStepCount = styled.span`
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
   line-height: 1;
 `;
 
 export const LandRegisterStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? "#b98d00" : "#666")};
@@ -476,7 +476,7 @@ export const LandRegisterStepTitle = styled.h4`
 export const LandRegisterStepText = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -496,7 +496,7 @@ export const LandRegisterSidebarText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 
@@ -519,7 +519,7 @@ export const LandRegisterHelpCard = styled.section`
 
 export const LandRegisterHelpText = styled.p`
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-sm);
   color: #666;
   text-align: center;
 `;

@@ -1,3 +1,71 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* 전역 폰트 기준입니다. */
+    --font-family-base: "Pretendard", "Noto Sans KR", sans-serif;
+
+    /* 전역 폰트 크기 단계입니다. */
+    --font-xs: 12px;
+    --font-sm: 14px;
+    --font-md: 16px;
+    --font-lg: 18px;
+    --font-xl: 24px;
+    --font-2xl: 32px;
+    --font-3xl: 40px;
+
+    /* 전역 폰트 굵기 단계입니다. */
+    --font-regular: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* 전역 줄 높이 단계입니다. */
+    --line-tight: 1.25;
+    --line-normal: 1.5;
+    --line-relaxed: 1.65;
+
+    /* 전역 배경 색상 기준입니다. */
+    --color-page-bg: #faf6ee;
+    --color-surface: #fffdf8;
+    --color-surface-soft: #fbfaf7;
+  }
+
+  html {
+    font-family: var(--font-family-base);
+    font-size: var(--font-md);
+    line-height: var(--line-normal);
+  }
+
+  body {
+    font-family: var(--font-family-base);
+    font-size: var(--font-md);
+    font-weight: var(--font-regular);
+    line-height: var(--line-normal);
+    background: var(--color-page-bg);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-base);
+    line-height: var(--line-tight);
+  }
+}

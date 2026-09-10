@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = "accessToken";
 const LOGIN_NOTICE_KEY = "loginNotice";
 const USER_DISPLAY_NAME_KEY = "userDisplayName";
+export const USER_DISPLAY_NAME_CHANGED_EVENT = "helios:user-display-name-changed";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
@@ -20,6 +21,7 @@ export const setStoredUserDisplayName = (name) => {
   const normalizedName = String(name || "").trim();
   if (!normalizedName) return;
   localStorage.setItem(USER_DISPLAY_NAME_KEY, normalizedName);
+  window.dispatchEvent(new CustomEvent(USER_DISPLAY_NAME_CHANGED_EVENT, { detail: normalizedName }));
 };
 
 export const markLoginNotice = () => {

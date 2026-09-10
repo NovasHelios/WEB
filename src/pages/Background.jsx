@@ -27,8 +27,8 @@ const LoginNotice = styled.div`
   border-radius: 999px;
   background: #fffdf6;
   color: #6f5200;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   box-shadow: 0 10px 30px rgba(61, 45, 12, 0.14);
 `;
 

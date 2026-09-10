@@ -45,14 +45,14 @@ const CloseButton = styled.button`
   border: 0;
   background: transparent;
   padding: 0;
-  font-size: 40px;
+  font-size: var(--font-3xl);
   line-height: 0.8;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   color: #000;
   cursor: pointer;
 
   @media (max-width: 760px) {
-    font-size: 48px;
+    font-size: var(--font-3xl);
   }
 `;
 
@@ -71,14 +71,14 @@ const Field = styled.label`
 const FieldTitle = styled.span`
   display: inline-flex;
   width: fit-content;
-  font-size: 20px;
+  font-size: var(--font-xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   color: #1a1a1a;
   letter-spacing: -0.05em;
 
   @media (max-width: 760px) {
-    font-size: 18px;
+    font-size: var(--font-lg);
   }
 `;
 
@@ -90,21 +90,21 @@ const TextInput = styled.input`
   background: #f4f4f4;
   padding: 0 18px;
   box-sizing: border-box;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
   color: #111;
   outline: none;
 
   &::placeholder {
     color: #8f8f8f;
-    font-weight: 800;
+    font-weight: var(--font-bold);
   }
 
   @media (max-width: 760px) {
     height: 58px;
     border-radius: 16px;
     padding: 0 14px;
-    font-size: 15px;
+    font-size: var(--font-sm);
   }
 `;
 
@@ -116,8 +116,8 @@ const TextArea = styled.textarea`
   background: #f4f4f4;
   padding: 16px 18px;
   box-sizing: border-box;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
   color: #111;
   outline: none;
   resize: none;
@@ -125,14 +125,14 @@ const TextArea = styled.textarea`
 
   &::placeholder {
     color: #8f8f8f;
-    font-weight: 800;
+    font-weight: var(--font-bold);
   }
 
   @media (max-width: 760px) {
     min-height: 84px;
     border-radius: 16px;
     padding: 14px 14px;
-    font-size: 15px;
+    font-size: var(--font-sm);
   }
 `;
 
@@ -149,8 +149,8 @@ const ToggleButton = styled.button`
   border-radius: 16px;
   background: ${({ $active }) => ($active ? "#fff8e6" : "#f4f4f4")};
   color: ${({ $active }) => ($active ? "#b07d00" : "#555")};
-  font-size: 16px;
-  font-weight: 900;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
   cursor: pointer;
   transition: all 0.15s ease;
 
@@ -160,7 +160,7 @@ const ToggleButton = styled.button`
 
   @media (max-width: 760px) {
     height: 50px;
-    font-size: 15px;
+    font-size: var(--font-sm);
   }
 `;
 
@@ -184,8 +184,8 @@ const ImageUploadButton = styled.button`
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: #6b7280;
   transition: all 0.15s ease;
 
@@ -233,8 +233,8 @@ const RemoveImageButton = styled.button`
   border: 0;
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 13px;
-  font-weight: 900;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -244,8 +244,8 @@ const RemoveImageButton = styled.button`
 
 const ImageCountHint = styled.p`
   margin: 0;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: ${({ $error }) => ($error ? "#d92d20" : "#6b7280")};
 `;
 
@@ -262,8 +262,8 @@ const DocumentUploadButton = styled.button`
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: #111;
 
   &:hover {
@@ -283,8 +283,8 @@ const RegisterButton = styled.button`
   border-radius: 16px;
   background: #ffb000;
   color: #fff;
-  font-size: 22px;
-  font-weight: 900;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   cursor: pointer;
   margin-top: 8px;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.05);
@@ -302,15 +302,15 @@ const RegisterButton = styled.button`
   @media (max-width: 760px) {
     height: 56px;
     border-radius: 14px;
-    font-size: 18px;
+    font-size: var(--font-lg);
   }
 `;
 
 const ErrorText = styled.p`
   margin: 0;
   color: #d92d20;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 const HiddenInput = styled.input`

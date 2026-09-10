@@ -45,9 +45,9 @@ export const DetailHeaderLogo = styled.div`
 `;
 
 export const DetailHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -79,7 +79,7 @@ export const DetailHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -107,9 +107,9 @@ export const DetailHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -186,14 +186,14 @@ export const DetailSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 48px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const DetailSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -208,15 +208,15 @@ export const DetailTextareaCard = styled.section`
 
 export const DetailTextareaCardHeader = styled.h2`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
 `;
 
 export const DetailTextareaLabel = styled.span`
   display: inline-flex;
   margin-top: 16px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: #8d8d8d;
 `;
 
@@ -237,7 +237,7 @@ export const DetailTextarea = styled.textarea`
   box-sizing: border-box;
   resize: none;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.8;
   color: #2c2c2c;
 
@@ -249,7 +249,7 @@ export const DetailTextarea = styled.textarea`
 export const DetailTextareaCount = styled.p`
   margin: 10px 0 0;
   text-align: right;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: #8d7852;
 `;
 
@@ -257,7 +257,7 @@ export const DetailTopNote = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.55;
   color: #6e5a25;
   margin-top: 10px;
@@ -287,8 +287,8 @@ export const DetailPrimaryButton = styled.button`
   padding: 0 20px;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -312,7 +312,7 @@ export const DetailPrimaryButton = styled.button`
       background: #fff;
       color: #d6a81b;
       border: 1px solid #d6a81b;
-      font-size: 15px;
+      font-size: var(--font-sm);
     `}
 `;
 
@@ -349,8 +349,8 @@ export const DetailStepWrapper = styled.section`
 
 export const DetailSideCardTitle = styled.h3`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -390,7 +390,7 @@ export const DetailStepCircle = styled.div`
 export const DetailStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? "#b98d00" : "#666")};
@@ -399,7 +399,7 @@ export const DetailStepTitle = styled.h4`
 export const DetailStepDesc = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -419,7 +419,7 @@ export const DetailGuideText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 
