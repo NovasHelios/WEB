@@ -26,9 +26,9 @@ export const RegisterHeaderLogo = styled.div`
 `;
 
 export const RegisterHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -60,7 +60,7 @@ export const RegisterHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -94,9 +94,9 @@ export const RegisterHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -149,14 +149,14 @@ export const RegisterSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 48px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const RegisterSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -168,8 +168,8 @@ export const RegisterPrimaryButton = styled.button`
   padding: 0 20px;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -193,7 +193,7 @@ export const RegisterPrimaryButton = styled.button`
       background: #fff;
       color: #d6a81b;
       border: 1px solid #d6a81b;
-      font-size: 15px;
+      font-size: var(--font-sm);
     `}
 `;
 

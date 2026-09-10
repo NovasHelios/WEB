@@ -2,14 +2,14 @@ import styled from "styled-components";
 
 export const FavoritesPage = styled.div`
   min-height: 100vh;
-  background: #fff;
+  background: var(--color-page-bg);
   color: #232323;
 `;
 
 export const FavoritesShell = styled.main`
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 22px 24px 40px;
+  padding: 16px;
   box-sizing: border-box;
 `;
 
@@ -17,20 +17,20 @@ export const FavoritesHeader = styled.section`
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 `;
 
 export const FavoritesTitle = styled.h1`
   margin: 0;
-  font-size: clamp(32px, 2.8vw, 48px);
-  line-height: 1.1;
-  font-weight: 500;
+  font-size: var(--font-2xl);
+  line-height: var(--line-tight);
+  font-weight: var(--font-bold);
   letter-spacing: -0.05em;
 `;
 
 export const FavoritesDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.6;
   color: #6a6a6a;
 `;
@@ -39,9 +39,9 @@ export const FavoritesToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   flex-wrap: wrap;
-  margin: 18px 0 14px;
+  margin: 16px 0 12px;
 `;
 
 export const FavoritesFilterRow = styled.div`
@@ -56,19 +56,19 @@ export const FavoritesFilterButton = styled.button`
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid ${({ $active }) => ($active ? "#9b7400" : "#d9c9af")};
-  background: ${({ $active }) => ($active ? "#9b7400" : "#fff")};
+  background: ${({ $active }) => ($active ? "#9b7400" : "var(--color-surface)")};
   color: ${({ $active }) => ($active ? "#fff" : "#5f5a52")};
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
 `;
 
 export const FavoritesSort = styled.div`
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   color: #4b4b4b;
-  font-size: 15px;
+  font-size: var(--font-sm);
 `;
 
 export const FavoritesSortCount = styled.span`
@@ -82,7 +82,7 @@ export const FavoritesSortLabel = styled.button`
   border: 0;
   background: transparent;
   padding: 0;
-  font-size: 15px;
+  font-size: var(--font-sm);
   color: #232323;
   cursor: pointer;
 `;
@@ -94,18 +94,18 @@ export const FavoritesList = styled.div`
 `;
 
 export const FavoritesEmpty = styled.div`
-  padding: 72px 0;
+  padding: 16px 0;
   text-align: center;
   color: #6a6a6a;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--font-lg);
+  font-weight: var(--font-semibold);
 `;
 
 export const FavoritesItem = styled.article`
   display: grid;
   grid-template-columns: 312px minmax(0, 1fr) auto;
-  gap: 22px;
-  padding: 18px 0 20px;
+  gap: 16px;
+  padding: 16px 0;
   border-bottom: 1px solid #eee;
   align-items: stretch;
 
@@ -142,8 +142,8 @@ export const FavoritesBadge = styled.span`
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
   color: #9b7400;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -166,15 +166,15 @@ export const FavoritesHeart = styled.button`
 export const FavoritesContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   padding-top: 8px;
 `;
 
 export const FavoritesAddress = styled.h2`
   margin: 0;
-  font-size: 24px;
+  font-size: var(--font-lg);
   line-height: 1.35;
-  font-weight: 500;
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
   color: #222;
 `;
@@ -182,7 +182,7 @@ export const FavoritesAddress = styled.h2`
 export const FavoritesMetaGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px 24px;
+  gap: 12px 16px;
 
   @media (max-width: 980px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -199,19 +199,19 @@ export const FavoritesMetaLabel = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #6f6f6f;
 `;
 
 export const FavoritesMetaValue = styled.div`
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.45;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   color: ${({ $highlight }) => ($highlight ? "#9b7400" : "#2a2a2a")};
 `;
 
 export const FavoritesMetaSub = styled.div`
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: #727272;
 `;
 
@@ -226,7 +226,7 @@ export const FavoritesInfoRow = styled.div`
 
 export const FavoritesDate = styled.p`
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-sm);
   color: #6a6a6a;
 `;
 
@@ -236,10 +236,10 @@ export const FavoritesButton = styled.button`
   padding: 0 18px;
   border: 1px solid #d8aa1f;
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
   color: #9b7400;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
 `;
 
@@ -248,7 +248,7 @@ export const FavoritesPagination = styled.div`
   justify-content: center;
   align-items: center;
   gap: 10px;
-  margin-top: 26px;
+  margin-top: 16px;
 `;
 
 export const FavoritesPageButton = styled.button`
@@ -256,9 +256,9 @@ export const FavoritesPageButton = styled.button`
   height: 40px;
   border-radius: 12px;
   border: 1px solid #d9c9af;
-  background: ${({ $active }) => ($active ? "#9b7400" : "#fff")};
+  background: ${({ $active }) => ($active ? "#9b7400" : "var(--color-surface)")};
   color: ${({ $active }) => ($active ? "#fff" : "#606060")};
-  font-size: 15px;
+  font-size: var(--font-sm);
   cursor: pointer;
 
   &:disabled {

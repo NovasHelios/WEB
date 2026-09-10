@@ -35,9 +35,9 @@ export const CompleteHeaderLogo = styled.div`
 `;
 
 export const CompleteHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -69,7 +69,7 @@ export const CompleteHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -99,9 +99,9 @@ export const CompleteHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -189,7 +189,7 @@ export const CompleteHeroIcon = styled.div`
 export const CompleteHeroTitle = styled.h1`
   margin: 0;
   font-size: clamp(28px, 2.8vw, 40px);
-  font-weight: 500;
+  font-weight: var(--font-medium);
   line-height: 1.2;
   letter-spacing: -0.04em;
   color: #202020;
@@ -197,7 +197,7 @@ export const CompleteHeroTitle = styled.h1`
 
 export const CompleteHeroSubTitle = styled.p`
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1.4;
   color: #6a5e4a;
 `;
@@ -217,8 +217,8 @@ export const CompleteChoiceButton = styled.button`
   border: 1px solid #232323;
   background: #fff;
   color: #222;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   padding: 0 18px;
   cursor: pointer;
   box-sizing: border-box;
@@ -249,8 +249,8 @@ export const CompleteSummaryHeader = styled.div`
 
 export const CompleteCardSectionTitle = styled.h2`
   margin: 0;
-  font-size: 28px;
-  font-weight: 500;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -297,7 +297,7 @@ export const CompleteCardImageBadge = styled.span`
   border: 1px solid #d6a81b;
   color: #a57b00;
   background: #fff8de;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1;
 `;
 
@@ -322,14 +322,14 @@ export const CompleteCardImageInner = styled.div`
 
 export const CompleteCardImageLabel = styled.p`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #30411f;
 `;
 
 export const CompleteCardImageCaption = styled.p`
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: #3f4e34;
 `;
 
@@ -338,7 +338,7 @@ export const CompleteCardButton = styled.button`
   border: 1px solid #d6a81b;
   background: #fff;
   color: #a07a06;
-  font-size: 16px;
+  font-size: var(--font-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -372,13 +372,13 @@ export const CompleteCardInfoItem = styled.div`
 
 export const CompleteCardInfoLabel = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #6f6f6f;
 `;
 
 export const CompleteCardInfoValue = styled.p`
   margin: 0;
-  font-size: 20px;
+  font-size: var(--font-xl);
   line-height: 1.4;
   color: ${({ $emphasis }) => ($emphasis ? "#8b6a00" : "#2f2f2f")};
   font-weight: ${({ $emphasis }) => ($emphasis ? 700 : 500)};
@@ -393,7 +393,7 @@ export const CompleteCardStatus = styled.span`
   border: 1px solid #83d94d;
   border-radius: 999px;
   color: #61b71b;
-  font-size: 14px;
+  font-size: var(--font-sm);
   background: #f6fff1;
 `;
 
@@ -411,8 +411,8 @@ export const CompleteRecommendCard = styled.section`
 
 export const CompleteRecommendTitle = styled.h3`
   margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
 `;
 
@@ -422,7 +422,7 @@ export const CompleteRecommendButton = styled.button`
   border: 1px solid #d6a81b;
   background: #fff;
   color: #7f6000;
-  font-size: 15px;
+  font-size: var(--font-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,7 +446,7 @@ export const CompleteButton = styled.button`
   padding: 0 16px;
   background: #d6a81b;
   color: #fff;
-  font-size: 15px;
+  font-size: var(--font-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;

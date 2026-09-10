@@ -11,8 +11,8 @@ export const WorkflowSidebarCard = styled.section`
 
 export const WorkflowSidebarTitle = styled.h3`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -55,15 +55,15 @@ export const WorkflowSidebarStepCircle = styled.div`
 `;
 
 export const WorkflowSidebarStepCount = styled.span`
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
   line-height: 1;
 `;
 
 export const WorkflowSidebarStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? "#b98d00" : "#666")};
@@ -72,7 +72,7 @@ export const WorkflowSidebarStepTitle = styled.h4`
 export const WorkflowSidebarStepDesc = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -102,7 +102,7 @@ export const WorkflowSidebarText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 
@@ -115,7 +115,7 @@ export const WorkflowSidebarText = styled.p`
 
 export const WorkflowSidebarHelpText = styled.p`
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-sm);
   color: #666;
   text-align: center;
 `;

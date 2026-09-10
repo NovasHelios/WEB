@@ -1,5 +1,5 @@
-// 라우터 이동 기능을 사용하기 위한 훅입니다.
-import { useNavigate } from "react-router-dom";
+// 라우터 이동 기능과 현재 경로 확인을 위한 훅입니다.
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 // 로그인 토큰 확인을 위한 인증 유틸입니다.
@@ -8,6 +8,7 @@ import {
   getStoredUserDisplayName,
   getValidAccessToken,
   setStoredUserDisplayName,
+  USER_DISPLAY_NAME_CHANGED_EVENT,
 } from "@/lib/auth";
 import { Api } from "@/contents/apiEndpoints";
 
@@ -60,6 +61,7 @@ const NavBar = ({
 }) => {
   // 페이지 이동을 위해 navigate를 준비합니다.
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   // 추천 리스트에서 강조할 시도명을 계산합니다.
   const sidoName = normalizeSido?.(keyword) || keyword;
@@ -69,6 +71,13 @@ const NavBar = ({
   const [displayName, setDisplayName] = useState(() => formatDisplayName(getStoredUserDisplayName()));
 
   useEffect(() => {
+    const handleDisplayNameChange = (event) => {
+      // 프로필 수정 직후 navbar 이름을 즉시 갱신합니다.
+      setDisplayName(formatDisplayName(event.detail || getStoredUserDisplayName()));
+    };
+
+    window.addEventListener(USER_DISPLAY_NAME_CHANGED_EVENT, handleDisplayNameChange);
+
     const fetchUserName = async () => {
       // 로그인 상태일 때만 사용자 이름을 가져옵니다.
       if (!isLoggedIn) {
@@ -94,6 +103,10 @@ const NavBar = ({
     };
 
     void fetchUserName();
+
+    return () => {
+      window.removeEventListener(USER_DISPLAY_NAME_CHANGED_EVENT, handleDisplayNameChange);
+    };
   }, [isLoggedIn]);
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.
@@ -108,13 +121,39 @@ const NavBar = ({
     navigate("/login");
   };
 
-  // 아직 기능이 없는 상단 메뉴는 화면 디자인만 유지합니다.
+  // 현재 페이지와 연결되는 상단 메뉴 목록입니다.
   const menuItems = [
-    { label: "지도 검색", icon: Map, url: "/" },
-    { label: "내 공간", icon: Mountain, url: "/space" },
-    { label: "관심 토지", icon: Heart, url: "/land/favorites" },
-    { label: "사업 연결", icon: Handshake, url: "/business-connections" },
+    { label: "지도 검색", icon: Map, url: "/", activePaths: ["/", "/land"] },
+    {
+      label: "내 공간",
+      icon: Mountain,
+      url: "/space",
+      activePaths: ["/space", "/land/register"],
+    },
+    { label: "관심 토지", icon: Heart, url: "/land/favorites", activePaths: ["/land/favorites"] },
+    {
+      label: "사업 연결",
+      icon: Handshake,
+      url: "/business-connections",
+      activePaths: ["/business-connections"],
+    },
   ];
+
+  const isMenuActive = (activePaths) => {
+    // 등록 단계처럼 하위 경로가 있는 페이지도 같은 메뉴로 표시합니다.
+    return activePaths.some((path) => {
+      if (pathname === path) return true;
+
+      // 지도 검색용 /land는 관심 토지 하위 경로와 겹치지 않게 정확히 일치할 때만 씁니다.
+      if (path === "/" || path === "/land") return false;
+
+      return pathname.startsWith(`${path}/`);
+    });
+  };
+
+  const isChatActive = pathname === "/chat";
+  const isSettingsActive = pathname === "/settings";
+  const isProfileActive = pathname === "/profile";
 
   return (
     <>
@@ -211,24 +250,33 @@ const NavBar = ({
 
         {/* 오른쪽 메뉴 영역입니다. */}
         <nav className="flex h-full flex-shrink-0 items-center gap-7 text-sm font-medium text-[#555555]">
-          {/* 아직 연결되지 않은 기능들은 버튼 UI만 둡니다. */}
-          {menuItems.map(({ label, icon: Icon, url }) => (
+          {/* 현재 페이지와 일치하는 메뉴는 색상과 밑줄로 표시합니다. */}
+          {menuItems.map(({ label, icon: Icon, url, activePaths }) => {
+            const active = isMenuActive(activePaths);
+
+            return (
             <button
               key={label}
               type="button"
-              className="flex items-center gap-2 whitespace-nowrap"
+              className={`relative flex h-full items-center gap-2 whitespace-nowrap border-b-2 transition-colors ${
+                active
+                  ? "border-[#d49f00] text-[#a87900]"
+                  : "border-transparent text-[#555555] hover:text-[#a87900]"
+              }`}
+              aria-current={active ? "page" : undefined}
               onClick={() => {
                 // 상단 메뉴는 SPA 라우터로 화면을 이동합니다.
                 if (url) navigate(url);
               }}
             >
               {/* 메뉴별 아이콘입니다. */}
-              <Icon className="h-4 w-4 text-[#555555]" strokeWidth={1.9} />
+              <Icon className={`h-4 w-4 ${active ? "text-[#a87900]" : "text-[#555555]"}`} strokeWidth={1.9} />
 
               {/* 메뉴 텍스트입니다. */}
               <span>{label}</span>
             </button>
-          ))}
+            );
+          })}
 
           {/* 메뉴와 설정 영역을 나누는 구분선입니다. */}
           <div className="h-9 w-px bg-[#d8cfba]" />
@@ -237,28 +285,41 @@ const NavBar = ({
           <button
             type="button"
             onClick={() => navigate(isLoggedIn ? "/chat" : "/login")}
-            className="flex items-center justify-center h-9 w-9"
+            className={`flex h-9 w-9 items-center justify-center border-b-2 transition-colors ${
+              isChatActive ? "border-[#d49f00] text-[#a87900]" : "border-transparent text-[#555555] hover:text-[#a87900]"
+            }`}
             aria-label="채팅"
+            aria-current={isChatActive ? "page" : undefined}
           >
-            <MessageSquare className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
+            <MessageSquare className="h-5 w-5" strokeWidth={1.9} />
           </button>
 
           {/* 설정 버튼은 개발중 안내 화면으로 이동합니다. */}
           <button
             type="button"
             onClick={() => navigate("/settings")}
-            className="flex items-center justify-center h-9 w-9"
+            className={`flex h-9 w-9 items-center justify-center border-b-2 transition-colors ${
+              isSettingsActive
+                ? "border-[#d49f00] text-[#a87900]"
+                : "border-transparent text-[#555555] hover:text-[#a87900]"
+            }`}
             aria-label="설정"
+            aria-current={isSettingsActive ? "page" : undefined}
           >
-            <Settings className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
+            <Settings className="h-5 w-5" strokeWidth={1.9} />
           </button>
 
           {/* 로그인 상태를 텍스트로 명확하게 표시합니다. */}
           <button
             type="button"
             onClick={handleProfileClick}
-            className="flex h-9 min-w-[82px] items-center justify-center gap-2 rounded-full border border-[#d8cfba] bg-[#f8f8f8] px-4 text-sm font-bold text-[#5f4b20]"
+            className={`flex h-9 min-w-[82px] items-center justify-center gap-2 rounded-full border px-4 text-sm font-bold transition-colors ${
+              isProfileActive
+                ? "border-[#d49f00] bg-[#fff7da] text-[#a87900]"
+                : "border-[#d8cfba] bg-[#f8f8f8] text-[#5f4b20] hover:border-[#d49f00]"
+            }`}
             aria-label={isLoggedIn ? "프로필" : "로그인"}
+            aria-current={isProfileActive ? "page" : undefined}
           >
             {isLoggedIn ? (
               <span>{displayName ? `${displayName}님` : "내 프로필"}</span>

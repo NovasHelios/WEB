@@ -48,16 +48,16 @@ export const Card = styled.div`
 
 export const Title = styled.h1`
   margin: 0 0 28px;
-  font-size: 26px;
+  font-size: var(--font-xl);
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   letter-spacing: -0.05em;
   color: #222;
 `;
 
 export const Subtitle = styled.p`
   margin: 0 0 18px;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.6;
   color: #6f6251;
   text-align: center;
@@ -82,8 +82,8 @@ export const InputGroup = styled.div`
 `;
 
 export const Label = styled.label`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   color: #605442;
 `;
 
@@ -95,7 +95,7 @@ export const Input = styled.input`
   padding: 0 0 12px;
   box-sizing: border-box;
   outline: none;
-  font-size: 17px;
+  font-size: var(--font-lg);
   color: #303030;
 
   &::placeholder {
@@ -140,8 +140,8 @@ export const VerifyButton = styled.button`
   border: 1px solid #efc23a;
   background: #fff;
   color: #d6a81b;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
   flex: 0 0 auto;
 
@@ -153,7 +153,7 @@ export const VerifyButton = styled.button`
 
 export const ErrorMessage = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #c62828;
 `;
 
@@ -163,8 +163,8 @@ export const SubmitButton = styled.button`
   border: 0;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   cursor: pointer;
   margin-top: 10px;
 
@@ -180,15 +180,15 @@ export const GoogleButton = styled.button`
   border: 1px solid #e1cfb0;
   background: #fff;
   color: #252525;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
 `;
 
 export const BottomText = styled.p`
   margin: 22px 0 0;
   text-align: center;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #4f4a42;
 `;
 
@@ -196,8 +196,8 @@ export const BottomLink = styled.button`
   border: 0;
   background: transparent;
   color: #b48909;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  font-weight: var(--font-semibold);
   text-decoration: underline;
   text-underline-offset: 4px;
   cursor: pointer;

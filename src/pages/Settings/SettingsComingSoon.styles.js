@@ -47,12 +47,12 @@ export const SettingsIconBox = styled.div`
 // 설정 개발중 제목입니다.
 export const SettingsTitle = styled.h1`
   margin: 0;
-  font-size: 38px;
-  font-weight: 800;
+  font-size: var(--font-3xl);
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
 
   @media (max-width: 640px) {
-    font-size: 30px;
+    font-size: var(--font-2xl);
   }
 `;
 
@@ -61,7 +61,7 @@ export const SettingsDescription = styled.p`
   margin: 16px auto 0;
   max-width: 500px;
   color: #6f6658;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
 `;
 
@@ -85,7 +85,7 @@ export const SettingsButton = styled.button`
   border-radius: 8px;
   background: ${({ $variant }) => ($variant === "outline" ? "#ffffff" : "#d6a81b")};
   color: ${({ $variant }) => ($variant === "outline" ? "#8a6800" : "#111111")};
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;

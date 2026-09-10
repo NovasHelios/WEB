@@ -13,8 +13,8 @@ export const BreadcrumbWrap = styled.div`
   align-items: center;
   gap: 8px;
   color: #111111;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
 
   button {
     border: 0;
@@ -41,8 +41,8 @@ export const RegionGridWrap = styled.div`
     border-radius: 4px;
     background: #f3f4f6;
     color: #111111;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
     cursor: pointer;
   }
 
@@ -57,8 +57,8 @@ export const RegionGridWrap = styled.div`
 export const RegionMessage = styled.p`
   margin: 0;
   color: ${({ $error }) => ($error ? "#ef4444" : "#6b7280")};
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 // 지역 선택 저장 버튼입니다.
@@ -69,7 +69,7 @@ export const RegionSaveButton = styled.button`
   border-radius: 5px;
   background: #d2ad23;
   color: #111111;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
 `;

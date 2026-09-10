@@ -29,8 +29,8 @@ export const DetailHeader = styled.div`
 export const SectionLabel = styled.p`
   margin: 0;
   color: #a27000;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // 패널 닫기 버튼입니다.
@@ -50,8 +50,8 @@ export const CloseButton = styled.button`
 export const DetailTitle = styled.h2`
   margin: 6px 24px 18px;
   color: #111111;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   line-height: 1.35;
 `;
 
@@ -132,8 +132,8 @@ export const ImageCounter = styled.span`
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);
   color: #111111;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // 썸네일 목록입니다.
@@ -177,8 +177,8 @@ export const InfoTitle = styled.h3`
   gap: 8px;
   margin: 0 0 14px;
   color: #5f4100;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
 `;
 
 // 기본 정보 한 줄입니다.
@@ -189,7 +189,7 @@ export const InfoRow = styled.div`
   padding: 10px 0;
   border-top: 1px solid #ead8c3;
   color: #6b5b49;
-  font-size: 13px;
+  font-size: var(--font-sm);
 
   &:first-of-type {
     border-top: 0;
@@ -197,7 +197,7 @@ export const InfoRow = styled.div`
 
   strong {
     color: #111111;
-    font-weight: 500;
+    font-weight: var(--font-medium);
     text-align: right;
   }
 `;
@@ -205,8 +205,8 @@ export const InfoRow = styled.div`
 // 매매가 강조 텍스트입니다.
 export const PriceValue = styled.strong`
   color: #8a5a00 !important;
-  font-size: 22px;
-  font-weight: 800 !important;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold) !important;
 `;
 
 // AI 분석 카드입니다.
@@ -225,8 +225,8 @@ export const BetaBadge = styled.span`
   border-radius: 999px;
   background: #8a5a00;
   color: #ffffff;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // AI 수치 카드 그리드입니다.
@@ -247,16 +247,16 @@ export const AiMetric = styled.div`
   span {
     display: block;
     color: #6b5b49;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
   }
 
   strong {
     display: block;
     margin-top: 8px;
     color: #8a5a00;
-    font-size: 21px;
-    font-weight: 800;
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
   }
 `;
 
@@ -272,8 +272,8 @@ export const ActionBar = styled.div`
   p {
     margin: 0;
     color: #c2410c;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--font-xs);
+    font-weight: var(--font-bold);
   }
 `;
 
@@ -288,7 +288,7 @@ export const BookmarkButton = styled.button`
   border-radius: 7px;
   background: ${({ $active }) => ($active ? "#fff8dd" : "#ffffff")};
   color: ${({ $active }) => ($active ? "#8a5a00" : "#111111")};
-  font-size: 14px;
+  font-size: var(--font-sm);
   cursor: pointer;
 
   &:disabled {
@@ -304,7 +304,7 @@ export const ContactButton = styled.button`
   border-radius: 7px;
   background: #ffffff;
   color: #111111;
-  font-size: 14px;
+  font-size: var(--font-sm);
   cursor: pointer;
 
   &:disabled {

@@ -24,8 +24,8 @@ export const StaticMapEmpty = styled.div`
   padding: 24px;
   text-align: center;
   color: #6f6a5f;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
   background:
     radial-gradient(circle at 30% 55%, rgba(18, 84, 34, 0.24), transparent 18%),
     radial-gradient(circle at 60% 50%, rgba(47, 122, 52, 0.18), transparent 15%),

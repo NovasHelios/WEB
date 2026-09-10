@@ -10,14 +10,14 @@ const Wrapper = styled.div`
 const Label = styled.span`
   display: inline-flex;
   width: fit-content;
-  font-size: 20px;
+  font-size: var(--font-xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   color: #1a1a1a;
   letter-spacing: -0.05em;
 
   @media (max-width: 760px) {
-    font-size: 18px;
+    font-size: var(--font-lg);
   }
 `;
 
@@ -66,14 +66,14 @@ const TriggerText = styled.div`
 `;
 
 const Title = styled.span`
-  font-size: 16px;
-  font-weight: 900;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
 `;
 
 const FileName = styled.span`
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   color: #6f6f6f;
   white-space: nowrap;
   overflow: hidden;
@@ -82,8 +82,8 @@ const FileName = styled.span`
 
 const Chevron = styled.span`
   flex-shrink: 0;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   color: #111;
 `;
 
@@ -97,8 +97,8 @@ const LaterButton = styled.button`
   background: transparent;
   padding: 0;
   color: #6b7280;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;

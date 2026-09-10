@@ -47,9 +47,9 @@ export const ConditionHeaderLogo = styled.div`
 `;
 
 export const ConditionHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -81,7 +81,7 @@ export const ConditionHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -109,9 +109,9 @@ export const ConditionHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -188,14 +188,14 @@ export const ConditionSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 48px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const ConditionSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -218,8 +218,8 @@ export const ConditionButton = styled.button`
   border: 1px solid #111;
   background: #fff;
   color: #222;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   padding: 0 18px;
   cursor: pointer;
   box-sizing: border-box;
@@ -244,8 +244,8 @@ export const ConditionCard = styled.section`
 
 export const ConditionCardTitle = styled.h2`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #2a2a2a;
 `;
 
@@ -257,7 +257,7 @@ export const ConditionCardBottomLine = styled.div`
 
 export const ConditionCardLabel = styled.p`
   margin: 0 0 14px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #8a8a8a;
 `;
 
@@ -285,7 +285,7 @@ export const ConditionField = styled.div`
 `;
 
 export const ConditionFieldPrefix = styled.span`
-  font-size: 18px;
+  font-size: var(--font-lg);
   color: #566078;
   white-space: nowrap;
 `;
@@ -295,7 +295,7 @@ export const ConditionFieldValue = styled.input`
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1.4;
   color: #7a7a7a;
   padding: 0;
@@ -315,7 +315,7 @@ export const ConditionFieldValue = styled.input`
 
 export const ConditionCardSuffix = styled.span`
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #5f5f5f;
   margin-bottom: 3px;
 `;
@@ -324,7 +324,7 @@ export const ConditionTopNote = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.55;
   color: #6e5a25;
   margin-top: 10px;
@@ -354,8 +354,8 @@ export const ConditionPrimaryButton = styled.button`
   padding: 0 20px;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -379,7 +379,7 @@ export const ConditionPrimaryButton = styled.button`
       background: #fff;
       color: #d6a81b;
       border: 1px solid #d6a81b;
-      font-size: 15px;
+      font-size: var(--font-sm);
     `}
 `;
 
@@ -416,8 +416,8 @@ export const ConditionStepWrapper = styled.section`
 
 export const ConditionSideCardTitle = styled.h3`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -457,16 +457,16 @@ export const ConditionStepCircle = styled.div`
 export const ConditionStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   color: ${({ $completed }) => ($completed ? "#b98d00" : "#666")};
 `;
 
 export const ConditionStepDesc = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -486,7 +486,7 @@ export const ConditionGuideText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 

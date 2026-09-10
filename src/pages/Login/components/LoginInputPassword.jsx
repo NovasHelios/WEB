@@ -5,7 +5,7 @@ const LoginPasswordInput = ({ value, onChange, onKeyDown, disabled }) => {
 
   return (
     <div>
-      <label className="mb-3 block text-[14px] font-medium text-[#6a5c4a]">
+      <label className="mb-3 block text-sm font-medium text-[#6a5c4a]">
         비밀번호
       </label>
       <div className="relative">
@@ -16,7 +16,7 @@ const LoginPasswordInput = ({ value, onChange, onKeyDown, disabled }) => {
           onChange={onChange}
           onKeyDown={onKeyDown}
           disabled={disabled}
-          className="w-full border-0 border-b-2 border-b-[#262626] bg-transparent px-0 pb-3 pr-12 text-[17px] text-[#2b2b2b] outline-none placeholder:text-[#beb7ae] focus:border-b-[#d6a81b] disabled:opacity-50"
+          className="w-full border-0 border-b-2 border-b-[#262626] bg-transparent px-0 pb-3 pr-12 text-lg text-[#2b2b2b] outline-none placeholder:text-[#beb7ae] focus:border-b-[#d6a81b] disabled:opacity-50"
         />
         <button
           type="button"
