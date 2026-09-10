@@ -1,4 +1,4 @@
-import { ChevronDown, CalendarDays, Heart, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarDays, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
@@ -155,6 +155,25 @@ const getTransactionLabel = (value) => {
   return "매매";
 };
 
+const getEditTransactionType = (value, fallbackLabel) => {
+  // 서버 거래 방식 값을 수정 폼에서 쓰는 값으로 정규화합니다.
+  const normalized = String(value || fallbackLabel || "").toUpperCase();
+  if (normalized.includes("LEASE") || normalized.includes("RENT") || fallbackLabel === "임대") return "LEASE";
+  return "SALE";
+};
+
+const getEditFormFromLand = (land) => {
+  // 수정 모달에 기존 토지 값을 빠짐없이 채웁니다.
+  const raw = land.raw || land;
+
+  return {
+    address: raw.address || land.title || "",
+    desiredPrice: toManwonInput(raw.desiredPrice ?? raw.amount ?? raw.price),
+    description: raw.description || raw.memo || raw.content || "",
+    transactionType: getEditTransactionType(raw.transactionType || raw.status, land.tradeType),
+  };
+};
+
 const normalizeLand = (land, index) => {
   // 서버 응답을 카드에서 쓰기 좋은 형태로 정리합니다.
   const transactionType = land.transactionType || land.status || "SALE";
@@ -176,7 +195,6 @@ const normalizeLand = (land, index) => {
     date: formatDate(getCreatedDate(land)),
     tradeType: getTransactionLabel(transactionType),
     price: rawPrice ? formatPrice(rawPrice) : "-",
-    likes: land.wishCount ?? land.favoriteCount ?? 0,
     accent: accentPool[index % accentPool.length],
     imageUrl: resolveImageUrl(landImage),
     raw: land,
@@ -199,6 +217,7 @@ function MySpace() {
     transactionType: "SALE",
   });
   const [editError, setEditError] = useState("");
+  const [editLoadingId, setEditLoadingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
@@ -272,16 +291,33 @@ function MySpace() {
 
   const totalCount = useMemo(() => lands.length, [lands]);
 
-  const openEditModal = (land) => {
-    // 선택한 토지 정보를 수정 폼에 채웁니다.
-    setEditingLand(land);
-    setEditForm({
-      address: land.raw?.address || land.title || "",
-      desiredPrice: toManwonInput(land.raw?.desiredPrice ?? land.raw?.price),
-      description: land.raw?.description || "",
-      transactionType: land.raw?.transactionType || (land.tradeType === "임대" ? "LEASE" : "SALE"),
-    });
+  const openEditModal = async (land) => {
+    // 수정 시 기존 값 유지를 위해 단일 상세 정보를 먼저 조회합니다.
+    if (!land?.id || editLoadingId) return;
+
+    setEditLoadingId(land.id);
     setEditError("");
+
+    try {
+      const response = await authFetch(Api.Land(land.id), {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+      const detailRaw = response.ok ? data?.data : null;
+      const nextLand = detailRaw
+        ? { ...land, raw: { ...land.raw, ...detailRaw } }
+        : land;
+
+      setEditingLand(nextLand);
+      setEditForm(getEditFormFromLand(nextLand));
+    } catch {
+      setEditingLand(land);
+      setEditForm(getEditFormFromLand(land));
+    } finally {
+      setEditLoadingId(null);
+    }
   };
 
   const handleEditChange = (field) => (event) => {
@@ -308,7 +344,7 @@ function MySpace() {
         address: editForm.address.trim(),
         desiredPrice: editForm.desiredPrice
           ? toWonPrice(editForm.desiredPrice)
-          : null,
+          : editingLand.raw?.desiredPrice ?? editingLand.raw?.amount ?? editingLand.raw?.price ?? null,
         description: editForm.description.trim(),
         transactionType: editForm.transactionType,
       };
@@ -326,7 +362,8 @@ function MySpace() {
         throw new Error(data?.message || data?.data?.message || "토지를 수정하지 못했습니다.");
       }
 
-      const updatedLand = normalizeLand(data?.data || { ...editingLand.raw, ...payload }, 0);
+      const updatedRaw = { ...editingLand.raw, ...payload, ...(data?.data || {}) };
+      const updatedLand = normalizeLand(updatedRaw, 0);
       setLands((prev) =>
         prev.map((land) => (land.id === editingLand.id ? { ...updatedLand, accent: land.accent } : land))
       );
@@ -442,7 +479,6 @@ function MySpace() {
                     onClick={() => setActiveFilter(label)}
                   >
                     {label}
-                    <ChevronDown size={16} strokeWidth={2.5} />
                   </SpaceFilterButton>
                 ))}
               </SpaceFilterGroup>
@@ -534,12 +570,7 @@ function MySpace() {
                         </div>
                       </SpaceInfoRow>
 
-                      <SpaceCardFooter>
-                        <span className="inline-flex items-center gap-1 text-[#6a6458]">
-                          <Heart size={16} strokeWidth={2.2} />
-                          {item.likes}
-                        </span>
-                      </SpaceCardFooter>
+                      <SpaceCardFooter />
                     </div>
 
                     <SpaceActionColumn>
@@ -551,10 +582,10 @@ function MySpace() {
                         type="button"
                         $secondary
                         onClick={() => openEditModal(item)}
-                        disabled={savingId === item.id}
+                        disabled={savingId === item.id || editLoadingId === item.id}
                       >
                         <SquarePen size={15} strokeWidth={2.4} />
-                        수정
+                        {editLoadingId === item.id ? "불러오는 중" : "수정"}
                       </SpaceActionButton>
                       <SpaceActionButton
                         type="button"

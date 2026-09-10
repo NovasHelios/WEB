@@ -7,7 +7,7 @@ import LoginButton from "./LoginButton";
 import LoginError from "./LoginError";
 import logoImage from "@/images/logo.png";
 import { Api } from "@/contents/apiEndpoints";
-import { setAccessToken } from "@/lib/auth";
+import { markLoginNotice, setAccessToken, setStoredUserDisplayName } from "@/lib/auth";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -64,6 +64,8 @@ const LoginForm = () => {
       }
 
       setAccessToken(data.data.accessToken);
+      setStoredUserDisplayName(data.data.name || data.data.email);
+      markLoginNotice();
 
       const role = data.data.role;
 
@@ -79,6 +81,11 @@ const LoginForm = () => {
       // 요청 종료 - 로딩 OFF
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Google OAuth는 서버 인증 시작 URL로 이동합니다.
+    window.location.href = Api.googleLogin;
   };
 
   // 엔터키 입력 시 로그인 실행
@@ -153,6 +160,7 @@ const LoginForm = () => {
         <div className="flex justify-center mt-6">
           <button
             type="button"
+            onClick={handleGoogleLogin}
             className="flex h-12 min-w-[160px] items-center justify-center gap-2 border border-[#d9c9af] bg-white px-5 text-[15px] font-medium text-[#232323]"
           >
             <span className="text-[17px] font-bold text-[#444]">G</span>

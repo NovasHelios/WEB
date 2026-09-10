@@ -76,6 +76,9 @@ export const FavoritesSortCount = styled.span`
 `;
 
 export const FavoritesSortLabel = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
   background: transparent;
   padding: 0;
@@ -88,6 +91,14 @@ export const FavoritesList = styled.div`
   display: flex;
   flex-direction: column;
   border-top: 1px solid #e8e0d3;
+`;
+
+export const FavoritesEmpty = styled.div`
+  padding: 72px 0;
+  text-align: center;
+  color: #6a6a6a;
+  font-size: 18px;
+  font-weight: 600;
 `;
 
 export const FavoritesItem = styled.article`
@@ -249,4 +260,9 @@ export const FavoritesPageButton = styled.button`
   color: ${({ $active }) => ($active ? "#fff" : "#606060")};
   font-size: 15px;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 `;

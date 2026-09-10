@@ -20,6 +20,7 @@ import {
   FavoritesContent,
   FavoritesDate,
   FavoritesDescription,
+  FavoritesEmpty,
   FavoritesFilterButton,
   FavoritesFilterRow,
   FavoritesHeader,
@@ -52,6 +53,7 @@ const favoriteFilters = [
 ];
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+const ITEMS_PER_PAGE = 6;
 
 function LandFavorites() {
   const navigate = useNavigate();
@@ -59,6 +61,8 @@ function LandFavorites() {
   const [activeFilter, setActiveFilter] = useState("all");
   // 찜 목록 데이터
   const [wishes, setWishes] = useState([]);
+  // 찜 목록 정렬 상태
+  const [activeSort, setActiveSort] = useState("recent");
   // 로딩 상태
   const [isLoading, setIsLoading] = useState(false);
   // 에러 상태
@@ -69,7 +73,7 @@ function LandFavorites() {
   const [selectedLand, setSelectedLand] = useState(null);
   // 상세 정보 조회 중인 토지 ID입니다.
   const [detailLoadingId, setDetailLoadingId] = useState(null);
-  // 페이지네이션은 UI만 먼저 보여주는 상태
+  // 현재 목록 페이지
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchWishes = async () => {
@@ -135,9 +139,6 @@ function LandFavorites() {
     void fetchWishes();
   }, []);
 
-  // 로그인하지 않은 사용자는 에러 문구 대신 로그인 화면으로 바로 이동합니다.
-  if (!getValidAccessToken()) return null;
-
   const filteredWishes = useMemo(() => {
     if (activeFilter === "all") return wishes;
     return wishes.filter((wish) => {
@@ -147,6 +148,32 @@ function LandFavorites() {
       return true;
     });
   }, [activeFilter, wishes]);
+
+  const sortedWishes = useMemo(() => {
+    // 찜한 날짜 기준으로 최신순과 오래된순을 전환합니다.
+    const next = [...filteredWishes];
+    return next.sort((a, b) => {
+      const aTime = new Date(a.wishedAt || 0).getTime();
+      const bTime = new Date(b.wishedAt || 0).getTime();
+      return activeSort === "recent" ? bTime - aTime : aTime - bTime;
+    });
+  }, [activeSort, filteredWishes]);
+
+  const totalPages = Math.ceil(sortedWishes.length / ITEMS_PER_PAGE);
+
+  const paginatedWishes = useMemo(() => {
+    // 관심 토지 목록은 현재 페이지에 해당하는 항목만 표시합니다.
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedWishes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [currentPage, sortedWishes]);
+
+  useEffect(() => {
+    // 필터/정렬/목록 변경 시 비어있는 페이지에 머물지 않도록 첫 페이지로 돌립니다.
+    setCurrentPage(1);
+  }, [activeFilter, activeSort, wishes.length]);
+
+  // 로그인하지 않은 사용자는 에러 문구 대신 로그인 화면으로 바로 이동합니다.
+  if (!getValidAccessToken()) return null;
 
   const handleRemoveWish = async (wish) => {
     // 찜 해제
@@ -239,10 +266,13 @@ function LandFavorites() {
 
           <FavoritesSort>
             <FavoritesSortCount>총 {filteredWishes.length}건</FavoritesSortCount>
-            <FavoritesSortLabel type="button">
-              최근 저장순
+            <FavoritesSortLabel
+              type="button"
+              onClick={() => setActiveSort((prev) => (prev === "recent" ? "oldest" : "recent"))}
+            >
+              {activeSort === "recent" ? "최근 저장순" : "오래된 저장순"}
+              <ChevronDown size={18} strokeWidth={2} />
             </FavoritesSortLabel>
-            <ChevronDown size={18} strokeWidth={2} />
           </FavoritesSort>
         </FavoritesToolbar>
 
@@ -258,7 +288,7 @@ function LandFavorites() {
           <>
             {/* 관심 토지 카드 목록 */}
             <FavoritesList>
-              {filteredWishes.map((wish) => {
+              {paginatedWishes.map((wish) => {
                 const transactionLabel = getTransactionLabel(wish.transactionType);
 
                 return (
@@ -348,29 +378,45 @@ function LandFavorites() {
             </FavoritesList>
 
             {filteredWishes.length === 0 ? (
-              <div style={{ padding: "36px 0", textAlign: "center", color: "#6a6a6a" }}>
+              <FavoritesEmpty>
                 아직 찜한 토지가 없습니다.
-              </div>
+              </FavoritesEmpty>
             ) : null}
 
             {/* 페이지 이동 UI */}
-            <FavoritesPagination>
-              <FavoritesPageButton type="button" aria-label="이전 페이지" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}>
-                <ChevronLeft size={18} strokeWidth={2.3} />
-              </FavoritesPageButton>
-              <FavoritesPageButton type="button" $active={currentPage === 1} onClick={() => setCurrentPage(1)}>
-                1
-              </FavoritesPageButton>
-              <FavoritesPageButton type="button" $active={currentPage === 2} onClick={() => setCurrentPage(2)}>
-                2
-              </FavoritesPageButton>
-              <FavoritesPageButton type="button" $active={currentPage === 3} onClick={() => setCurrentPage(3)}>
-                3
-              </FavoritesPageButton>
-              <FavoritesPageButton type="button" aria-label="다음 페이지" onClick={() => setCurrentPage((prev) => prev + 1)}>
-                <ChevronRight size={18} strokeWidth={2.3} />
-              </FavoritesPageButton>
-            </FavoritesPagination>
+            {totalPages > 1 ? (
+              <FavoritesPagination>
+                <FavoritesPageButton
+                  type="button"
+                  aria-label="이전 페이지"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                >
+                  <ChevronLeft size={18} strokeWidth={2.3} />
+                </FavoritesPageButton>
+                {Array.from({ length: totalPages }, (_, index) => {
+                  const page = index + 1;
+                  return (
+                    <FavoritesPageButton
+                      key={page}
+                      type="button"
+                      $active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </FavoritesPageButton>
+                  );
+                })}
+                <FavoritesPageButton
+                  type="button"
+                  aria-label="다음 페이지"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                >
+                  <ChevronRight size={18} strokeWidth={2.3} />
+                </FavoritesPageButton>
+              </FavoritesPagination>
+            ) : null}
           </>
         )}
       </FavoritesShell>
