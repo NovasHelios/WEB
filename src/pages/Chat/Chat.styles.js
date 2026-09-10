@@ -12,6 +12,7 @@ export const ChatShell = styled.main`
   display: flex;
   height: calc(100vh - 72px);
   min-height: 620px;
+  overflow: hidden;
 `;
 
 // 채팅방 목록 패널입니다.
@@ -20,6 +21,7 @@ export const ChatSidebar = styled.aside`
   flex-shrink: 0;
   border-right: 1px solid #e4d9c7;
   background: #fbfaf7;
+  overflow: hidden;
 `;
 
 // 채팅방 목록 상단입니다.
@@ -58,6 +60,8 @@ export const ChatSearch = styled.div`
 export const ChatRoomList = styled.div`
   display: flex;
   flex-direction: column;
+  height: calc(100% - 146px);
+  overflow-y: auto;
 `;
 
 // 채팅방 목록 아이템입니다.
@@ -109,6 +113,7 @@ export const ChatEmpty = styled.div`
 export const ChatMain = styled.section`
   display: flex;
   flex: 1;
+  height: 100%;
   min-width: 0;
   flex-direction: column;
   background: #f8f5ef;
@@ -119,11 +124,16 @@ export const ChatRoomHeader = styled.header`
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
   margin: 16px;
   padding: 16px 28px;
   border: 1px solid #d6a81b;
   border-radius: 8px;
   background: #fffdf8;
+
+  > div {
+    min-width: 0;
+  }
 
   h2 {
     margin: 0;
@@ -144,46 +154,53 @@ export const ChatAvatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: ${({ $compact }) => ($compact ? "36px" : "48px")};
+  height: ${({ $compact }) => ($compact ? "36px" : "48px")};
+  flex-shrink: 0;
   border-radius: 50%;
   background: #f1e7c7;
   color: #9a7400;
+  font-size: ${({ $compact }) => ($compact ? "14px" : "16px")};
   font-weight: 800;
 `;
 
 // 메시지 목록 영역입니다.
 export const ChatMessageArea = styled.div`
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 28px 80px 40px;
+  padding: 22px 72px 36px;
 `;
 
 // 메시지 한 줄입니다.
 export const ChatMessageRow = styled.div`
   display: flex;
+  align-items: flex-end;
   justify-content: ${({ $mine }) => ($mine ? "flex-end" : "flex-start")};
-  gap: 10px;
-  margin-bottom: 26px;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 ${({ $mine }) => ($mine ? "0" : "auto")} 18px ${({ $mine }) => ($mine ? "auto" : "0")};
 `;
 
 // 메시지 말풍선입니다.
 export const ChatBubble = styled.div`
-  max-width: 420px;
-  padding: 16px 18px;
-  border-radius: 14px;
+  max-width: min(420px, 68%);
+  padding: 13px 17px;
+  border-radius: ${({ $mine }) => ($mine ? "18px 18px 4px 18px" : "18px 18px 18px 4px")};
   background: ${({ $mine }) => ($mine ? "#d6a81b" : "#ffffff")};
   color: ${({ $mine }) => ($mine ? "#ffffff" : "#222222")};
-  box-shadow: 0 2px 8px rgba(32, 24, 11, 0.08);
+  box-shadow: 0 6px 18px rgba(32, 24, 11, 0.08);
   font-size: 15px;
   line-height: 1.55;
+  word-break: break-word;
 `;
 
 // 메시지 시간입니다.
 export const ChatTime = styled.span`
   align-self: flex-end;
   color: #7d756a;
-  font-size: 11px;
+  font-size: 12px;
+  white-space: nowrap;
 `;
 
 // 메시지 입력 영역입니다.
@@ -191,6 +208,7 @@ export const ChatComposer = styled.form`
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
   padding: 24px;
   border-top: 1px solid #e4d9c7;
   background: #fffdf8;
@@ -216,6 +234,13 @@ export const ChatInputBox = styled.div`
     font-size: 15px;
     background: transparent;
   }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #5f5a52;
+  }
 `;
 
 // 채팅 액션 버튼입니다.
@@ -224,6 +249,7 @@ export const ChatActionButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
+  margin-left: ${({ $alignRight }) => ($alignRight ? "auto" : "0")};
   height: 38px;
   min-width: 94px;
   border: 1px solid ${({ $variant }) => ($variant === "outline" ? "#d6a81b" : "#d6a81b")};
@@ -247,6 +273,7 @@ export const ChatLandPanel = styled.aside`
   border-left: 1px solid #e4d9c7;
   background: #fbfaf7;
   padding: 28px 24px;
+  overflow-y: auto;
 `;
 
 // 토지 정보 패널 제목입니다.
@@ -305,6 +332,10 @@ export const ChatLandRow = styled.div`
 
 // 채팅방 나가기 버튼 영역입니다.
 export const ChatLeaveButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   height: 42px;
   margin-top: 28px;

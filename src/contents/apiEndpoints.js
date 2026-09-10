@@ -50,5 +50,5 @@ export const Api = {
   ChatSubscribeMessages: (roomId) => `/topic/chat/rooms/${roomId}/messages`,         // STOMP 메시지 수신
 
   // OAuth
-  googleLogin: `${BASE}/oauth2/callback`,
+  googleLogin: `${BASE}/oauth2/authorization/google`,                                // Google OAuth 로그인 시작
 };

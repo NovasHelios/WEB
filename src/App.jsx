@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import Background from "./pages/Background";
 import Login from "./pages/Login/Login";
+import OAuthCallback from "./pages/Login/OAuthCallback";
 import Signin_2 from "./pages/SignIn/Signin_2.jsx";
 import Map from "./pages/Main/Map";
 import MySpace from "./pages/MySpace";
@@ -34,6 +35,7 @@ function App() {
           <Route path="/land/register/condition" element={<LandRegisterCondition />} />
           <Route path="/land/register/complete" element={<LandRegisterComplete />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/oauth2/callback" element={<OAuthCallback />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/business-connections" element={<BusinessConnections />} />

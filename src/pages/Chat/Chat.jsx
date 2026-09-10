@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
 import { ChevronUp, LogOut, Paperclip, Search, Send, Map } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
@@ -139,6 +140,7 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
+  const [detailLand, setDetailLand] = useState(null);
   const [myEmail, setMyEmail] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -257,6 +259,7 @@ function Chat() {
       if (!selectedRoom) {
         setMessages([]);
         setSelectedLand(null);
+        setDetailLand(null);
         return;
       }
 
@@ -553,7 +556,13 @@ function Chat() {
                   <h2>{selectedRoom.counterpartName || selectedRoom.counterpartEmail || "상대방"}</h2>
                   <p>{selectedRoom.landAddress || "토지 주소 정보 없음"}</p>
                 </div>
-                <ChatActionButton type="button" $variant="outline" onClick={() => navigate("/")}>
+                <ChatActionButton
+                  type="button"
+                  $variant="outline"
+                  $alignRight
+                  onClick={() => selectedLand && setDetailLand(selectedLand)}
+                  disabled={!selectedLand}
+                >
                   <Map size={15} />
                   토지 상세 보기
                 </ChatActionButton>
@@ -571,12 +580,10 @@ function Chat() {
 
                   return (
                     <ChatMessageRow key={message.messageId || `${message.sentAt}-${message.content}`} $mine={mine}>
-                      {!mine ? <ChatAvatar>{(message.senderName || "H")[0]}</ChatAvatar> : null}
+                      {!mine ? <ChatAvatar $compact>{(message.senderName || "H")[0]}</ChatAvatar> : null}
+                      {mine ? <ChatTime>{formatTime(message.sentAt)}</ChatTime> : null}
                       <ChatBubble $mine={mine}>
                         {message.content || message.attachmentOriginalName || "첨부파일"}
-                        {message.pending && !message.pendingFailed ? (
-                          <div>서버 저장 확인 중</div>
-                        ) : null}
                         {message.pendingFailed ? (
                           <div>서버 저장 확인 안 됨</div>
                         ) : null}
@@ -588,7 +595,7 @@ function Chat() {
                           </div>
                         ) : null}
                       </ChatBubble>
-                      <ChatTime>{formatTime(message.sentAt)}</ChatTime>
+                      {!mine ? <ChatTime>{formatTime(message.sentAt)}</ChatTime> : null}
                     </ChatMessageRow>
                   );
                 })}
@@ -655,6 +662,7 @@ function Chat() {
           )}
         </ChatLandPanel>
       </ChatShell>
+      <Specific land={detailLand} onClose={() => setDetailLand(null)} />
     </ChatPage>
   );
 }

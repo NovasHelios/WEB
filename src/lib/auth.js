@@ -1,4 +1,6 @@
 const ACCESS_TOKEN_KEY = "accessToken";
+const LOGIN_NOTICE_KEY = "loginNotice";
+const USER_DISPLAY_NAME_KEY = "userDisplayName";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
@@ -11,8 +13,31 @@ export const setAccessToken = (token) => {
   localStorage.setItem(ACCESS_TOKEN_KEY, normalizeAccessToken(token));
 };
 
+export const getStoredUserDisplayName = () => localStorage.getItem(USER_DISPLAY_NAME_KEY) || "";
+
+export const setStoredUserDisplayName = (name) => {
+  // navbar가 페이지 이동 중에도 사용자 이름을 바로 표시할 수 있게 캐시합니다.
+  const normalizedName = String(name || "").trim();
+  if (!normalizedName) return;
+  localStorage.setItem(USER_DISPLAY_NAME_KEY, normalizedName);
+};
+
+export const markLoginNotice = () => {
+  // 로그인 성공 안내를 한 번만 띄우기 위해 표시 예약값을 저장합니다.
+  localStorage.setItem(LOGIN_NOTICE_KEY, "true");
+};
+
+export const consumeLoginNotice = () => {
+  // 예약된 로그인 안내를 읽고 즉시 제거합니다.
+  const shouldShow = localStorage.getItem(LOGIN_NOTICE_KEY) === "true";
+  localStorage.removeItem(LOGIN_NOTICE_KEY);
+  return shouldShow;
+};
+
 export const clearAccessToken = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(LOGIN_NOTICE_KEY);
+  localStorage.removeItem(USER_DISPLAY_NAME_KEY);
 };
 
 const decodeJwtPayload = (token) => {

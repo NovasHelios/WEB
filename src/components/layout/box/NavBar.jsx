@@ -1,8 +1,15 @@
 // 라우터 이동 기능을 사용하기 위한 훅입니다.
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 // 로그인 토큰 확인을 위한 인증 유틸입니다.
-import { getValidAccessToken } from "@/lib/auth";
+import {
+  authFetch,
+  getStoredUserDisplayName,
+  getValidAccessToken,
+  setStoredUserDisplayName,
+} from "@/lib/auth";
+import { Api } from "@/contents/apiEndpoints";
 
 // 상단 메뉴에 사용할 아이콘입니다.
 import {
@@ -18,6 +25,13 @@ import {
 
 // 새 홈 화면 상단 로고 이미지입니다.
 import heliosLogo from "@/images/logo.png";
+
+const formatDisplayName = (value) => {
+  // 이메일이 내려오면 @ 앞부분만 사용해 navbar 폭을 안정화합니다.
+  const name = String(value || "").trim();
+  if (!name) return "";
+  return name.includes("@") ? name.split("@")[0] : name;
+};
 
 const NavBar = ({
   // 검색창에 입력된 키워드입니다.
@@ -52,6 +66,35 @@ const NavBar = ({
 
   // 현재 로그인 상태를 확인합니다.
   const isLoggedIn = Boolean(getValidAccessToken());
+  const [displayName, setDisplayName] = useState(() => formatDisplayName(getStoredUserDisplayName()));
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      // 로그인 상태일 때만 사용자 이름을 가져옵니다.
+      if (!isLoggedIn) {
+        setDisplayName("");
+        return;
+      }
+
+      try {
+        const response = await authFetch(Api.MyProfile, { method: "GET" });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setDisplayName("");
+          return;
+        }
+
+        const nextDisplayName = formatDisplayName(data?.data?.name || data?.data?.email);
+        setDisplayName(nextDisplayName);
+        setStoredUserDisplayName(nextDisplayName);
+      } catch {
+        setDisplayName("");
+      }
+    };
+
+    void fetchUserName();
+  }, [isLoggedIn]);
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.
   const handleProfileClick = () => {
@@ -210,14 +253,21 @@ const NavBar = ({
             <Settings className="h-5 w-5 text-[#555555]" strokeWidth={1.9} />
           </button>
 
-          {/* 프로필 버튼은 로그인 상태에 따라 프로필 또는 로그인으로 이동합니다. */}
+          {/* 로그인 상태를 텍스트로 명확하게 표시합니다. */}
           <button
             type="button"
             onClick={handleProfileClick}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8cfba] bg-[#f8f8f8] text-[#777777]"
-            aria-label="프로필"
+            className="flex h-9 min-w-[82px] items-center justify-center gap-2 rounded-full border border-[#d8cfba] bg-[#f8f8f8] px-4 text-sm font-bold text-[#5f4b20]"
+            aria-label={isLoggedIn ? "프로필" : "로그인"}
           >
-            <UserCircle className="h-5 w-5" strokeWidth={1.9} />
+            {isLoggedIn ? (
+              <span>{displayName ? `${displayName}님` : "내 프로필"}</span>
+            ) : (
+              <>
+                <UserCircle className="h-5 w-5" strokeWidth={1.9} />
+                <span>로그인</span>
+              </>
+            )}
           </button>
         </nav>
       </header>
