@@ -219,7 +219,7 @@ function LandRegister() {
           <LandRegisterSection>
             <LandRegisterSectionTitle>1. 토지 등록</LandRegisterSectionTitle>
             <LandRegisterSectionDescription>
-              안전하고 정확한 거래를 위해 토지 정보를 등록해주세요.
+              사업에 필요한 토지 정보를 입력해주세요.
             </LandRegisterSectionDescription>
           </LandRegisterSection>
 

@@ -103,7 +103,7 @@ function Land() {
             <LandInner>
               <LandToolbar>
                 <LandAddButton type="button" onClick={() => setIsAddOpen(true)}>
-                  토지등록하기
+                  토지 등록하기
                 </LandAddButton>
               </LandToolbar>
 

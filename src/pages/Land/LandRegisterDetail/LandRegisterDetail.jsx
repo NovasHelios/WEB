@@ -55,7 +55,7 @@ function LandRegisterDetail() {
       {/* 상세 메모 입력 */}
       <DetailTopShell>
         <DetailSection>
-          <DetailSectionTitle>3. 부지 등록 (상세 정보 입력)</DetailSectionTitle>
+          <DetailSectionTitle>3. 토지 등록 (상세 정보 입력)</DetailSectionTitle>
         </DetailSection>
 
         <DetailTextareaCard>

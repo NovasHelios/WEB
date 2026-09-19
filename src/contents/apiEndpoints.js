@@ -16,6 +16,7 @@ export const Api = {
   LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`,                    // PATCH 소유자 승인
   LandReject: (landId) => `${BASE}/api/lands/${landId}/reject`,                      // PATCH 소유자 거절
   LandFilter: `${BASE}/api/lands/filter`,                                             // POST 필터 조회
+  VworldLand: `${BASE}/api/vworld/land`,                                             // GET 주소 기반 토지 자동 조회
 
   // User
   MyProfile: `${BASE}/api/users/me`,                                                 // GET 내 정보 / PATCH 수정
@@ -38,6 +39,7 @@ export const Api = {
   ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
   ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`,                 // PATCH 거절
   ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`,                   // PATCH 종료
+  ChatDelete: (roomId) => `${BASE}/api/chat/rooms/${roomId}`,                        // DELETE 채팅방 삭제
   ChatSocket: `${BASE.replace(/^http/, "ws")}/ws/chat`,                             // WebSocket STOMP 기본 연결
   ChatSocketCandidates: () => {                                                     // 서버는 STOMP CONNECT 헤더 인증만 사용합니다.
     const socketBase = BASE.replace(/^http/, "ws");

@@ -90,7 +90,7 @@ export const FavoritesSortLabel = styled.button`
 export const FavoritesList = styled.div`
   display: flex;
   flex-direction: column;
-  border-top: 1px solid #e8e0d3;
+  gap: 16px;
 `;
 
 export const FavoritesEmpty = styled.div`
@@ -102,11 +102,15 @@ export const FavoritesEmpty = styled.div`
 `;
 
 export const FavoritesItem = styled.article`
+  // 관심 토지도 내 공간과 같은 카드 컨테이너로 표시합니다.
   display: grid;
   grid-template-columns: 312px minmax(0, 1fr) auto;
   gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid #eee;
+  padding: 16px;
+  border: 1px solid #eadfc8;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
   align-items: stretch;
 
   @media (max-width: 980px) {

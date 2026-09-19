@@ -245,13 +245,15 @@ export const ChatInputBox = styled.div`
 
 // 채팅 액션 버튼입니다.
 export const ChatActionButton = styled.button`
+  // 아이콘과 문구가 테두리에 붙지 않도록 버튼 내부 여백을 확보합니다.
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin-left: ${({ $alignRight }) => ($alignRight ? "auto" : "0")};
   height: 38px;
-  min-width: 94px;
+  min-width: 128px;
+  padding: 0 16px;
   border: 1px solid ${({ $variant }) => ($variant === "outline" ? "#d6a81b" : "#d6a81b")};
   border-radius: 5px;
   background: ${({ $variant }) => ($variant === "outline" ? "#ffffff" : "#d6a81b")};

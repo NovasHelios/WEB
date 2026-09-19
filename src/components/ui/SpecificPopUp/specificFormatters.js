@@ -72,11 +72,29 @@ export const formatTransactionType = (value) => {
   const transactionMap = {
     SALE: "매매",
     LEASE: "임대",
-    BUSINESS_HOPE: "사업희망",
+    BUSINESS_HOPE: "사업 희망",
   };
 
   // 매핑된 값이 없으면 원본 값을 사용합니다.
   return transactionMap[value] || value || "-";
+};
+
+export const formatRegisteredDate = (land) => {
+  // 등록일은 토지 등록 시각 필드만 사용하고 수정일로 대체하지 않습니다.
+  const value =
+    land?.createdAt ||
+    land?.createdDate ||
+    land?.registeredAt ||
+    land?.registerDate ||
+    land?.registrationDate ||
+    land?.created_at;
+
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toISOString().slice(0, 10);
 };
 
 // 상세보기에서 사용할 이미지 목록을 구성합니다.

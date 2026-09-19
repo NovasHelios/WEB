@@ -8,12 +8,30 @@ export const SpaceWrapper = styled.div`
 `;
 
 export const SpaceMain = styled.main`
-  min-height: calc(100vh - 56px);
-  overflow: auto;
+  height: calc(100vh - 72px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: #d2d2d2 transparent;
+
+  &::-webkit-scrollbar {
+    width: 28px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: #d2d2d2;
+    background-clip: padding-box;
+  }
 `;
 
 export const SpacePage = styled.div`
-  min-height: calc(100vh - 56px);
+  min-height: 100%;
   background: var(--color-page-bg);
 `;
 
@@ -88,7 +106,7 @@ export const SpaceTopAction = styled.button`
 export const SpaceToolbar = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -331,6 +349,34 @@ export const SpaceModalHeader = styled.div`
     font-weight: var(--font-bold);
     color: #1f1c17;
   }
+`;
+
+export const SpaceModalImage = styled.div`
+  width: 100%;
+  height: 150px;
+  border: 1px solid #d8c5a2;
+  border-radius: 6px;
+  background: #f7f2e9;
+  background-image: ${({ $image }) => ($image ? `url(${$image})` : "none")};
+  background-size: cover;
+  background-position: center;
+`;
+
+export const SpaceModalFileButton = styled.button`
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #d8c5a2;
+  border-radius: 4px;
+  background: #fffaf1;
+  color: #8a6800;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+`;
+
+export const SpaceModalFileInput = styled.input`
+  display: none;
 `;
 
 export const SpaceModalClose = styled.button`

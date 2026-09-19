@@ -211,7 +211,10 @@ export const CompleteChoiceRow = styled.div`
   justify-content: center;
 `;
 
-export const CompleteChoiceButton = styled.button`
+export const CompleteChoiceButton = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 116px;
   height: 40px;
   border: 1px solid #232323;
@@ -220,7 +223,9 @@ export const CompleteChoiceButton = styled.button`
   font-size: var(--font-lg);
   font-weight: var(--font-medium);
   padding: 0 18px;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
   box-sizing: border-box;
 
   ${({ $active }) =>

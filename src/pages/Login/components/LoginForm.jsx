@@ -108,7 +108,7 @@ const LoginForm = () => {
           만나서 반갑습니다
         </h1>
         <p className="mt-4 text-lg leading-7 text-[#6f6251] max-[640px]:text-base">
-          로그인하여 당신만의 엄선된 공간을 확인해 보세요.
+          로그인하여 당신만의 엄선된 토지를 확인해 보세요.
         </p>
       </div>
 
@@ -161,10 +161,12 @@ const LoginForm = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-12 min-w-[160px] items-center justify-center gap-2 border border-[#d9c9af] bg-white px-5 text-sm font-medium text-[#232323]"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-[8px] border border-[#d9c9af] bg-white px-5 text-sm font-bold text-[#232323] shadow-[0_2px_8px_rgba(116,86,24,0.08)] transition-all duration-150 hover:-translate-y-0.5 hover:border-[#d6a81b] hover:bg-[#fffaf0] hover:shadow-[0_8px_18px_rgba(116,86,24,0.16)] active:translate-y-0 active:bg-[#f7edd2] active:shadow-[0_2px_6px_rgba(116,86,24,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6a81b]"
           >
-            <span className="text-lg font-bold text-[#444]">G</span>
-            Google
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#e5ddcf] bg-white text-base font-bold text-[#444]">
+              G
+            </span>
+            Google로 계속하기
           </button>
         </div>
 

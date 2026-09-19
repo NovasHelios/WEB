@@ -5,6 +5,12 @@ import { ChevronUp, LogOut, Paperclip, Search, Send, Map } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
+import {
+  addClosedChatRoomId,
+  CHAT_ROOMS_CHANGED_EVENT,
+  filterOpenChatRooms,
+  isClosedChatRoomId,
+} from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 import {
@@ -119,14 +125,10 @@ const mergeMessages = (serverMessages, pendingMessages = []) => {
   return [...serverMessages, ...unresolvedPendingMessages];
 };
 
-const markPendingMessageAsFailed = (pendingMessageId) => {
-  // 서버 저장 확인이 끝난 임시 메시지에 실패 상태를 표시합니다.
-  return (messages) =>
-    messages.map((message) =>
-      message.messageId === pendingMessageId
-        ? { ...message, pendingFailed: true }
-        : message,
-    );
+const clearConfirmTimers = (timerIdsRef) => {
+  // 방 이동/나가기 이후 이전 방 저장 확인 타이머가 실행되지 않게 정리합니다.
+  timerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
+  timerIdsRef.current = [];
 };
 
 function Chat() {
@@ -135,6 +137,7 @@ function Chat() {
   const clientRef = useRef(null);
   const confirmTimersRef = useRef([]);
   const messageEndRef = useRef(null);
+  const selectedRoomIdRef = useRef(null);
   const [keyword, setKeyword] = useState("");
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -154,9 +157,15 @@ function Chat() {
     [rooms, selectedRoomId],
   );
 
+  useEffect(() => {
+    // 비동기 수신 콜백에서 현재 선택된 방을 정확히 확인합니다.
+    selectedRoomIdRef.current = selectedRoomId;
+  }, [selectedRoomId]);
+
   const refreshMessages = useCallback(async (roomId) => {
     // 서버에 저장된 메시지 목록을 다시 불러와 화면 상태를 맞춥니다.
     if (!roomId) return;
+    if (isClosedChatRoomId(roomId)) return [];
 
     const response = await authFetch(Api.ChatMessages(roomId), { method: "GET" });
     const data = await response.json();
@@ -175,6 +184,8 @@ function Chat() {
     try {
       const incomingMessage = normalizeMessage(JSON.parse(message.body));
       if (!incomingMessage) return;
+      if (isClosedChatRoomId(incomingMessage.roomId)) return;
+      if (incomingMessage.roomId && String(incomingMessage.roomId) !== String(selectedRoomIdRef.current)) return;
 
       setMessages((prev) => {
         const duplicated = prev.some(
@@ -238,7 +249,7 @@ function Chat() {
           throw new Error("채팅 목록을 불러오지 못했습니다.");
         }
 
-        const nextRooms = extractArray(roomsData);
+        const nextRooms = filterOpenChatRooms(extractArray(roomsData));
         setMyEmail(profileData?.data?.email || "");
         setRooms(nextRooms);
         setSelectedRoomId(nextRooms[0]?.roomId || null);
@@ -254,12 +265,45 @@ function Chat() {
   }, [navigate]);
 
   useEffect(() => {
+    const handleChatRoomsChanged = () => {
+      // 다른 화면에서 채팅을 새로 시작하면 숨김 목록 변경을 즉시 반영합니다.
+      setRooms((prev) => filterOpenChatRooms(prev));
+
+      void (async () => {
+        try {
+          const response = await authFetch(Api.ChatRooms, { method: "GET" });
+          const data = await response.json();
+          if (!response.ok) return;
+
+          const nextRooms = filterOpenChatRooms(extractArray(data));
+          setRooms(nextRooms);
+          setSelectedRoomId((prevRoomId) => prevRoomId || nextRooms[0]?.roomId || null);
+        } catch {
+          // 목록 이벤트 갱신 실패는 기존 화면 상태를 유지합니다.
+        }
+      })();
+    };
+
+    window.addEventListener(CHAT_ROOMS_CHANGED_EVENT, handleChatRoomsChanged);
+
+    return () => {
+      window.removeEventListener(CHAT_ROOMS_CHANGED_EVENT, handleChatRoomsChanged);
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchRoomDetail = async () => {
       // 선택된 채팅방이 없으면 빈 상태를 표시합니다.
       if (!selectedRoom) {
         setMessages([]);
         setSelectedLand(null);
         setDetailLand(null);
+        return;
+      }
+
+      if (isClosedChatRoomId(selectedRoom.roomId)) {
+        setRooms((prev) => prev.filter((room) => String(room.roomId) !== String(selectedRoom.roomId)));
+        setSelectedRoomId(null);
         return;
       }
 
@@ -410,6 +454,8 @@ function Chat() {
 
     const confirmSavedMessage = async (retryCount = 0) => {
       // 서버 저장/브로드캐스트 지연을 감안해 메시지 목록을 여러 번 확인합니다.
+      if (isClosedChatRoomId(selectedRoom.roomId)) return;
+
       const serverMessages = await refreshMessages(selectedRoom.roomId);
       const savedMessage = serverMessages.some(
         (message) =>
@@ -430,8 +476,8 @@ function Chat() {
         return;
       }
 
-      setMessages(markPendingMessageAsFailed(pendingMessageId));
       setStatusMessage("");
+      setError("");
     };
 
     const timerId = window.setTimeout(() => {
@@ -474,31 +520,39 @@ function Chat() {
   };
 
   const handleLeaveRoom = async () => {
-    // 채팅방 종료 API를 호출하고 목록에서 제거합니다.
+    // 채팅방 삭제 API를 호출하고 목록에서 즉시 제거합니다.
     if (!selectedRoom) return;
+    const leavingRoom = selectedRoom;
+
+    clearConfirmTimers(confirmTimersRef);
+    addClosedChatRoomId(leavingRoom.roomId, leavingRoom);
+    setRooms((prev) => {
+      const nextRooms = prev.filter((room) => String(room.roomId) !== String(leavingRoom.roomId));
+      setSelectedRoomId(nextRooms[0]?.roomId || null);
+      return nextRooms;
+    });
+    setSelectedLand(null);
+    setMessages([]);
+    setStatusMessage("");
+    setError("");
 
     try {
-      const response = await authFetch(Api.ChatClose(selectedRoom.roomId), {
-        method: "PATCH",
+      const response = await authFetch(Api.ChatDelete(leavingRoom.roomId), {
+        method: "DELETE",
       });
       const contentType = response.headers.get("content-type") || "";
       const data = contentType.includes("application/json") ? await response.json() : null;
 
       if (!response.ok) {
-        if (response.status === 409) {
-          setStatusMessage(data?.data?.message || data?.message || "이미 종료되었거나 나갈 수 없는 채팅방입니다.");
+        if ([404, 409, 422].includes(response.status)) {
+          setStatusMessage(data?.data?.message || data?.message || "처리할 수 없는 채팅방이라 목록에서 제거했습니다.");
           return;
         }
 
         throw new Error(data?.data?.message || data?.message || "채팅방을 나가지 못했습니다.");
       }
-
-      setRooms((prev) => prev.filter((room) => room.roomId !== selectedRoom.roomId));
-      setSelectedRoomId(null);
-      setSelectedLand(null);
-      setMessages([]);
     } catch (err) {
-      setError(err.message || "채팅방을 나가지 못했습니다.");
+      setStatusMessage("채팅방을 목록에서 제거했습니다. 서버 상태는 다음 동기화 때 다시 확인됩니다.");
     }
   };
 
@@ -584,9 +638,6 @@ function Chat() {
                       {mine ? <ChatTime>{formatTime(message.sentAt)}</ChatTime> : null}
                       <ChatBubble $mine={mine}>
                         {message.content || message.attachmentOriginalName || "첨부파일"}
-                        {message.pendingFailed ? (
-                          <div>서버 저장 확인 안 됨</div>
-                        ) : null}
                         {attachmentUrl ? (
                           <div>
                             <a href={attachmentUrl} target="_blank" rel="noreferrer">
@@ -654,7 +705,7 @@ function Chat() {
               </ChatLandInfo>
               <ChatLeaveButton type="button" onClick={handleLeaveRoom}>
                 <LogOut size={15} />
-                채팅방 나가기
+                채팅방 삭제
               </ChatLeaveButton>
             </>
           ) : (

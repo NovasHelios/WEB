@@ -175,14 +175,39 @@ export const SubmitButton = styled.button`
 `;
 
 export const GoogleButton = styled.button`
-  width: 176px;
-  height: 38px;
+  width: 100%;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   border: 1px solid #e1cfb0;
+  border-radius: 8px;
   background: #fff;
   color: #252525;
   font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-bold);
+  box-shadow: 0 2px 8px rgba(116, 86, 24, 0.08);
   cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: #d6a81b;
+    background: #fffaf0;
+    box-shadow: 0 8px 18px rgba(116, 86, 24, 0.16);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #f7edd2;
+    box-shadow: 0 2px 6px rgba(116, 86, 24, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #d6a81b;
+    outline-offset: 2px;
+  }
 `;
 
 export const BottomText = styled.p`
@@ -206,6 +231,6 @@ export const BottomLink = styled.button`
 
 export const GoogleRow = styled.div`
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   margin-top: 16px;
 `;
