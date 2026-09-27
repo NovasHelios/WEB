@@ -56,3 +56,31 @@ export const fetchFilteredLandList = async (requestBody) => {
     result,
   };
 };
+
+// 선택한 토지의 AI 분석 보고서를 조회합니다.
+export const fetchAiReport = async (landId) => {
+  // 토지 ID가 없으면 AI 보고서를 요청하지 않습니다.
+  if (landId === undefined || landId === null || landId === "") {
+    return null;
+  }
+
+  // 인증 헤더와 landId 쿼리를 포함해 AI 보고서 API를 호출합니다.
+  const response = await authFetch(Api.AiReport(landId), {
+    method: "GET",
+  });
+
+  // 서버 응답을 JSON으로 변환합니다.
+  const result = await response.json();
+
+  // 실패 응답이면 컴포넌트에서 처리할 수 있도록 에러를 발생시킵니다.
+  if (!response.ok) {
+    throw new Error(
+      result?.data?.message ||
+        result?.message ||
+        "AI 분석 보고서를 불러오지 못했습니다."
+    );
+  }
+
+  // SolarSuitability 컴포넌트에서 사용할 data 객체만 반환합니다.
+  return result?.data || null;
+};
