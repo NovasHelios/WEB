@@ -2,39 +2,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// 상세 패널에서 사용할 아이콘입니다.
-import { Bot, Heart, Info, X } from "lucide-react";
+// 대표 이미지 위 관심 버튼에 사용할 아이콘입니다.
+import { Heart } from "lucide-react";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
-// 상세 패널 디자인에 필요한 styled 컴포넌트입니다.
+
+// 컴포넌트 호출
+import BasicInfo from "./components/BasicInfo";
+
+// 새 미리보기 이미지 영역에 필요한 styled 컴포넌트입니다.
 import {
   ActionBar,
-  AiCard,
-  AiGrid,
-  AiMetric,
-  BetaBadge,
-  BookmarkButton,
-  CloseButton,
-  ContactButton,
-  DetailHeader,
-  DetailTitle,
-  ImageCounter,
-  ImageBox,
+  ActionButton,
+  ActionMessage,
   ImageArea,
-  PlaceholderBackground,
-  InfoCard,
-  InfoRow,
-  InfoTitle,
+  ImageBox,
+  ImageCounter,
   LandImage,
   Panel,
   PanelBody,
-  PriceValue,
+  PlaceholderBackground,
   SaveIconButton,
-  SectionLabel,
+  TabButton,
+  TabContent,
+  TabList,
+  TabPreparingMessage,
+  TabSection,
   ThumbButton,
   ThumbnailGrid,
   ThumbnailImage,
+  WishButton,
 } from "./Preview.styeld";
 
 // API 서버 기본 주소를 안전하게 정리합니다.
@@ -75,6 +73,13 @@ const resolveImageUrl = (path) => {
 // 토지 이미지 경로가 없을 때 보여줄 임시 이미지 색상입니다.
 const fallbackImages = ["#d8c09b", "#e8decf", "#d8dee5"];
 
+// 미리보기에서 이동할 수 있는 정보 탭 목록입니다.
+const PREVIEW_TABS = [
+  { id: "basic", label: "기본 정보" },
+  { id: "solar", label: "태양광 적합도" },
+  { id: "description", label: "상세 설명" },
+];
+
 // 숫자 값을 가격 표기로 변환합니다.
 const formatPrice = (value) => {
   // 상세 패널 가격은 서버 기준인 원 단위로 표시합니다.
@@ -100,10 +105,12 @@ const formatArea = (value) => {
 };
 
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
-function Preview({ land, onClose, onOpenSpecific }) {
+function Preview({ land, onClose }) {
   const navigate = useNavigate();
   // 현재 선택된 대표 이미지 번호를 저장합니다.
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  // 현재 화면에 표시할 정보 탭을 저장합니다.
+  const [activeTab, setActiveTab] = useState("basic");
   // 현재 토지의 찜 등록 여부입니다.
   const [isWished, setIsWished] = useState(false);
   // 찜 요청 중 중복 클릭을 막기 위한 상태입니다.
@@ -123,6 +130,10 @@ function Preview({ land, onClose, onOpenSpecific }) {
     // 새 토지 상세을 열면 첫 번째 이미지를 대표 이미지로 보여줍니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedImageIndex(0);
+
+    // 새 토지를 선택하면 기본 정보 탭부터 표시합니다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveTab("basic");
   }, [landId]);
 
   useEffect(() => {
@@ -264,68 +275,51 @@ function Preview({ land, onClose, onOpenSpecific }) {
   // 거래 유형을 서버 필드 기준으로 표시합니다.
   const transactionType = land.transactionType || "매매";
 
-  // 프리뷰에서 사용할 실제 이미지 목록입니다.
-  const previewImageItems = detailImages.filter(
-    (image) => image.type === "image"
-  );
-
-  // 프리뷰 대표 이미지는 선택된 실제 이미지 또는 첫 번째 실제 이미지입니다.
+  // 프리뷰 대표 이미지는 선택된 이미지 또는 첫 번째 이미지입니다.
   const selectedImage =
-    previewImageItems[selectedImageIndex] || previewImageItems[0];
+    detailImages[selectedImageIndex] || detailImages[0];
 
-  // 프리뷰 하단 썸네일은 최대 3개까지만 보여줍니다.
-  const previewImages = previewImageItems.slice(0, 3);
+  // 프리뷰 하단에는 실제 이미지 또는 placeholder를 최대 3개까지 보여줍니다.
+  const previewImages = detailImages.slice(0, 3);
 
   // 서버에서 받은 전체 실제 이미지 개수입니다.
-  const totalImageCount = previewImageItems.length;
+  const totalImageCount = landImages.length;
 
-  // 프리뷰에서 숨긴 이미지가 있는지 확인합니다.
-  const hasMoreImages = totalImageCount > previewImages.length;
+  // 실제 이미지가 없으면 이미지 카운터의 현재 번호를 0으로 표시합니다.
+  const currentImageNumber = totalImageCount
+    ? Math.min(selectedImageIndex + 1, totalImageCount)
+    : 0;
 
   return (
-    // 마커 클릭 시 우측에 뜨는 상세 패널입니다.
+    // 새 디자인을 단계적으로 구성할 미리보기 패널의 기본 틀입니다.
     <Panel>
-      {/* 패널 제목과 닫기 버튼 영역입니다. */}
-      <DetailHeader>
-        {/* 상세 정보 종류를 표시합니다. */}
-        <SectionLabel>토지 상세 정보</SectionLabel>
-
-        {/* 상세 패널을 닫는 버튼입니다. */}
-        <CloseButton type="button" onClick={onClose} aria-label="상세 닫기">
-          <X size={20} strokeWidth={2} />
-        </CloseButton>
-      </DetailHeader>
-
-      {/* 상세 토지 주소 또는 제목입니다. */}
-      <DetailTitle>{address}</DetailTitle>
-
-      {/* 패널 본문은 스크롤로 내려가며 확인합니다. */}
+      {/* 이미지와 이후 탭 콘텐츠가 들어갈 스크롤 영역입니다. */}
       <PanelBody>
-        {/* 대표 이미지 영역입니다. */}
+        {/* 선택된 토지의 대표 이미지 영역입니다. */}
         <ImageArea>
           <ImageBox>
-            {/* placeholder를 먼저 배치해 이미지가 실패하면 보이도록 합니다. */}
-            {selectedImage?.type === "placeholder" ? (
-              <PlaceholderBackground
-                style={{ background: selectedImage?.color }}
-              />
-            ) : (
-              <PlaceholderBackground />
-            )}
+            {/* 이미지가 없거나 로드에 실패할 때 보여줄 배경입니다. */}
+            <PlaceholderBackground
+              $color={
+                selectedImage?.type === "placeholder"
+                  ? selectedImage.color
+                  : undefined
+              }
+            />
 
-            {/* 선택된 실제 토지 이미지를 대표 이미지로 표시합니다. 실패 시 placeholder가 보입니다. */}
+            {/* 선택된 실제 이미지를 대표 이미지로 표시합니다. */}
             {selectedImage?.type === "image" && (
               <LandImage
                 src={selectedImage.src}
-                alt="토지 이미지"
+                alt="선택한 토지의 대표 이미지"
                 onError={(event) => {
+                  // 이미지 로드에 실패하면 뒤에 배치된 placeholder를 보여줍니다.
                   event.currentTarget.style.display = "none";
                 }}
-                style={{ position: "relative", zIndex: 2 }}
               />
             )}
 
-            {/* 이미지 우측 상단 관심 버튼입니다. */}
+            {/* 대표 이미지 우측 상단의 관심 등록 버튼입니다. */}
             <SaveIconButton
               type="button"
               aria-label={isWished ? "관심 해제" : "관심 등록"}
@@ -334,114 +328,97 @@ function Preview({ land, onClose, onOpenSpecific }) {
               $active={isWished}
             >
               <Heart
-                size={18}
+                size={20}
                 fill="currentColor"
                 strokeWidth={isWished ? 0 : 1.8}
               />
             </SaveIconButton>
 
-            {/* 이미지 개수 표시입니다. */}
+            {/* 현재 이미지 번호와 전체 이미지 개수를 표시합니다. */}
             <ImageCounter>
-              ▣ {Math.min(selectedImageIndex + 1, totalImageCount)}/
-              {totalImageCount}
+              ▣ {currentImageNumber}/{totalImageCount}
             </ImageCounter>
           </ImageBox>
         </ImageArea>
 
-        {/* 썸네일 이미지 목록입니다. */}
+        {/* 대표 이미지를 변경할 수 있는 썸네일 목록입니다. */}
         <ThumbnailGrid>
           {previewImages.map((image, index) => (
             <ThumbButton
-              key={`${image.src}-${index}`}
+              key={image.src || `${image.color}-${index}`}
               type="button"
               $active={index === selectedImageIndex}
               onClick={() => {
-                // 클릭한 썸네일을 대표 이미지로 변경합니다.
+                // 클릭한 썸네일의 번호를 대표 이미지 상태에 저장합니다.
                 setSelectedImageIndex(index);
               }}
+              aria-label={`${index + 1}번째 이미지 보기`}
             >
-              {/* 실제 이미지 썸네일을 표시합니다. */}
-              <ThumbnailImage as="img" src={image.src} alt="" />
+              {image.type === "image" ? (
+                // 서버에서 받은 실제 이미지를 썸네일로 표시합니다.
+                <ThumbnailImage src={image.src} alt="" />
+              ) : (
+                // 이미지가 없을 때 placeholder 색상을 썸네일에 표시합니다.
+                <PlaceholderBackground as="span" $color={image.color} />
+              )}
             </ThumbButton>
           ))}
-
-          {hasMoreImages && (
-            <ThumbButton
-              type="button"
-              onClick={onOpenSpecific}
-              aria-label="이미지 더보기"
-            >
-              +
-            </ThumbButton>
-          )}
         </ThumbnailGrid>
+        {/* 세 정보 화면을 전환하는 탭 영역입니다. */}
+        <TabSection>
+          {/* 기본 정보, 태양광 적합도, 상세 설명 탭 버튼입니다. */}
+          <TabList role="tablist" aria-label="토지 정보">
+            {PREVIEW_TABS.map((tab) => (
+              <TabButton
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                $active={activeTab === tab.id}
+                onClick={() => {
+                  // 클릭한 탭을 현재 선택된 탭으로 저장합니다.
+                  setActiveTab(tab.id);
+                }}
+              >
+                {tab.label}
+              </TabButton>
+            ))}
+          </TabList>
 
-        {/* 기본 정보 카드입니다. */}
-        <InfoCard>
-          <InfoTitle>
-            <Info size={18} strokeWidth={2.2} />
-            기본 정보
-          </InfoTitle>
+          {/* 현재 선택된 탭의 내용을 표시합니다. */}
+          <TabContent role="tabpanel">
+            {activeTab === "basic" && (
+              <BasicInfo
+                land={land}
+                address={address}
+                category={category}
+                transactionType={transactionType}
+                formattedArea={formatArea(land.area)}
+                formattedPrice={formatPrice(land.desiredPrice)}
+              />
+            )}
 
-          <InfoRow>
-            <span>지목 / 용도</span>
-            <strong>{category}</strong>
-          </InfoRow>
-
-          <InfoRow>
-            <span>총 면적</span>
-            <strong>{formatArea(land.area)}</strong>
-          </InfoRow>
-
-          <InfoRow>
-            <span>거래 방식</span>
-            <strong>{transactionType}</strong>
-          </InfoRow>
-
-          <InfoRow>
-            <span>희망가</span>
-            <PriceValue>{formatPrice(land.desiredPrice)}</PriceValue>
-          </InfoRow>
-        </InfoCard>
-
-        {/* AI 사업성 분석 카드입니다. */}
-        <AiCard>
-          <InfoTitle>
-            <Bot size={18} strokeWidth={2.2} />
-            AI 사업성 분석 (임시 데이터입니다)
-            <BetaBadge>BETA</BetaBadge>
-          </InfoTitle>
-
-          <AiGrid>
-            <AiMetric>
-              <span>예상 발전 용량</span>
-              <strong>3.4 kW</strong>
-            </AiMetric>
-
-            <AiMetric>
-              <span>일 평균 발전시간</span>
-              <strong>3.8 시간</strong>
-            </AiMetric>
-
-            <AiMetric>
-              <span>일사량</span>
-              <strong>3.4 kW</strong>
-            </AiMetric>
-
-            <AiMetric>
-              <span>예상 설치 용량</span>
-              <strong>?</strong>
-            </AiMetric>
-          </AiGrid>
-        </AiCard>
+            {/* 아직 만들지 않은 두 탭에는 지원 예정 문구를 표시합니다. */}
+            {activeTab !== "basic" && (
+              <TabPreparingMessage>
+                아직 지원하지 않는 기능입니다
+              </TabPreparingMessage>
+            )}
+          </TabContent>
+        </TabSection>
       </PanelBody>
 
-      {/* 하단 고정 액션 버튼 영역입니다. */}
+      {/* 스크롤과 분리되어 패널 하단에 고정되는 버튼 영역입니다. */}
       <ActionBar>
-        {wishError ? <p>{wishError}</p> : null}
-        {chatMessage ? <p>{chatMessage}</p> : null}
+        {/* 관심 등록 또는 채팅 요청 결과를 표시합니다. */}
+        {(wishError || chatMessage) && (
+          <ActionMessage $error={Boolean(wishError)}>
+            {wishError || chatMessage}
+          </ActionMessage>
+        )}
 
-        <BookmarkButton
+        {/* 기존 관심 등록 기능을 실행합니다. */}
+        <WishButton
           type="button"
           onClick={handleToggleWish}
           disabled={isWishLoading}
@@ -453,20 +430,16 @@ function Preview({ land, onClose, onOpenSpecific }) {
             strokeWidth={1.6}
           />
           {isWished ? "관심 해제" : "관심 등록"}
-        </BookmarkButton>
+        </WishButton>
 
-        {/* 상세보기 팝업을 여는 버튼입니다. */}
-        <ContactButton type="button" onClick={onOpenSpecific}>
-          상세 보기
-        </ContactButton>
-
-        <ContactButton
+        {/* 기존 채팅방 생성 기능을 실행합니다. */}
+        <ActionButton
           type="button"
           onClick={handleCreateChatRoom}
           disabled={isChatLoading}
         >
           {isChatLoading ? "요청 중..." : "채팅 하기"}
-        </ContactButton>
+        </ActionButton>
       </ActionBar>
     </Panel>
   );

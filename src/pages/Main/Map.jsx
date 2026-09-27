@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
-import Specific from "@/components/ui/SpecificPopUp/Specific";
 import Filter from "@/components/ui/Filter/Filter";
 import {
   MapPage,
@@ -115,9 +114,6 @@ function Map() {
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
 
-  // 상세보기 팝업이 열려 있는지 저장하는 state입니다.
-  const [isSpecificOpen, setIsSpecificOpen] = useState(false);
-
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
 
@@ -189,8 +185,6 @@ function Map() {
         // 선택된 토지를 비워 미리보기 패널을 닫습니다.
         setSelectedLand(null);
 
-        // 상세보기 팝업도 닫습니다.
-        setIsSpecificOpen(false);
       });
 
       // 지도 초기화가 끝났음을 반환합니다.
@@ -336,9 +330,6 @@ function Map() {
 
       // 마커 클릭 시 상세 데이터를 가져와 미리보기 패널에 표시합니다.
       onMarkerClick: async (land) => {
-        // 마커를 새로 클릭하면 상세보기 팝업은 닫습니다.
-        setIsSpecificOpen(false);
-
         // 서버에서 landId 기준 단일 상세 정보를 조회합니다.
         const landDetail = await fetchLandDetail(land.id);
 
@@ -562,30 +553,12 @@ function Map() {
           onClose={() => {
             // 선택된 토지를 비워 미리보기 패널을 닫습니다.
             setSelectedLand(null);
-
-            // 미리보기 패널이 닫히면 상세보기 팝업도 함께 닫습니다.
-            setIsSpecificOpen(false);
-          }}
-          onOpenSpecific={() => {
-            // 상세보기 팝업을 엽니다.
-            setIsSpecificOpen(true);
           }}
         />
       </DetailPanelArea>
 
       {/* AI 채팅은 미리보기보다 뒤, 지도보다 앞에 표시합니다. */}
       <AiChat />
-
-      {/* 상세보기 팝업은 가장 위에 표시해 미리보기와 AI 채팅을 함께 블러 처리합니다. */}
-      {isSpecificOpen && (
-        <Specific
-          land={selectedLand}
-          onClose={() => {
-            // 상세보기 팝업을 닫습니다.
-            setIsSpecificOpen(false);
-          }}
-        />
-      )}
     </MapPage>
   );
 }
