@@ -214,7 +214,7 @@ const normalizeLand = (land, index) => {
 function MySpace() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
-  const [activeSort, setActiveSort] = useState("나중에 등록한 순");
+  const [activeSort, setActiveSort] = useState("최근 등록순");
   const [lands, setLands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -284,11 +284,11 @@ function MySpace() {
     // 상태 필터 제거 후 전체 토지를 기준으로 정렬합니다.
     const next = [...lands];
 
-    if (activeSort === "나중에 등록한 순") {
+    if (activeSort === "최근 등록순") {
       return next.sort((a, b) => String(b.date).localeCompare(String(a.date)));
     }
 
-    if (activeSort === "먼저 등록한 순") {
+    if (activeSort === "오래된 등록순") {
       return next.sort((a, b) => String(a.date).localeCompare(String(b.date)));
     }
 
@@ -541,7 +541,7 @@ function MySpace() {
                   $active={false}
                   onClick={() => {
                     // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
-                    const sortOptions = ["나중에 등록한 순", "먼저 등록한 순", "가격 높은 순", "가격 낮은 순"];
+                    const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
                     setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
                   }}
                 >
