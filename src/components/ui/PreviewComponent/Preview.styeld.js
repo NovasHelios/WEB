@@ -110,6 +110,9 @@ export const ThumbnailGrid = styled.div`
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 `;
 
 // 대표 이미지를 변경하는 정사각형 썸네일 버튼입니다.

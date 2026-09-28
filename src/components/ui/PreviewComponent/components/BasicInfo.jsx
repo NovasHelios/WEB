@@ -81,8 +81,16 @@ const getDocumentName = (path) => {
   // 경로의 마지막 부분을 파일명으로 사용합니다.
   const fileName = String(path).split("/").pop();
 
-  // 한글 등 URL 인코딩된 파일명을 복원합니다.
-  return fileName ? decodeURIComponent(fileName) : "첨부 서류";
+  // 파일명이 없으면 기본 문구를 반환합니다.
+  if (!fileName) return "첨부 서류";
+
+  try {
+    // 정상적으로 URL 인코딩된 한글 파일명을 복원합니다.
+    return decodeURIComponent(fileName);
+  } catch {
+    // 잘못된 퍼센트 인코딩이 포함된 파일명은 원본 그대로 표시합니다.
+    return fileName;
+  }
 };
 
 // 토지의 기본 정보를 표시하는 탭 콘텐츠입니다.
