@@ -36,14 +36,14 @@ const TriggerButton = styled.button`
   cursor: pointer;
   text-align: left;
   color: #111;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: background 0.15s ease;
 
   &:hover {
     background: #efefef;
   }
 
   &:active {
-    transform: translateY(1px);
+    background: #e9e9e9;
   }
 
   &:disabled {

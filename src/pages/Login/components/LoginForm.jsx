@@ -112,7 +112,7 @@ const LoginForm = () => {
         </p>
       </div>
 
-      <div className="mx-auto mt-10 w-full max-w-[660px] rounded-[10px] border border-[#f0dfb2] bg-[#fffdf8] px-8 py-9 max-[640px]:px-5 max-[640px]:py-7">
+        <div className="mx-auto mt-10 w-full max-w-[660px] rounded-[18px] border border-[#f0dfb2] bg-[var(--color-surface)] px-8 py-9 max-[640px]:px-5 max-[640px]:py-7">
         <LoginError message={error} />
 
         <div className="space-y-6">
@@ -161,7 +161,7 @@ const LoginForm = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-[8px] border border-[#d9c9af] bg-white px-5 text-sm font-bold text-[#232323] shadow-[0_2px_8px_rgba(116,86,24,0.08)] transition-all duration-150 hover:-translate-y-0.5 hover:border-[#d6a81b] hover:bg-[#fffaf0] hover:shadow-[0_8px_18px_rgba(116,86,24,0.16)] active:translate-y-0 active:bg-[#f7edd2] active:shadow-[0_2px_6px_rgba(116,86,24,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6a81b]"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-[8px] border border-[#d9c9af] bg-white px-5 text-sm font-bold text-[#232323] shadow-[0_2px_8px_rgba(116,86,24,0.08)] transition-colors duration-150 hover:border-[#d6a81b] hover:bg-[#fffaf0] hover:shadow-[0_8px_18px_rgba(116,86,24,0.16)] active:bg-[#f7edd2] active:shadow-[0_2px_6px_rgba(116,86,24,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6a81b]"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#e5ddcf] bg-white text-base font-bold text-[#444]">
               G

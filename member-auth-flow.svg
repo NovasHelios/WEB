@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#1d2940" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .title { font: 700 22px Pretendard, Apple SD Gothic Neo, sans-serif; fill: #182338; }
+      .body { font: 500 17px Pretendard, Apple SD Gothic Neo, sans-serif; fill: #3a465b; }
+      .small { font: 500 14px Pretendard, Apple SD Gothic Neo, sans-serif; fill: #68758a; }
+      .card { fill: #fff; stroke-width: 2; }
+      .arrow { fill: none; stroke: #9aa7b8; stroke-width: 3; marker-end: url(#arrowHead); }
+    </style>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa7b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="920" fill="#f8fafc"/>
+  <text x="70" y="78" class="title" font-size="34">회원가입 및 인증 플로우</text>
+  <rect x="70" y="98" width="7" height="36" rx="3" fill="#ef3f76"/>
+
+  <!-- 로그인 및 토큰 발급 컬럼 -->
+  <rect x="70" y="170" width="455" height="625" rx="14" fill="#eef7ff" stroke="#5b9bd5" stroke-width="2"/>
+  <rect x="70" y="170" width="455" height="62" rx="14" fill="#6fa7d6"/>
+  <rect x="70" y="215" width="455" height="17" fill="#6fa7d6"/>
+  <text x="297" y="209" text-anchor="middle" fill="#fff" class="title">로그인 및 토큰 발급</text>
+
+  <g filter="url(#shadow)">
+    <rect x="95" y="260" width="405" height="102" rx="10" class="card" stroke="#5b9bd5"/>
+    <text x="125" y="296" class="title">회원가입</text>
+    <text x="125" y="326" class="body">이메일, 비밀번호, 이름, 전화번호 입력</text>
+    <rect x="95" y="386" width="405" height="102" rx="10" class="card" stroke="#5b9bd5"/>
+    <text x="125" y="422" class="title">이메일 인증</text>
+    <text x="125" y="452" class="body">인증번호 확인 후 가입 요청</text>
+    <rect x="95" y="512" width="405" height="102" rx="10" class="card" stroke="#5b9bd5"/>
+    <text x="125" y="548" class="title">로그인</text>
+    <text x="125" y="578" class="body">이메일과 비밀번호로 로그인</text>
+    <rect x="95" y="638" width="405" height="102" rx="10" class="card" stroke="#5b9bd5"/>
+    <text x="125" y="674" class="title">JWT 토큰 발급 및 저장</text>
+    <text x="125" y="704" class="body">accessToken을 localStorage에 저장</text>
+  </g>
+
+  <!-- 인증 API 요청 컬럼 -->
+  <rect x="570" y="170" width="455" height="625" rx="14" fill="#f3efff" stroke="#8870c8" stroke-width="2"/>
+  <rect x="570" y="170" width="455" height="62" rx="14" fill="#8870c8"/>
+  <rect x="570" y="215" width="455" height="17" fill="#8870c8"/>
+  <text x="797" y="209" text-anchor="middle" fill="#fff" class="title">인증 API 요청</text>
+
+  <g filter="url(#shadow)">
+    <rect x="595" y="260" width="405" height="102" rx="10" class="card" stroke="#8870c8"/>
+    <text x="625" y="296" class="title">인증 API 요청</text>
+    <text x="625" y="326" class="body">로그인 후 필요한 기능 요청</text>
+    <rect x="595" y="386" width="405" height="102" rx="10" class="card" stroke="#8870c8"/>
+    <text x="625" y="422" class="title">요청 헤더에 Token 포함</text>
+    <text x="625" y="452" class="body">Authorization: Bearer token</text>
+    <rect x="595" y="512" width="405" height="102" rx="10" class="card" stroke="#8870c8"/>
+    <text x="625" y="548" class="title">API 서버 요청</text>
+    <text x="625" y="578" class="body">보호된 서버 엔드포인트 요청</text>
+    <rect x="595" y="638" width="405" height="102" rx="10" class="card" stroke="#8870c8"/>
+    <text x="625" y="674" class="title">정상 응답 처리</text>
+    <text x="625" y="704" class="body">응답 데이터를 화면에 반영</text>
+  </g>
+
+  <!-- 예외 처리 컬럼 -->
+  <rect x="1070" y="170" width="455" height="625" rx="14" fill="#fff4eb" stroke="#ef8138" stroke-width="2"/>
+  <rect x="1070" y="170" width="455" height="62" rx="14" fill="#ef8138"/>
+  <rect x="1070" y="215" width="455" height="17" fill="#ef8138"/>
+  <text x="1297" y="209" text-anchor="middle" fill="#fff" class="title">예외 처리</text>
+
+  <g filter="url(#shadow)">
+    <rect x="1095" y="260" width="405" height="102" rx="10" class="card" stroke="#ef8138"/>
+    <text x="1125" y="296" class="title">401 응답 감지</text>
+    <text x="1125" y="326" class="body">토큰 만료 또는 유효하지 않은 토큰</text>
+    <rect x="1095" y="386" width="405" height="102" rx="10" class="card" stroke="#ef8138"/>
+    <text x="1125" y="422" class="title">Token 제거</text>
+    <text x="1125" y="452" class="body">localStorage에 저장된 토큰 삭제</text>
+    <rect x="1095" y="512" width="405" height="102" rx="10" class="card" stroke="#ef8138"/>
+    <text x="1125" y="548" class="title">인증 상태 초기화</text>
+    <text x="1125" y="578" class="body">로그아웃 처리 및 인증 상태 해제</text>
+    <rect x="1095" y="638" width="405" height="102" rx="10" class="card" stroke="#ef8138"/>
+    <text x="1125" y="674" class="title">로그인 페이지로 이동</text>
+    <text x="1125" y="704" class="body">사용자를 로그인 화면으로 유도</text>
+  </g>
+
+  <path d="M 525 690 C 545 690, 550 690, 570 690" class="arrow"/>
+  <path d="M 1025 560 C 1045 560, 1050 310, 1070 310" class="arrow"/>
+  <rect x="1025" y="535" width="112" height="30" rx="6" fill="#e94d50"/>
+  <text x="1081" y="556" text-anchor="middle" fill="#fff" class="small">401 Unauthorized</text>
+  <rect x="1008" y="615" width="72" height="30" rx="6" fill="#4da277"/>
+  <text x="1044" y="636" text-anchor="middle" fill="#fff" class="small">200 OK</text>
+</svg>

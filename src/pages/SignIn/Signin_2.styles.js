@@ -3,7 +3,7 @@ import styled from "styled-components";
 export const Page = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #fff;
+  background: var(--color-page-bg);
   color: #202020;
   display: flex;
   flex-direction: column;
@@ -26,8 +26,8 @@ export const LogoWrap = styled.div`
 `;
 
 export const LogoImage = styled.img`
-  /* 로그인 화면처럼 상단 로고 크기를 안정적으로 고정 */
-  height: 64px;
+  /* 로그인 화면과 같은 로고 크기로 맞춥니다. */
+  height: 48px;
   width: auto;
   object-fit: contain;
 `;
@@ -35,10 +35,11 @@ export const LogoImage = styled.img`
 export const Card = styled.div`
   width: min(100%, 720px);
   border: 1px solid #efc23a;
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 18px;
+  background: var(--color-surface);
   box-sizing: border-box;
-  padding: 24px 30px 20px;
+  padding: 32px 30px 28px;
+  box-shadow: 0 30px 70px rgba(214, 168, 27, 0.16);
   box-shadow: 0 28px 56px rgba(214, 168, 27, 0.12);
 
   @media (max-width: 720px) {
@@ -189,17 +190,15 @@ export const GoogleButton = styled.button`
   font-weight: var(--font-bold);
   box-shadow: 0 2px 8px rgba(116, 86, 24, 0.08);
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    transform: translateY(-2px);
     border-color: #d6a81b;
     background: #fffaf0;
     box-shadow: 0 8px 18px rgba(116, 86, 24, 0.16);
   }
 
   &:active {
-    transform: translateY(0);
     background: #f7edd2;
     box-shadow: 0 2px 6px rgba(116, 86, 24, 0.12);
   }

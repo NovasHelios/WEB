@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -75,7 +75,7 @@ function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
   const { registerData, resetRegisterData } = useLandRegister();
-  const [selected, setSelected] = useState(registerData.transactionType || "sale");
+  const selected = registerData.transactionType || "sale";
   const desiredArea = Number(String(registerData.desiredArea || "").replace(/[^\d]/g, ""));
   const desiredPyeong = desiredArea ? Math.round(desiredArea / 3.3058).toLocaleString("ko-KR") : "";
 
@@ -104,15 +104,10 @@ function LandRegisterComplete() {
           </CompleteHero>
 
           <CompleteChoiceRow>
-            {Object.values(completionModes).map((mode) => (
-              <CompleteChoiceButton
-                key={mode.key}
-                $active={selected === mode.key}
-                aria-current={selected === mode.key ? "true" : undefined}
-              >
-                {mode.label}
-              </CompleteChoiceButton>
-            ))}
+            {/* 등록한 거래 조건에 해당하는 항목만 표시합니다. */}
+            <CompleteChoiceButton $active aria-current="true">
+              {current.label}
+            </CompleteChoiceButton>
           </CompleteChoiceRow>
 
           <CompleteSummaryCard>
