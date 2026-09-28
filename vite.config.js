@@ -8,12 +8,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [react()],
   resolve: {
+    // React 계열 패키지가 항상 하나의 설치본으로 해석되도록 고정합니다.
+    dedupe: ["react", "react-dom", "styled-components"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {
+    // HTTP와 HMR WebSocket이 같은 IPv4 서버를 사용하도록 주소를 고정합니다.
+    host: "127.0.0.1",
     port: 8500,
+    // 이미 같은 포트를 사용하는 서버가 있으면 다른 포트로 우회하지 않고 종료합니다.
+    strictPort: true,
+    // 브라우저의 HMR 연결도 현재 개발 서버 주소와 동일하게 맞춥니다.
+    hmr: {
+      host: "127.0.0.1",
+      port: 8500,
+      clientPort: 8500,
+    },
     proxy: {
       "/api": {
         target: "https://www.helioss.site",

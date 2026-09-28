@@ -7,7 +7,7 @@ import Map from "./pages/Main/Map";
 import MySpace from "./pages/MySpace";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
-import BusinessConnections from "./pages/BusinessConnections";
+import BusinessPage from "./pages/BusinessPage/BusinessPage";
 import Settings from "./pages/Settings";
 import { LandRegisterProvider } from "./contexts/LandRegisterContext";
 import {
@@ -38,7 +38,7 @@ function App() {
           <Route path="/oauth2/callback" element={<OAuthCallback />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/business-connections" element={<BusinessConnections />} />
+          <Route path="/business-connections" element={<BusinessPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/space" element={<MySpace />} />
         </Routes>
