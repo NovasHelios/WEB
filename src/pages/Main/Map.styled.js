@@ -31,8 +31,11 @@ export const NavBarArea = styled.div`
 export const FilterArea = styled.div`
   position: absolute;
   top: 84px;
-  left: 20px;
+  /* 검색 결과 패널이 열리면 패널 너비만큼 필터를 오른쪽으로 이동합니다. */
+  left: ${({ $isSearchOpen }) => ($isSearchOpen ? "340px" : "20px")};
   z-index: 20;
+  /* 검색 결과 패널 표시 상태가 바뀔 때 위치를 자연스럽게 전환합니다. */
+  transition: left 0.2s ease;
 `;
 
 // 상세 토지 패널을 지도 위에 띄우기 위한 기준 영역입니다.
