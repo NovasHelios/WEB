@@ -9,17 +9,15 @@ export const Api = {
   EmailResend: `${BASE}/api/auth/email/resend`,
 
   // Land
-  Lands: `${BASE}/api/lands`, // GET 전체조회 / POST 등록 (multipart)
-  MyLands: `${BASE}/api/lands/me`, // GET 내가 등록한 토지 목록
-  Land: (landId) => `${BASE}/api/lands/${landId}`, // GET 상세 / PATCH 수정 / DELETE 삭제
-  LandImage: (landId) => `${BASE}/api/lands/${landId}/image`, // PATCH 이미지 추가·교체
-  LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`, // PATCH 소유자 승인
-  LandReject: (landId) => `${BASE}/api/lands/${landId}/reject`, // PATCH 소유자 거절
-  LandFilter: `${BASE}/api/lands/filter`, // POST 필터 조회
-
-  // AI
-  AiReport: (landId) =>
-    `${BASE}/api/ai/report?landId=${encodeURIComponent(landId)}`,
+    VworldLand: `${BASE}/api/vworld/land`, // GET 주소 기반 토지 자동 조회
+    AiReport: (landId) => `${BASE}/api/ai/report?landId=${encodeURIComponent(landId)}`,
+  Lands: `${BASE}/api/lands`,                                                        // GET 전체조회 / POST 등록 (multipart)
+  MyLands: `${BASE}/api/lands/me`,                                                    // GET 내가 등록한 토지 목록
+  Land: (landId) => `${BASE}/api/lands/${landId}`,                                   // GET 상세 / PATCH 수정 / DELETE 삭제
+  LandImage: (landId) => `${BASE}/api/lands/${landId}/image`,                        // PATCH 이미지 추가·교체
+  LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`,                    // PATCH 소유자 승인
+  LandReject: (landId) => `${BASE}/api/lands/${landId}/reject`,                      // PATCH 소유자 거절
+  LandFilter: `${BASE}/api/lands/filter`,                                             // POST 필터 조회
 
   // User
   MyProfile: `${BASE}/api/users/me`, // GET 내 정보 / PATCH 수정
@@ -36,15 +34,15 @@ export const Api = {
   Wish: (landId) => `${BASE}/api/wishes/${landId}`, // POST 찜 등록 / DELETE 찜 취소
 
   // Chat
-  ChatRooms: `${BASE}/api/chat/rooms`, // GET 목록 / POST 생성
-  ChatMessages: (roomId) => `${BASE}/api/chat/rooms/${roomId}/messages`, // GET 메시지 목록
-  ChatAttachment: (roomId) => `${BASE}/api/chat/rooms/${roomId}/attachments`, // POST 파일 첨부
-  ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`, // PATCH 수락
-  ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`, // PATCH 거절
-  ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`, // PATCH 종료
-  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws/chat`, // WebSocket STOMP 기본 연결
-  ChatSocketCandidates: () => {
-    // 서버는 STOMP CONNECT 헤더 인증만 사용합니다.
+    ChatDelete: (roomId) => `${BASE}/api/chat/rooms/${roomId}`, // DELETE 채팅방 삭제
+  ChatRooms: `${BASE}/api/chat/rooms`,                                               // GET 목록 / POST 생성
+  ChatMessages: (roomId) => `${BASE}/api/chat/rooms/${roomId}/messages`,             // GET 메시지 목록
+  ChatAttachment: (roomId) => `${BASE}/api/chat/rooms/${roomId}/attachments`,        // POST 파일 첨부
+  ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
+  ChatReject: (roomId) => `${BASE}/api/chat/rooms/${roomId}/reject`,                 // PATCH 거절
+  ChatClose: (roomId) => `${BASE}/api/chat/rooms/${roomId}/close`,                   // PATCH 종료
+  ChatSocket: `${BASE.replace(/^http/, "ws")}/ws/chat`,                             // WebSocket STOMP 기본 연결
+  ChatSocketCandidates: () => {                                                     // 서버는 STOMP CONNECT 헤더 인증만 사용합니다.
     const socketBase = BASE.replace(/^http/, "ws");
     return [`${socketBase}/ws/chat`];
   },

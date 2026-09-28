@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 // 대표 이미지 위 관심 버튼에 사용할 아이콘입니다.
 import { Heart } from "lucide-react";
 import { Api } from "@/contents/apiEndpoints";
+import { removeClosedChatRoomMatch } from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 
@@ -105,6 +106,11 @@ const formatArea = (value) => {
 
   // 제곱미터와 평을 함께 보여줍니다.
   return `${numberValue.toLocaleString()} ㎡ (약 ${pyeong}평)`;
+};
+
+const isExistingChatRoomMessage = (message) => {
+  // 서버가 기존 상담방 존재를 에러로 내려줘도 사용자는 채팅 화면으로 이동할 수 있게 판단합니다.
+  return String(message || "").includes("이미") && String(message || "").includes("채팅방");
 };
 
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
@@ -240,9 +246,23 @@ function Preview({ land }) {
       const data = contentType.includes("application/json") ? await response.json() : null;
 
       if (!response.ok) {
+        const errorMessage = data?.message || data?.data?.message || "채팅방을 생성하지 못했습니다.";
+
+        if ([409, 422].includes(response.status) || isExistingChatRoomMessage(errorMessage)) {
+          removeClosedChatRoomMatch({ landId, landAddress: address });
+          navigate("/chat");
+          return;
+        }
+
         throw new Error(data?.message || data?.data?.message || "채팅방을 생성하지 못했습니다.");
       }
 
+      removeClosedChatRoomMatch({
+        roomId: data?.data?.roomId || data?.roomId,
+        landId,
+        landAddress: address,
+        counterpartEmail: data?.data?.counterpartEmail || data?.counterpartEmail,
+      });
       setFeedback({
         type: "success",
         text: "채팅 요청이 생성되었습니다.",

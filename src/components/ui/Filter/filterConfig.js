@@ -3,7 +3,7 @@ export const transactionOptions = [
   { label: "전체", value: "ALL" },
   { label: "매매", value: "SALE" },
   { label: "임대", value: "LEASE" },
-  { label: "사업희망", value: "BUSINESS_HOPE" },
+  { label: "사업 희망", value: "BUSINESS_HOPE" },
 ];
 
 // 드래그 범위 필터별 최소값, 최대값, 이동 단위, 표시 라벨입니다.

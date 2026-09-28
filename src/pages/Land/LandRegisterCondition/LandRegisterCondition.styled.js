@@ -320,6 +320,36 @@ export const ConditionCardSuffix = styled.span`
   margin-bottom: 3px;
 `;
 
+export const ConditionGuidance = styled.div`
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #eadfc8;
+  border-radius: 6px;
+  background: #fbf7ed;
+  color: #6e5a25;
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
+  }
+
+  p,
+  span {
+    margin: 0;
+    font-size: var(--font-xs);
+    line-height: var(--line-normal);
+  }
+
+  span {
+    display: block;
+    margin-top: 4px;
+    color: ${({ $complete }) => ($complete ? "#3f7a3a" : "#9a5a00")};
+    font-weight: var(--font-semibold);
+  }
+`;
+
 export const ConditionTopNote = styled.div`
   display: flex;
   align-items: flex-start;

@@ -229,7 +229,7 @@ function Signin_2() {
 
           <GoogleRow>
             <GoogleButton type="button" onClick={handleGoogleLogin}>
-              G Google
+              G Google로 계속하기
             </GoogleButton>
           </GoogleRow>
 
