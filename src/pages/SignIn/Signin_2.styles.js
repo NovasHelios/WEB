@@ -3,7 +3,7 @@ import styled from "styled-components";
 export const Page = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #fff;
+  background: var(--color-page-bg);
   color: #202020;
   display: flex;
   flex-direction: column;
@@ -26,8 +26,8 @@ export const LogoWrap = styled.div`
 `;
 
 export const LogoImage = styled.img`
-  /* 로그인 화면처럼 상단 로고 크기를 안정적으로 고정 */
-  height: 64px;
+  /* 로그인 화면과 같은 로고 크기로 맞춥니다. */
+  height: 48px;
   width: auto;
   object-fit: contain;
 `;
@@ -35,10 +35,11 @@ export const LogoImage = styled.img`
 export const Card = styled.div`
   width: min(100%, 720px);
   border: 1px solid #efc23a;
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 18px;
+  background: var(--color-surface);
   box-sizing: border-box;
-  padding: 24px 30px 20px;
+  padding: 32px 30px 28px;
+  box-shadow: 0 30px 70px rgba(214, 168, 27, 0.16);
   box-shadow: 0 28px 56px rgba(214, 168, 27, 0.12);
 
   @media (max-width: 720px) {
@@ -48,16 +49,16 @@ export const Card = styled.div`
 
 export const Title = styled.h1`
   margin: 0 0 28px;
-  font-size: 26px;
+  font-size: var(--font-xl);
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   letter-spacing: -0.05em;
   color: #222;
 `;
 
 export const Subtitle = styled.p`
   margin: 0 0 18px;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.6;
   color: #6f6251;
   text-align: center;
@@ -82,8 +83,8 @@ export const InputGroup = styled.div`
 `;
 
 export const Label = styled.label`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   color: #605442;
 `;
 
@@ -95,7 +96,7 @@ export const Input = styled.input`
   padding: 0 0 12px;
   box-sizing: border-box;
   outline: none;
-  font-size: 17px;
+  font-size: var(--font-lg);
   color: #303030;
 
   &::placeholder {
@@ -140,8 +141,8 @@ export const VerifyButton = styled.button`
   border: 1px solid #efc23a;
   background: #fff;
   color: #d6a81b;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
   flex: 0 0 auto;
 
@@ -153,7 +154,7 @@ export const VerifyButton = styled.button`
 
 export const ErrorMessage = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #c62828;
 `;
 
@@ -163,8 +164,8 @@ export const SubmitButton = styled.button`
   border: 0;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
   cursor: pointer;
   margin-top: 10px;
 
@@ -175,20 +176,43 @@ export const SubmitButton = styled.button`
 `;
 
 export const GoogleButton = styled.button`
-  width: 176px;
-  height: 38px;
+  width: 100%;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   border: 1px solid #e1cfb0;
+  border-radius: 8px;
   background: #fff;
   color: #252525;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
+  box-shadow: 0 2px 8px rgba(116, 86, 24, 0.08);
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #d6a81b;
+    background: #fffaf0;
+    box-shadow: 0 8px 18px rgba(116, 86, 24, 0.16);
+  }
+
+  &:active {
+    background: #f7edd2;
+    box-shadow: 0 2px 6px rgba(116, 86, 24, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #d6a81b;
+    outline-offset: 2px;
+  }
 `;
 
 export const BottomText = styled.p`
   margin: 22px 0 0;
   text-align: center;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #4f4a42;
 `;
 
@@ -196,8 +220,8 @@ export const BottomLink = styled.button`
   border: 0;
   background: transparent;
   color: #b48909;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  font-weight: var(--font-semibold);
   text-decoration: underline;
   text-underline-offset: 4px;
   cursor: pointer;
@@ -206,6 +230,6 @@ export const BottomLink = styled.button`
 
 export const GoogleRow = styled.div`
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   margin-top: 16px;
 `;

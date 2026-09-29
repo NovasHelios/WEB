@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
-import Specific from "@/components/ui/SpecificPopUp/Specific";
 import Filter from "@/components/ui/Filter/Filter";
+// 검색한 지역 안의 등록 토지 목록을 표시하는 패널입니다.
+import SearchPreview from "./component/SearchPreview";
 import {
   MapPage,
   MapContainer,
@@ -13,8 +14,9 @@ import {
 } from "./Map.styled";
 
 import markupImage from "@/images/markup.png";
-import { renderLandMarkers, updateLandLayerByZoom } from "./mapMarker";
+import { renderLandMarkers, updateLandLayerByZoom } from "./component/mapMarker";
 import {
+  fetchAllLandList,
   fetchFilteredLandList,
   fetchLandDetail,
 } from "./landApi";
@@ -32,6 +34,15 @@ function Map() {
 
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
+
+  // 가장 최근에 시작한 필터 요청을 구분하기 위한 번호입니다.
+  const filterRequestIdRef = useRef(0);
+
+  // 가장 최근에 클릭한 토지 상세 요청을 구분하기 위한 번호입니다.
+  const landDetailRequestIdRef = useRef(0);
+
+  // 가장 최근에 실행한 주소 검색을 구분하기 위한 번호입니다.
+  const searchRequestIdRef = useRef(0);
 
   // 현재 지도에 적용된 필터 조건을 저장하는 state입니다.
   const [appliedFilters, setAppliedFilters] = useState({
@@ -115,103 +126,29 @@ function Map() {
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
 
-  // 상세보기 팝업이 열려 있는지 저장하는 state입니다.
-  const [isSpecificOpen, setIsSpecificOpen] = useState(false);
+  // 주소 검색 결과 패널의 표시 상태와 조회 결과를 관리합니다.
+  const [searchPreviewState, setSearchPreviewState] = useState({
+    // 주소 검색 전에는 결과 패널을 표시하지 않습니다.
+    isOpen: false,
+
+    // 결과 패널에 표시할 검색어입니다.
+    keyword: "",
+
+    // 검색된 지도 영역 안의 등록 토지 목록입니다.
+    lands: [],
+
+    // 검색 결과를 불러오는 중인지 나타냅니다.
+    isLoading: false,
+
+    // 검색 결과 조회 실패 문구입니다.
+    error: "",
+  });
 
   // 검색 결과 패널에 보여줄 지역 추천 목록
   const [regionSuggestions, setRegionSuggestions] = useState([]);
 
   // 지역 추천 패널 표시 여부
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
-
-  useEffect(() => {
-    // Kakao Maps SDK가 로드된 뒤 지도를 초기화하는 함수입니다.
-    const initMap = () => {
-      // Kakao Maps SDK가 아직 로드되지 않았으면 초기화를 중단합니다.
-      if (!window.kakao || !window.kakao.maps) {
-        console.log("Kakao Maps API 로드 대기 중...");
-        return false;
-      }
-
-      // 이미 지도 인스턴스가 생성되어 있으면 중복 생성하지 않습니다.
-      if (mapInstanceRef.current) return true;
-
-      // 지도를 렌더링할 DOM 요소를 가져옵니다.
-      const container = mapElementRef.current;
-
-      // 지도 컨테이너가 없으면 지도를 생성하지 않습니다.
-      if (!container) return false;
-
-      // 초기 중심 좌표를 생성합니다.
-      const center = new window.kakao.maps.LatLng(35.664, 128.415);
-
-      // Kakao 지도 생성 옵션을 설정합니다.
-      const options = {
-        // 지도 중심 좌표입니다.
-        center,
-
-        // Kakao 지도 확대 레벨입니다.
-        level: 3,
-      };
-
-      // Kakao 지도 인스턴스를 생성합니다.
-      const map = new window.kakao.maps.Map(container, options);
-
-      // 생성한 Kakao 지도 객체를 ref에 저장합니다.
-      mapInstanceRef.current = map;
-
-      // 지도 이동 또는 확대/축소가 끝났을 때 현재 화면 영역 기준으로 마커를 다시 조회합니다.
-      window.kakao.maps.event.addListener(map, "idle", () => {
-        // 현재 필터 조건과 지도 영역을 기준으로 /api/lands/filter API를 다시 호출합니다.
-        fetchRegisteredLands();
-      });
-
-      // 지도 크기를 다시 계산합니다.
-      setTimeout(() => {
-        map.relayout();
-      }, 100);
-
-      // 등록된 토지 목록을 불러옵니다.
-      // eslint-disable-next-line react-hooks/immutability
-      fetchRegisteredLands();
-
-      // Kakao 지도 줌 변경 이벤트를 등록합니다.
-      window.kakao.maps.event.addListener(map, "zoom_changed", () => {
-        // 줌 레벨에 따라 마커 표시 방식을 갱신합니다.
-        updateLandLayerByZoom({
-          mapRef: mapInstanceRef,
-          markerLayerRef: landMarkerLayerRef,
-        });
-      });
-
-      // 지도 빈 곳을 클릭하면 선택된 토지 상태를 초기화합니다.
-      window.kakao.maps.event.addListener(map, "click", () => {
-        // 선택된 토지를 비워 미리보기 패널을 닫습니다.
-        setSelectedLand(null);
-
-        // 상세보기 팝업도 닫습니다.
-        setIsSpecificOpen(false);
-      });
-
-      // 지도 초기화가 끝났음을 반환합니다.
-      return true;
-    };
-
-    // SDK가 script에서 늦게 준비될 수 있으므로 짧은 간격으로 확인합니다.
-    const waitForKakao = setInterval(() => {
-      // 지도 초기화에 성공하면 대기를 멈춥니다.
-      if (initMap()) {
-        clearInterval(waitForKakao);
-      }
-    }, 100);
-
-    // 컴포넌트가 사라질 때 interval을 정리합니다.
-    return () => {
-      clearInterval(waitForKakao);
-    };
-    // Kakao 지도 초기화는 최초 마운트 때만 실행합니다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // 입력된 시도 축약명 또는 정식명을 VWorld/내부 로직에서 사용할 정식 시도명으로 변환
   const normalizeSido = (keyword) => {
@@ -300,20 +237,285 @@ function Map() {
           return;
         }
 
-        // Kakao 검색 결과의 경도와 위도를 반환합니다.
+        // Kakao 검색 결과의 좌표와 행정구역 이름을 반환합니다.
         resolve({
           // Kakao result.x는 경도입니다.
           lon: Number(result[0].x),
 
           // Kakao result.y는 위도입니다.
           lat: Number(result[0].y),
+
+          // 검색 위치가 속한 시도 이름입니다.
+          sido: result[0].address?.region_1depth_name || null,
+
+          // 검색 위치가 속한 시군구 이름입니다.
+          sigungu: result[0].address?.region_2depth_name || null,
+
+          // 검색 위치가 속한 읍면동 이름입니다.
+          emd: result[0].address?.region_3depth_name || null,
         });
       });
     });
   };
 
+  // 행정구역 검색어를 filter API에서 사용할 지역 조건으로 변환합니다.
+  const getSearchRegion = (searchKeyword, point) => {
+    // 검색어의 마지막 지역명을 비교 기준으로 사용합니다.
+    const lastWord = searchKeyword.trim().split(/\s+/).at(-1);
+
+    // 읍면동 이름으로 끝나는 검색이면 세 단계 지역을 모두 전달합니다.
+    if (point.emd && point.emd.endsWith(lastWord)) {
+      return {
+        sido: { name: point.sido },
+        sigungu: { name: point.sigungu },
+        emd: { name: point.emd },
+      };
+    }
+
+    // 시군구 이름으로 끝나는 검색이면 시도와 시군구를 전달합니다.
+    if (point.sigungu && point.sigungu.endsWith(lastWord)) {
+      return {
+        sido: { name: point.sido },
+        sigungu: { name: point.sigungu },
+        emd: null,
+      };
+    }
+
+    // 시도 이름으로 끝나는 검색이면 시도만 전달합니다.
+    if (point.sido && point.sido.endsWith(lastWord)) {
+      return {
+        sido: { name: point.sido },
+        sigungu: null,
+        emd: null,
+      };
+    }
+
+    // 도로명과 상세 지번 검색은 기존 지도 범위 조회를 유지합니다.
+    return null;
+  };
+
+  // 전체 토지 중 검색한 행정구역에 포함되는 토지만 판별합니다.
+  const isLandInSearchRegion = (land, searchKeyword, searchRegion) => {
+    // 지역 필드가 없을 때 비교할 주소 문자열입니다.
+    const address = String(land?.address || "");
+
+    // 행정구역 검색이 아니면 입력한 주소가 포함된 토지만 반환합니다.
+    if (!searchRegion) return address.includes(searchKeyword);
+
+    // 가장 상세하게 검색한 지역명을 비교 대상으로 선택합니다.
+    const targetRegionName =
+      searchRegion.emd?.name ||
+      searchRegion.sigungu?.name ||
+      searchRegion.sido?.name;
+
+    // 비교할 지역명이 없으면 검색 결과에서 제외합니다.
+    if (!targetRegionName) return false;
+
+    // 검색 단계에 맞는 서버 지역 필드를 선택합니다.
+    const landRegionName = searchRegion.emd
+      ? land?.regionEupmyeondong
+      : searchRegion.sigungu
+        ? land?.regionSigungu
+        : land?.regionSido;
+
+    // 구조화된 지역 필드를 우선 비교하고 없으면 주소 문자열로 보완합니다.
+    return landRegionName
+      ? String(landRegionName).includes(targetRegionName)
+      : address.includes(targetRegionName);
+  };
+
+  // 토지가 현재 저장된 필터 조건을 모두 만족하는지 확인합니다.
+  const isLandMatchingAppliedFilters = (land, filterBody) => {
+    // 토지의 거래 유형과 숫자 값을 비교 가능한 형태로 변환합니다.
+    const transactionType = land?.transactionType;
+    const desiredPrice = Number(land?.desiredPrice);
+    const area = Number(land?.area);
+
+    // 거래 유형 조건이 있으면 같은 유형의 토지만 허용합니다.
+    if (filterBody.transactionType) {
+      const allowedTypes = Array.isArray(filterBody.transactionType)
+        ? filterBody.transactionType
+        : [filterBody.transactionType];
+
+      // 선택된 거래 유형에 포함되지 않으면 검색 결과에서 제외합니다.
+      if (!allowedTypes.includes(transactionType)) return false;
+    }
+
+    // 저장된 지역 필터도 검색 지역 조건과 함께 적용합니다.
+    const regionConditions = [
+      [filterBody.sido, land?.regionSido],
+      [filterBody.sigungu, land?.regionSigungu],
+      [filterBody.eupmyeondong, land?.regionEupmyeondong],
+    ];
+
+    // 선택된 지역 중 하나라도 토지 지역과 다르면 제외합니다.
+    if (
+      regionConditions.some(
+        ([expected, actual]) =>
+          expected && !String(actual || "").includes(expected)
+      )
+    ) {
+      return false;
+    }
+
+    // 면적 값이 없거나 최소 면적보다 작으면 제외합니다.
+    if (
+      filterBody.minArea !== null &&
+      (!Number.isFinite(area) || area < filterBody.minArea)
+    ) {
+      return false;
+    }
+
+    // 면적 값이 없거나 최대 면적보다 크면 제외합니다.
+    if (
+      filterBody.maxArea !== null &&
+      (!Number.isFinite(area) || area > filterBody.maxArea)
+    ) {
+      return false;
+    }
+
+    // 임대 토지는 임대가 범위를 사용하고 나머지는 매매가 범위를 사용합니다.
+    const minPrice =
+      transactionType === "LEASE"
+        ? filterBody.leaseMinPrice
+        : filterBody.saleMinPrice;
+    const maxPrice =
+      transactionType === "LEASE"
+        ? filterBody.leaseMaxPrice
+        : filterBody.saleMaxPrice;
+
+    // 가격 값이 없거나 최소 가격보다 작으면 제외합니다.
+    if (
+      minPrice !== null &&
+      (!Number.isFinite(desiredPrice) || desiredPrice < minPrice)
+    ) {
+      return false;
+    }
+
+    // 가격 값이 없거나 최대 가격보다 크면 제외합니다.
+    if (
+      maxPrice !== null &&
+      (!Number.isFinite(desiredPrice) || desiredPrice > maxPrice)
+    ) {
+      return false;
+    }
+
+    // 모든 저장 필터 조건을 만족한 토지만 검색 결과에 포함합니다.
+    return true;
+  };
+
+  // 전체 조회 API에서 검색 지역에 포함된 토지 목록을 가져옵니다.
+  const fetchSearchLands = async ({
+    searchRequestId,
+    searchKeyword,
+    searchRegion,
+    filters,
+  }) => {
+    try {
+      // 검색할 때만 GET /api/lands 전체 조회 API를 호출합니다.
+      const allLands = await fetchAllLandList();
+
+      // 더 최신 검색이 시작됐다면 이전 전체 조회 결과를 반영하지 않습니다.
+      if (searchRequestId !== searchRequestIdRef.current) return;
+
+      // 전체 목록을 순회하기 전에 저장된 필터 값을 한 번만 정규화합니다.
+      const filterBody = createLandFilterBody(filters, null);
+
+      // 전체 토지에서 검색 지역과 저장된 필터를 모두 만족하는 토지만 남깁니다.
+      const matchingLands = allLands.filter((land) =>
+        isLandInSearchRegion(land, searchKeyword, searchRegion) &&
+        isLandMatchingAppliedFilters(land, filterBody)
+      );
+
+      // 필터링된 토지 목록을 검색 결과 패널에 표시합니다.
+      setSearchPreviewState({
+        isOpen: true,
+        keyword: searchKeyword,
+        lands: matchingLands,
+        isLoading: false,
+        error: "",
+      });
+    } catch (error) {
+      // 전체 조회 실패 내용을 개발자 도구에서 확인합니다.
+      console.error("검색용 전체 토지 목록 조회 실패:", error);
+
+      // 더 최신 검색이 시작됐다면 이전 오류도 화면에 반영하지 않습니다.
+      if (searchRequestId !== searchRequestIdRef.current) return;
+
+      // 검색 결과 패널에 조회 실패 문구를 표시합니다.
+      setSearchPreviewState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "검색 결과를 불러오지 못했습니다.",
+      }));
+    }
+  };
+
+  // 마커와 검색 결과 카드가 함께 사용하는 토지 상세보기 함수입니다.
+  const openLandPreview = async (land) => {
+    // 토지 정보가 없으면 상세 조회를 실행하지 않습니다.
+    if (!land) return;
+
+    // 이번 클릭에 고유 번호를 부여해 이전 상세 응답과 구분합니다.
+    const detailRequestId = ++landDetailRequestIdRef.current;
+
+    // 필터 API별 토지 식별자 필드를 하나의 값으로 정리합니다.
+    const landId = land.id ?? land.landId;
+
+    // 서버에서 landId 기준 단일 상세 정보를 조회합니다.
+    const landDetail = await fetchLandDetail(landId);
+
+    // 다른 토지를 더 나중에 클릭했다면 이전 상세 응답을 반영하지 않습니다.
+    if (detailRequestId !== landDetailRequestIdRef.current) return;
+
+    // 상세 API 정보와 지도 표시용 좌표 정보를 합쳐 미리보기에 전달합니다.
+    setSelectedLand({
+      ...land,
+      ...(landDetail || {}),
+      position: land.position,
+      lat: land.lat,
+      lon: land.lon,
+    });
+  };
+
+  // 검색 결과 카드를 클릭하면 해당 토지로 이동하고 상세보기를 엽니다.
+  const handleSelectSearchLand = async (land) => {
+    // 지도 또는 선택한 토지 정보가 없으면 이동하지 않습니다.
+    if (!mapInstanceRef.current || !land) return;
+
+    // 마커 렌더링 때 저장한 Kakao 좌표 객체를 우선 사용합니다.
+    let position = land.position;
+
+    // 좌표 객체가 없을 때를 대비해 숫자 위도와 경도로 다시 생성합니다.
+    if (!position) {
+      // 표시용 좌표 또는 서버 원본 좌표를 숫자로 변환합니다.
+      const lat = Number(land.lat ?? land.y);
+      const lon = Number(land.lon ?? land.x);
+
+      // 유효한 좌표가 있을 때만 Kakao 좌표 객체를 생성합니다.
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        position = new window.kakao.maps.LatLng(lat, lon);
+      }
+    }
+
+    // 이동 가능한 좌표가 없으면 상세보기를 열지 않습니다.
+    if (!position) return;
+
+    // 선택한 토지가 화면 중앙에 오도록 지도를 이동합니다.
+    mapInstanceRef.current.setCenter(position);
+
+    // 선택한 토지 마커가 잘 보이도록 지도를 확대합니다.
+    mapInstanceRef.current.setLevel(3);
+
+    // 기존 마커 클릭과 동일한 상세 조회 함수를 실행합니다.
+    await openLandPreview({
+      ...land,
+      position,
+    });
+  };
+
   // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
-  const renderFilteredLands = async (lands) => {
+  const renderFilteredLands = async (lands, isStale) => {
     // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
     await renderLandMarkers({
       // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
@@ -334,23 +536,11 @@ function Map() {
       // 기존 인자를 유지하되, Kakao 마커에서는 사용하지 않을 수 있습니다.
       markupImage,
 
-      // 마커 클릭 시 상세 데이터를 가져와 미리보기 패널에 표시합니다.
-      onMarkerClick: async (land) => {
-        // 마커를 새로 클릭하면 상세보기 팝업은 닫습니다.
-        setIsSpecificOpen(false);
+      // 더 최신 필터 요청이 시작되었는지 확인하는 함수입니다.
+      isStale,
 
-        // 서버에서 landId 기준 단일 상세 정보를 조회합니다.
-        const landDetail = await fetchLandDetail(land.id);
-
-        // 상세 API 정보와 마커 좌표 정보를 합쳐 미리보기에 전달합니다.
-        setSelectedLand({
-          ...land,
-          ...(landDetail || {}),
-          position: land.position,
-          lat: land.lat,
-          lon: land.lon,
-        });
-      },
+      // 마커 클릭도 검색 결과 카드와 같은 상세보기 함수를 사용합니다.
+      onMarkerClick: openLandPreview,
 
       // 마커 렌더링 후 현재 지도 레벨에 맞춰 표시 상태를 갱신합니다.
       onAfterRender: () =>
@@ -365,12 +555,20 @@ function Map() {
   };
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
-  const fetchRegisteredLands = async () => {
+  async function fetchRegisteredLands(
+    filters = appliedFiltersRef.current
+  ) {
+    // 이번 요청에 고유 번호를 부여해 응답 순서를 판별합니다.
+    const requestId = ++filterRequestIdRef.current;
+
+    // 현재 요청보다 더 최신 요청이 시작되었는지 확인합니다.
+    const isStale = () => requestId !== filterRequestIdRef.current;
+
     try {
       // 현재 적용된 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
       const requestBody = createLandFilterBody(
         // 지도 idle 이벤트에서도 최신 필터 조건을 사용합니다.
-        appliedFiltersRef.current,
+        filters,
         mapInstanceRef.current
       );
 
@@ -378,7 +576,13 @@ function Map() {
       console.log("초기/지도 이동 필터 요청 body:", requestBody);
 
       // /api/lands/filter API로 현재 화면에 보여줄 토지 목록을 조회합니다.
-      const { result } = await fetchFilteredLandList(requestBody);
+      const { ok, result } = await fetchFilteredLandList(requestBody);
+
+      // 더 최신 요청이 시작됐다면 현재 응답을 화면에 반영하지 않습니다.
+      if (isStale()) return;
+
+      // 실패 응답은 기존 지도 마커를 유지한 채 무시합니다.
+      if (!ok) return;
 
       // 서버 응답 data가 배열이면 마커 목록으로 사용하고, 아니면 빈 배열을 사용합니다.
       const lands = Array.isArray(result.data) ? result.data : [];
@@ -393,11 +597,12 @@ function Map() {
       );
 
       // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
-      await renderFilteredLands(lands);
+      await renderFilteredLands(lands, isStale);
+
     } catch (error) {
       console.error("등록된 토지 목록 조회 실패:", error);
     }
-  };
+  }
 
   // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
   const handleApplyFilters = async (nextFilters) => {
@@ -410,30 +615,97 @@ function Map() {
     // 병합된 필터 state와 ref를 함께 갱신합니다.
     updateAppliedFilters(mergedFilters);
 
-    // 새 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
-    const requestBody = createLandFilterBody(
-      // 병합된 최신 필터 조건으로 요청합니다.
-      mergedFilters,
-      mapInstanceRef.current
-    );
-
-    // 백엔드에서 필터링된 토지 목록을 조회합니다.
-    const { status, result } = await fetchFilteredLandList(requestBody);
-
-    // // 필터 API 응답 상태와 응답 데이터를 확인합니다.
-    // console.log("필터 응답 status:", status);
-    // console.log("필터 응답 data:", result);
-    // console.log(
-    //   "필터 결과 개수:",
-    //   Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
-    // );
-
-    // 서버에서 받은 토지 목록만 사용합니다.
-    const lands = result.data || [];
-
-    // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
-    await renderFilteredLands(lands);
+    // 공통 조회 함수를 사용해 최신 필터 요청만 지도에 반영합니다.
+    await fetchRegisteredLands(mergedFilters);
   };
+
+  useEffect(() => {
+    // Kakao Maps SDK가 로드된 뒤 지도를 초기화하는 함수입니다.
+    const initMap = () => {
+      // Kakao Maps SDK가 아직 로드되지 않았으면 초기화를 중단합니다.
+      if (!window.kakao || !window.kakao.maps) {
+        console.log("Kakao Maps API 로드 대기 중...");
+        return false;
+      }
+
+      // 이미 지도 인스턴스가 생성되어 있으면 중복 생성하지 않습니다.
+      if (mapInstanceRef.current) return true;
+
+      // 지도를 렌더링할 DOM 요소를 가져옵니다.
+      const container = mapElementRef.current;
+
+      // 지도 컨테이너가 없으면 지도를 생성하지 않습니다.
+      if (!container) return false;
+
+      // 초기 중심 좌표를 생성합니다.
+      const center = new window.kakao.maps.LatLng(35.664, 128.415);
+
+      // Kakao 지도 생성 옵션을 설정합니다.
+      const options = {
+        // 지도 중심 좌표입니다.
+        center,
+
+        // Kakao 지도 확대 레벨입니다.
+        level: 3,
+      };
+
+      // Kakao 지도 인스턴스를 생성합니다.
+      const map = new window.kakao.maps.Map(container, options);
+
+      // 생성한 Kakao 지도 객체를 ref에 저장합니다.
+      mapInstanceRef.current = map;
+
+      // 지도 이동 또는 확대/축소가 끝났을 때 현재 화면 영역 기준으로 마커를 다시 조회합니다.
+      window.kakao.maps.event.addListener(map, "idle", () => {
+        // 현재 필터 조건과 지도 영역을 기준으로 /api/lands/filter API를 다시 호출합니다.
+        fetchRegisteredLands(appliedFiltersRef.current);
+      });
+
+      // 지도 크기를 다시 계산합니다.
+      setTimeout(() => {
+        map.relayout();
+      }, 100);
+
+      // 등록된 토지 목록을 불러옵니다.
+      fetchRegisteredLands();
+
+      // Kakao 지도 줌 변경 이벤트를 등록합니다.
+      window.kakao.maps.event.addListener(map, "zoom_changed", () => {
+        // 줌 레벨에 따라 마커 표시 방식을 갱신합니다.
+        updateLandLayerByZoom({
+          mapRef: mapInstanceRef,
+          markerLayerRef: landMarkerLayerRef,
+        });
+      });
+
+      // 지도 빈 곳을 클릭하면 선택된 토지 상태를 초기화합니다.
+      window.kakao.maps.event.addListener(map, "click", () => {
+        // 진행 중인 이전 토지 상세 요청이 화면을 다시 열지 못하도록 무효화합니다.
+        landDetailRequestIdRef.current += 1;
+
+        // 선택된 토지를 비워 미리보기 패널을 닫습니다.
+        setSelectedLand(null);
+      });
+
+      // 지도 초기화가 끝났음을 반환합니다.
+      return true;
+    };
+
+    // SDK가 script에서 늦게 준비될 수 있으므로 짧은 간격으로 확인합니다.
+    const waitForKakao = setInterval(() => {
+      // 지도 초기화에 성공하면 대기를 멈춥니다.
+      if (initMap()) {
+        clearInterval(waitForKakao);
+      }
+    }, 100);
+
+    // 컴포넌트가 사라질 때 interval을 정리합니다.
+    return () => {
+      clearInterval(waitForKakao);
+    };
+    // Kakao 지도 초기화는 최초 마운트 때만 실행합니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // === 주소 검색 함수 ===
   const searchAddress = async (searchKeyword = keyword) => {
@@ -503,12 +775,39 @@ function Map() {
     // Kakao 지도에서 사용할 중심 좌표를 생성합니다.
     const moveLatLng = new window.kakao.maps.LatLng(point.lat, point.lon);
 
+    // 검색어가 행정구역 이름인지 확인합니다.
+    const searchRegion = getSearchRegion(trimmedKeyword, point);
+
+    // 이번 검색에 고유 번호를 부여해 이전 검색 응답과 구분합니다.
+    const searchRequestId = ++searchRequestIdRef.current;
+
+    // 새 검색이 시작되면 이전 상세 응답과 선택된 토지를 초기화합니다.
+    landDetailRequestIdRef.current += 1;
+    setSelectedLand(null);
+
+    // 검색 결과 패널을 열고 새 결과를 불러오는 상태로 전환합니다.
+    setSearchPreviewState({
+      isOpen: true,
+      keyword: trimmedKeyword,
+      lands: [],
+      isLoading: true,
+      error: "",
+    });
+
     // 검색된 위치로 지도 중심을 이동합니다.
     map.setCenter(moveLatLng);
 
     // 검색어 상세도에 맞춰 Kakao 지도 확대 레벨을 설정합니다.
     // Kakao는 숫자가 작을수록 더 확대됩니다.
     map.setLevel(getSearchLevel(trimmedKeyword));
+
+    // 전체 토지 목록에서 검색 지역에 포함된 토지를 별도로 조회합니다.
+    void fetchSearchLands({
+      searchRequestId,
+      searchKeyword: trimmedKeyword,
+      searchRegion,
+      filters: appliedFiltersRef.current,
+    });
   };
 
   // 추천 지역 클릭 시 해당 지역명으로 검색 실행
@@ -545,8 +844,29 @@ function Map() {
         />
       </NavBarArea>
 
+      {/* 주소 검색 후 현재 지도 영역의 등록 토지 목록을 왼쪽에 표시합니다. */}
+      {searchPreviewState.isOpen && (
+        <SearchPreview
+          // 사용자가 검색한 주소 또는 지역명입니다.
+          keyword={searchPreviewState.keyword}
+          // 검색 시점의 지도 영역에서 조회된 토지 목록입니다.
+          lands={searchPreviewState.lands}
+          // 검색 결과 조회 중 여부입니다.
+          isLoading={searchPreviewState.isLoading}
+          // 검색 결과 조회 실패 문구입니다.
+          error={searchPreviewState.error}
+          // 현재 상세보기에 선택된 토지 카드 강조에 사용합니다.
+          selectedLandId={selectedLand?.id ?? selectedLand?.landId}
+          // 카드 클릭 시 해당 토지 위치로 이동하고 상세보기를 엽니다.
+          onSelectLand={handleSelectSearchLand}
+        />
+      )}
+
       {/* 지도 위 필터 컴포넌트 영역입니다. */}
-      <FilterArea>
+      <FilterArea
+        // 검색 결과 패널이 열리면 필터 영역을 패널 오른쪽으로 이동합니다.
+        $isSearchOpen={searchPreviewState.isOpen}
+      >
         <Filter
           // 현재 적용된 필터 조건입니다.
           filters={appliedFilters}
@@ -558,34 +878,14 @@ function Map() {
       {/* 마커 클릭 시 표시되는 특정 토지 미리보기 패널입니다. */}
       <DetailPanelArea>
         <Preview
+          // 선택한 토지가 바뀌면 Preview의 이미지와 요청 상태를 새로 초기화합니다.
+          key={selectedLand?.id ?? selectedLand?.landId ?? "none"}
           land={selectedLand}
-          onClose={() => {
-            // 선택된 토지를 비워 미리보기 패널을 닫습니다.
-            setSelectedLand(null);
-
-            // 미리보기 패널이 닫히면 상세보기 팝업도 함께 닫습니다.
-            setIsSpecificOpen(false);
-          }}
-          onOpenSpecific={() => {
-            // 상세보기 팝업을 엽니다.
-            setIsSpecificOpen(true);
-          }}
         />
       </DetailPanelArea>
 
       {/* AI 채팅은 미리보기보다 뒤, 지도보다 앞에 표시합니다. */}
       <AiChat />
-
-      {/* 상세보기 팝업은 가장 위에 표시해 미리보기와 AI 채팅을 함께 블러 처리합니다. */}
-      {isSpecificOpen && (
-        <Specific
-          land={selectedLand}
-          onClose={() => {
-            // 상세보기 팝업을 닫습니다.
-            setIsSpecificOpen(false);
-          }}
-        />
-      )}
     </MapPage>
   );
 }

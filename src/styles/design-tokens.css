@@ -1,0 +1,36 @@
+:root {
+  /* 나르샤 기본 폰트 */
+  --font-family-base: "Pretendard", "Noto Sans KR", sans-serif;
+
+  /* 나르샤 타이포그래피 단계 */
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 18px;
+  --font-xl: 24px;
+  --font-2xl: 32px;
+  --font-3xl: 40px;
+
+  /* 나르샤 폰트 굵기 */
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* 나르샤 줄 높이 */
+  --line-tight: 1.25;
+  --line-normal: 1.5;
+  --line-relaxed: 1.65;
+
+  /* 나르샤 주요 컬러 */
+  --color-brand: #d6a81b;
+  --color-brand-strong: #d49f00;
+  --color-brand-dark: #8a6800;
+  --color-page-bg: #faf6ee;
+  --color-surface: #fffdf8;
+  --color-surface-soft: #fbfaf7;
+  --color-text: #1f1c17;
+  --color-text-muted: #5d5445;
+  --color-border: #d8c5a2;
+  --color-danger: #b42318;
+}

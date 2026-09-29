@@ -18,8 +18,9 @@ const EmailVerifyButton = ({ email, onError }) => {
           }
           setShowModal(true);
         }}
-        style={{ backgroundColor: verified ? "#808080" : "#d6a81b", width: "112px", height: "44px" }}
-        className="text-2xl font-semibold text-white transition-opacity rounded-xl hover:opacity-90"
+        // 이메일 입력창과 높이를 맞추고 인증 문구는 기본 본문 크기로 표시합니다.
+        style={{ backgroundColor: verified ? "#808080" : "#d6a81b", width: "104px", height: "44px", fontSize: "14px" }}
+        className="text-sm font-semibold text-white transition-opacity rounded-md hover:opacity-90"
       >
         인증하기
       </button>

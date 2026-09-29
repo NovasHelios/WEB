@@ -51,9 +51,9 @@ export const ConfirmHeaderLogo = styled.div`
 `;
 
 export const ConfirmHeaderLogoMark = styled.span`
-  font-size: 32px;
+  font-size: var(--font-2xl);
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--font-bold);
   letter-spacing: -0.06em;
   color: #d3a01d;
 `;
@@ -85,7 +85,7 @@ export const ConfirmHeaderSearchInput = styled.input`
   border: 0;
   background: transparent;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5d5d5d;
 
   &::placeholder {
@@ -113,9 +113,9 @@ export const ConfirmHeaderNavItem = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--font-md);
   color: #5c5c5c;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
 
   svg {
@@ -198,8 +198,8 @@ export const ConfirmInfoTitle = styled.h2`
   padding-bottom: 12px;
   border-bottom: 2px solid #eadfbd;
   color: #202020;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--font-xl);
+  font-weight: var(--font-bold);
   letter-spacing: -0.04em;
 `;
 
@@ -207,14 +207,14 @@ export const ConfirmSectionTitle = styled.h1`
   margin: 0;
   font-size: clamp(34px, 3vw, 48px);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: -0.05em;
   color: #202020;
 `;
 
 export const ConfirmSectionDescription = styled.p`
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: #6f6f6f;
 `;
@@ -244,8 +244,8 @@ export const ConfirmTopRowCard = styled.section`
 
 export const ConfirmTopRowCardTitle = styled.h2`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #666;
   letter-spacing: -0.03em;
 `;
@@ -260,21 +260,21 @@ export const ConfirmAddressBox = styled.div`
 
 export const ConfirmAddressLabel = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: #8d8d8d;
 `;
 
 export const ConfirmAddressText = styled.p`
   margin: 0;
-  font-size: 22px;
+  font-size: var(--font-xl);
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   color: #2c2c2c;
 `;
 
 export const ConfirmTopRowCaption = styled.p`
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1.5;
   color: #565656;
 `;
@@ -285,8 +285,8 @@ export const ConfirmAddressChangeButton = styled.button`
   border: 1px solid #d6a81b;
   background: #fff;
   color: #d6a81b;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
   cursor: default;
 `;
 
@@ -420,7 +420,7 @@ export const ConfirmTopNote = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.55;
   color: #6e5a25;
   margin-bottom: 26px;
@@ -474,12 +474,12 @@ export const ConfirmTableRow = styled.div`
 `;
 
 export const ConfirmTableCell = styled.div`
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: #707070;
 `;
 
 export const ConfirmTableValue = styled.div`
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1.45;
   color: #2d2d2d;
   text-align: right;
@@ -495,8 +495,8 @@ export const ConfirmPrimaryButton = styled.button`
   padding: 0 20px;
   background: #d6a81b;
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -520,7 +520,7 @@ export const ConfirmPrimaryButton = styled.button`
       background: #fff;
       color: #d6a81b;
       border: 1px solid #d6a81b;
-      font-size: 15px;
+      font-size: var(--font-sm);
     `}
 `;
 
@@ -557,8 +557,8 @@ export const ConfirmStepWrapper = styled.section`
 
 export const ConfirmSideCardTitle = styled.h3`
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-medium);
   color: #222;
   letter-spacing: -0.03em;
 `;
@@ -598,7 +598,7 @@ export const ConfirmStepCircle = styled.div`
 export const ConfirmStepTitle = styled.h4`
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 17px;
+  font-size: var(--font-lg);
   line-height: 1.2;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? "#b98d00" : "#666")};
@@ -607,7 +607,7 @@ export const ConfirmStepTitle = styled.h4`
 export const ConfirmStepDesc = styled.p`
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: #868686;
 `;
@@ -627,7 +627,7 @@ export const ConfirmGuideText = styled.p`
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: #5f5f5f;
 
@@ -677,7 +677,7 @@ export const ConfirmFooterNote = styled.div`
   align-items: center;
   gap: 10px;
   color: #d7b15b;
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.5;
   max-width: 640px;
 `;

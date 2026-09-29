@@ -43,8 +43,8 @@ export const ChatHeader = styled.header`
 // AI 채팅 제목입니다.
 export const ChatTitle = styled.strong`
   color: #d6ae16;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
 `;
 
 // 채팅 메시지가 표시되는 영역입니다.
@@ -86,8 +86,8 @@ export const MessageBubble = styled.p`
   align-self: ${({ $role }) => ($role === "user" ? "flex-end" : "flex-start")};
   background: ${({ $role }) => ($role === "user" ? "#d6b326" : "#f3f4f6")};
   color: ${({ $role }) => ($role === "user" ? "#111827" : "#374151")};
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
   line-height: 1.45;
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -111,7 +111,7 @@ export const ChatInput = styled.input`
   border: 0;
   outline: none;
   color: #111827;
-  font-size: 11px;
+  font-size: var(--font-xs);
 
   &::placeholder {
     color: #9ca3af;
@@ -130,8 +130,8 @@ export const SendButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-xs);
+  font-weight: var(--font-bold);
 `;
 
 // 오른쪽 아래 고정 AI 채팅 버튼입니다.

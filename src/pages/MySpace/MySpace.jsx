@@ -1,5 +1,5 @@
-import { ChevronDown, CalendarDays, MoreVertical, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
@@ -22,7 +22,6 @@ import {
   SpaceCardRow,
   SpaceContainer,
   SpaceFilterButton,
-  SpaceFilterGroup,
   SpaceHeader,
   SpaceInfoRow,
   SpaceInner,
@@ -33,7 +32,10 @@ import {
   SpaceModalError,
   SpaceModalField,
   SpaceModalHeader,
+  SpaceModalImage,
   SpaceModalInput,
+  SpaceModalFileButton,
+  SpaceModalFileInput,
   SpaceModalOverlay,
   SpaceModalSelect,
   SpaceModalTextarea,
@@ -95,7 +97,14 @@ const toManwonInput = (value) => {
   // 서버 원 단위 가격을 수정 폼의 만원 단위 입력값으로 변환합니다.
   const wonPrice = Number(String(value ?? "").replace(/[^\d]/g, ""));
   if (!wonPrice || Number.isNaN(wonPrice)) return "";
-  return String(Math.floor(wonPrice / 10000));
+  return formatManwonInput(Math.floor(wonPrice / 10000));
+};
+
+const formatManwonInput = (value) => {
+  // 수정 모달 금액 입력값을 3자리마다 쉼표로 표시합니다.
+  const digits = String(value ?? "").replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("ko-KR");
 };
 
 const toWonPrice = (value) => {
@@ -114,8 +123,9 @@ const formatArea = (value) => {
   return Number.isInteger(value) ? value.toLocaleString("ko-KR") : String(value);
 };
 
-const formatDate = (value = new Date()) => {
-  // 등록일은 서버 날짜가 있으면 사용하고, 없으면 오늘 날짜로 자동 표시합니다.
+const formatDate = (value) => {
+  // 등록일이 없으면 오늘 날짜로 대체하지 않고 빈 상태를 표시합니다.
+  if (!value) return "-";
   const date = value instanceof Date ? value : new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -131,7 +141,7 @@ const getCreatedDate = (land) =>
   land.registeredAt ||
   land.registerDate ||
   land.created_at ||
-  new Date();
+  null;
 
 const extractArray = (payload) => {
   // 서버 응답 구조가 바뀌어도 목록 배열만 안전하게 꺼냅니다.
@@ -204,8 +214,7 @@ const normalizeLand = (land, index) => {
 function MySpace() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
-  const [activeFilter, setActiveFilter] = useState("전체 상태");
-  const [activeSort, setActiveSort] = useState("최신 등록순");
+  const [activeSort, setActiveSort] = useState("최근 등록순");
   const [lands, setLands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -217,6 +226,9 @@ function MySpace() {
     transactionType: "SALE",
   });
   const [editError, setEditError] = useState("");
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState("");
+  const editImageInputRef = useRef(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -268,26 +280,28 @@ function MySpace() {
     void fetchMyLands();
   }, [fetchMyLands]);
 
-  const filteredLands = useMemo(() => {
-    if (activeFilter === "전체 상태") return lands;
-    if (activeFilter === "등록 완료") return lands.filter((item) => item.raw?.status !== "REVIEW");
-    if (activeFilter === "검토 중") return lands.filter((item) => item.raw?.status === "REVIEW");
-    return lands;
-  }, [activeFilter, lands]);
-
   const sortedLands = useMemo(() => {
-    const next = [...filteredLands];
+    // 상태 필터 제거 후 전체 토지를 기준으로 정렬합니다.
+    const next = [...lands];
 
-    if (activeSort === "최신 등록순") {
+    if (activeSort === "최근 등록순") {
       return next.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    }
+
+    if (activeSort === "오래된 등록순") {
+      return next.sort((a, b) => String(a.date).localeCompare(String(b.date)));
     }
 
     if (activeSort === "가격 높은 순") {
       return next.sort((a, b) => (Number(String(b.price).replace(/[^\d]/g, "")) || 0) - (Number(String(a.price).replace(/[^\d]/g, "")) || 0));
     }
 
+    if (activeSort === "가격 낮은 순") {
+      return next.sort((a, b) => (Number(String(a.price).replace(/[^\d]/g, "")) || 0) - (Number(String(b.price).replace(/[^\d]/g, "")) || 0));
+    }
+
     return next;
-  }, [activeSort, filteredLands]);
+  }, [activeSort, lands]);
 
   const totalCount = useMemo(() => lands.length, [lands]);
 
@@ -312,9 +326,13 @@ function MySpace() {
 
       setEditingLand(nextLand);
       setEditForm(getEditFormFromLand(nextLand));
+      setEditImageFile(null);
+      setEditImagePreview(resolveImageUrl(getFirstImagePath(nextLand.raw || nextLand)));
     } catch {
       setEditingLand(land);
       setEditForm(getEditFormFromLand(land));
+      setEditImageFile(null);
+      setEditImagePreview(resolveImageUrl(getFirstImagePath(land.raw || land)));
     } finally {
       setEditLoadingId(null);
     }
@@ -322,7 +340,28 @@ function MySpace() {
 
   const handleEditChange = (field) => (event) => {
     // 수정 입력값을 상태에 반영합니다.
-    setEditForm((prev) => ({ ...prev, [field]: event.target.value }));
+    const value = field === "desiredPrice" ? formatManwonInput(event.target.value) : event.target.value;
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+    setEditError("");
+  };
+
+  const handleEditImageChange = (event) => {
+    // 수정 모달에서 선택한 대표 이미지를 저장 전 미리 보여줍니다.
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setEditError("이미지 파일만 선택해주세요.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditError("이미지는 5MB 이하로 선택해주세요.");
+      return;
+    }
+
+    setEditImageFile(file);
+    setEditImagePreview(URL.createObjectURL(file));
     setEditError("");
   };
 
@@ -362,7 +401,30 @@ function MySpace() {
         throw new Error(data?.message || data?.data?.message || "토지를 수정하지 못했습니다.");
       }
 
-      const updatedRaw = { ...editingLand.raw, ...payload, ...(data?.data || {}) };
+      let imageData = null;
+      if (editImageFile) {
+        // 선택한 대표 이미지를 별도 이미지 수정 API로 업로드합니다.
+        const imageFormData = new FormData();
+        imageFormData.append("image", editImageFile);
+        const imageResponse = await authFetch(Api.LandImage(editingLand.id), {
+          method: "PATCH",
+          body: imageFormData,
+        });
+        const imageContentType = imageResponse.headers.get("content-type") || "";
+        imageData = imageContentType.includes("application/json") ? await imageResponse.json() : null;
+
+        if (!imageResponse.ok) {
+          throw new Error(imageData?.message || imageData?.data?.message || "토지 이미지를 수정하지 못했습니다.");
+        }
+      }
+
+      const updatedRaw = {
+        ...editingLand.raw,
+        ...payload,
+        ...(data?.data || {}),
+        ...(imageData?.data || imageData || {}),
+        ...(editImageFile ? { landImagePath: editImagePreview } : {}),
+      };
       const updatedLand = normalizeLand(updatedRaw, 0);
       setLands((prev) =>
         prev.map((land) => (land.id === editingLand.id ? { ...updatedLand, accent: land.accent } : land))
@@ -424,7 +486,7 @@ function MySpace() {
         throw new Error(data?.message || data?.data?.message || "토지 상세 정보를 불러오지 못했습니다.");
       }
 
-      setSelectedLand(data?.data || land.raw || land);
+      setSelectedLand({ ...(land.raw || land), ...(data?.data || {}) });
     } catch (err) {
       setError(err.message || "토지 상세 정보를 불러오지 못했습니다.");
     } finally {
@@ -469,20 +531,6 @@ function MySpace() {
             </SpaceHeader>
 
             <SpaceToolbar>
-              <SpaceFilterGroup>
-                {/* 상태 필터 */}
-                {["전체 상태", "등록 완료", "검토 중"].map((label) => (
-                  <SpaceFilterButton
-                    key={label}
-                    type="button"
-                    $active={activeFilter === label}
-                    onClick={() => setActiveFilter(label)}
-                  >
-                    {label}
-                  </SpaceFilterButton>
-                ))}
-              </SpaceFilterGroup>
-
               <SpaceSortBar>
                 <SpaceStatText>
                   <strong>총 {totalCount}건</strong>
@@ -491,11 +539,11 @@ function MySpace() {
                 <SpaceFilterButton
                   type="button"
                   $active={false}
-                  onClick={() =>
-                    setActiveSort((prev) =>
-                      prev === "최신 등록순" ? "가격 높은 순" : "최신 등록순"
-                    )
-                  }
+                  onClick={() => {
+                    // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
+                    const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
+                    setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
+                  }}
                 >
                   {activeSort}
                   <ChevronDown size={16} strokeWidth={2.5} />
@@ -536,9 +584,6 @@ function MySpace() {
                           </SpaceBadgeRow>
                         </div>
 
-                        <button type="button" aria-label="더보기" className="text-[#6d6a5f]">
-                          <MoreVertical size={22} strokeWidth={2.4} />
-                        </button>
                       </SpaceCardHeader>
 
                       <SpaceCardMeta>
@@ -615,6 +660,20 @@ function MySpace() {
                 ×
               </SpaceModalClose>
             </SpaceModalHeader>
+
+            <SpaceModalField>
+              대표 이미지
+              <SpaceModalImage $image={editImagePreview} />
+              <SpaceModalFileButton type="button" onClick={() => editImageInputRef.current?.click()}>
+                이미지 변경
+              </SpaceModalFileButton>
+              <SpaceModalFileInput
+                ref={editImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleEditImageChange}
+              />
+            </SpaceModalField>
 
             <SpaceModalField>
               주소

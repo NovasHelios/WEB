@@ -17,7 +17,7 @@ export const SearchIconButton = styled.button`
   background: transparent;
   padding: 0;
   margin-right: 16px;
-  font-size: 22px;
+  font-size: var(--font-xl);
   cursor: pointer;
 `;
 
@@ -26,6 +26,6 @@ export const SearchInput = styled.input`
   flex: 1;
   border: 0;
   outline: none;
-  font-size: 24px;
+  font-size: var(--font-xl);
   background: transparent;
 `;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -74,8 +74,10 @@ const completionModes = {
 function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
-  const { registerData } = useLandRegister();
-  const [selected, setSelected] = useState(registerData.transactionType || "sale");
+  const { registerData, resetRegisterData } = useLandRegister();
+  const selected = registerData.transactionType || "sale";
+  const desiredArea = Number(String(registerData.desiredArea || "").replace(/[^\d]/g, ""));
+  const desiredPyeong = desiredArea ? Math.round(desiredArea / 3.3058).toLocaleString("ko-KR") : "";
 
   const current = useMemo(() => completionModes[selected] || completionModes.sale, [selected]);
 
@@ -102,16 +104,10 @@ function LandRegisterComplete() {
           </CompleteHero>
 
           <CompleteChoiceRow>
-            {Object.values(completionModes).map((mode) => (
-              <CompleteChoiceButton
-                key={mode.key}
-                type="button"
-                $active={selected === mode.key}
-                onClick={() => setSelected(mode.key)}
-              >
-                {mode.label}
-              </CompleteChoiceButton>
-            ))}
+            {/* 등록한 거래 조건에 해당하는 항목만 표시합니다. */}
+            <CompleteChoiceButton $active aria-current="true">
+              {current.label}
+            </CompleteChoiceButton>
           </CompleteChoiceRow>
 
           <CompleteSummaryCard>
@@ -149,6 +145,12 @@ function LandRegisterComplete() {
                     <CompleteCardInfoValue>{registerData.submittedLand?.area || "6,689 ㎡ (2,023평)"}</CompleteCardInfoValue>
                   </CompleteCardInfoItem>
                   <CompleteCardInfoItem>
+                    <CompleteCardInfoLabel>희망 면적</CompleteCardInfoLabel>
+                    <CompleteCardInfoValue>
+                      {registerData.desiredArea ? `${registerData.desiredArea} ㎡${desiredPyeong ? ` (약 ${desiredPyeong}평)` : ""}` : "-"}
+                    </CompleteCardInfoValue>
+                  </CompleteCardInfoItem>
+                  <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>희망 가격</CompleteCardInfoLabel>
                     <CompleteCardInfoValue $emphasis>
                       {registerData.price || current.priceEmphasis}
@@ -169,7 +171,14 @@ function LandRegisterComplete() {
               <List size={18} strokeWidth={2.2} />
               내 토지 관리 이동
             </CompleteRecommendButton>
-            <CompleteRecommendButton type="button" onClick={() => navigate("/land/register")}>
+            <CompleteRecommendButton
+              type="button"
+              onClick={() => {
+                // 완료 후 새 등록을 시작할 때 이전 입력값을 지웁니다.
+                resetRegisterData();
+                navigate("/land/register");
+              }}
+            >
               <PlusCircle size={18} strokeWidth={2.2} />
               토지 등록하기
             </CompleteRecommendButton>
@@ -177,7 +186,7 @@ function LandRegisterComplete() {
 
           <CompleteActionButtons>
             <CompleteButton type="button" $outline onClick={() => navigate("/")}>
-              대시보드로 이동
+              지도 검색으로 이동
             </CompleteButton>
             <CompleteButton type="button" onClick={() => navigate("/space")}>
               토지 목록 보기

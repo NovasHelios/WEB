@@ -52,6 +52,7 @@ import {
   buildImageList,
   formatArea,
   formatPrice,
+  formatRegisteredDate,
   formatTransactionType,
 } from "./specificFormatters";
 // 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
@@ -214,7 +215,7 @@ function Specific({ land, onClose }) {
               </InfoRow>
               <InfoRow>
                 <span>등록일</span>
-                <strong>{land.lastUpdtDt || "-"}</strong>
+                <strong>{formatRegisteredDate(land)}</strong>
               </InfoRow>
               <InfoRow>
                 <span>주소</span>
@@ -254,7 +255,7 @@ function Specific({ land, onClose }) {
                   </DocumentIconBox>
                   <div>
                     <strong>{document.name}</strong>
-                    <span>{land.lastUpdtDt || "-"}</span>
+                    <span>{formatRegisteredDate(land)}</span>
                   </div>
                 </DocumentCard>
               ))}

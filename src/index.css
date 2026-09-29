@@ -1,3 +1,41 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import "./styles/design-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer base {
+  html {
+    font-family: var(--font-family-base);
+    font-size: var(--font-md);
+    line-height: var(--line-normal);
+  }
+
+  body {
+    font-family: var(--font-family-base);
+    font-size: var(--font-md);
+    font-weight: var(--font-regular);
+    line-height: var(--line-normal);
+    background: var(--color-page-bg);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-base);
+    line-height: var(--line-tight);
+  }
+}

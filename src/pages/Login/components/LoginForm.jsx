@@ -104,15 +104,15 @@ const LoginForm = () => {
             className="h-[48px] w-auto object-contain max-[640px]:h-[48px]"
           />
         </button>
-        <h1 className="mt-6 text-[56px] font-medium leading-none tracking-[-0.07em] text-[#1f1f1f] max-[640px]:text-[40px]">
+        <h1 className="mt-6 text-3xl font-medium leading-none tracking-[-0.07em] text-[#1f1f1f]">
           만나서 반갑습니다
         </h1>
-        <p className="mt-4 text-[18px] leading-7 text-[#6f6251] max-[640px]:text-base">
-          로그인하여 당신만의 엄선된 공간을 확인해 보세요.
+        <p className="mt-4 text-lg leading-7 text-[#6f6251] max-[640px]:text-base">
+          로그인하여 당신만의 엄선된 토지를 확인해 보세요.
         </p>
       </div>
 
-      <div className="mx-auto mt-10 w-full max-w-[660px] rounded-[10px] border border-[#f0dfb2] bg-[#fffdf8] px-8 py-9 max-[640px]:px-5 max-[640px]:py-7">
+        <div className="mx-auto mt-10 w-full max-w-[660px] rounded-[18px] border border-[#f0dfb2] bg-[var(--color-surface)] px-8 py-9 max-[640px]:px-5 max-[640px]:py-7">
         <LoginError message={error} />
 
         <div className="space-y-6">
@@ -132,7 +132,7 @@ const LoginForm = () => {
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-4 text-sm max-[640px]:flex-col max-[640px]:items-start">
-          <label className="flex items-center gap-3 text-[16px] text-[#3a352e]">
+          <label className="flex items-center gap-3 text-base text-[#3a352e]">
             <input
               type="checkbox"
               className="h-5 w-5 rounded-full border-[#9c8e74] text-[#d6a81b] focus:ring-[#d6a81b]"
@@ -153,7 +153,7 @@ const LoginForm = () => {
 
         <div className="mt-8 flex items-center gap-4 text-[#6f6251]">
           <div className="h-px flex-1 bg-[#e0d2b7]" />
-          <span className="whitespace-nowrap text-[15px]">또는 다음 계정으로 계속하기</span>
+          <span className="whitespace-nowrap text-sm">또는 다음 계정으로 계속하기</span>
           <div className="h-px flex-1 bg-[#e0d2b7]" />
         </div>
 
@@ -161,14 +161,16 @@ const LoginForm = () => {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex h-12 min-w-[160px] items-center justify-center gap-2 border border-[#d9c9af] bg-white px-5 text-[15px] font-medium text-[#232323]"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-[8px] border border-[#d9c9af] bg-white px-5 text-sm font-bold text-[#232323] shadow-[0_2px_8px_rgba(116,86,24,0.08)] transition-colors duration-150 hover:border-[#d6a81b] hover:bg-[#fffaf0] hover:shadow-[0_8px_18px_rgba(116,86,24,0.16)] active:bg-[#f7edd2] active:shadow-[0_2px_6px_rgba(116,86,24,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6a81b]"
           >
-            <span className="text-[17px] font-bold text-[#444]">G</span>
-            Google
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#e5ddcf] bg-white text-base font-bold text-[#444]">
+              G
+            </span>
+            Google로 계속하기
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[16px] text-[#5f5a52]">
+        <p className="mt-8 text-center text-base text-[#5f5a52]">
           아직 계정이 없으신가요?{" "}
           <a href="/signup" className="font-semibold text-[#b18600] underline underline-offset-4">
             회원가입

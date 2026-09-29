@@ -48,6 +48,13 @@ import {
 
 const MAX_IMAGES = 5;
 const MIN_IMAGES = 3;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_UPLOAD_TOTAL_SIZE = 20 * 1024 * 1024;
+
+const formatFileSize = (bytes) => {
+  // 업로드 용량 안내를 사람이 읽기 쉬운 MB 단위로 변환합니다.
+  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+};
 
 function LandRegisterPhotos() {
   const navigate = useNavigate();
@@ -68,6 +75,23 @@ function LandRegisterPhotos() {
 
     const remaining = MAX_IMAGES - images.length;
     const toAdd = files.slice(0, remaining);
+    const oversizedFile = toAdd.find((file) => file.size > MAX_IMAGE_SIZE);
+
+    if (oversizedFile) {
+      setError(`이미지는 1장당 ${formatFileSize(MAX_IMAGE_SIZE)} 이하로 올려주세요.`);
+      event.target.value = "";
+      return;
+    }
+
+    const nextTotalSize = [...images.map((image) => image.file), ...toAdd, document]
+      .filter(Boolean)
+      .reduce((sum, file) => sum + file.size, 0);
+
+    if (nextTotalSize > MAX_UPLOAD_TOTAL_SIZE) {
+      setError(`사진과 서류 총 용량은 ${formatFileSize(MAX_UPLOAD_TOTAL_SIZE)} 이하로 올려주세요. 현재 ${formatFileSize(nextTotalSize)}입니다.`);
+      event.target.value = "";
+      return;
+    }
 
     Promise.all(
       toAdd.map((file) => {
@@ -85,6 +109,7 @@ function LandRegisterPhotos() {
         setRegisterData((prevData) => ({ ...prevData, photos: nextImages }));
         return nextImages;
       });
+      setError("");
     });
 
     event.target.value = "";
@@ -102,8 +127,19 @@ function LandRegisterPhotos() {
   // 서류 선택
   const handleDocumentSelect = (event) => {
     const file = event.target.files?.[0] ?? null;
+    const nextTotalSize = [...images.map((image) => image.file), file]
+      .filter(Boolean)
+      .reduce((sum, item) => sum + item.size, 0);
+
+    if (nextTotalSize > MAX_UPLOAD_TOTAL_SIZE) {
+      setError(`사진과 서류 총 용량은 ${formatFileSize(MAX_UPLOAD_TOTAL_SIZE)} 이하로 올려주세요. 현재 ${formatFileSize(nextTotalSize)}입니다.`);
+      event.target.value = "";
+      return;
+    }
+
     setDocument(file);
     setRegisterData((prev) => ({ ...prev, document: file }));
+    setError("");
     event.target.value = "";
   };
 
