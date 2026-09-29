@@ -1,14 +1,13 @@
 // 검색 결과 카드의 이미지 오류 상태를 관리하기 위한 React 훅입니다.
 import { useState } from "react";
 
-// 검색 결과 카드의 북마크와 이미지 대체 영역에 사용할 아이콘입니다.
-import { Bookmark, ImageIcon } from "lucide-react";
+// 검색 결과 카드의 이미지 대체 영역에 사용할 아이콘입니다.
+import { ImageIcon } from "lucide-react";
 
 // 검색 결과 패널에서 사용할 styled 컴포넌트입니다.
 import {
   EmptyMessage,
   ResultAddress,
-  ResultBookmark,
   ResultCard,
   ResultCardBody,
   ResultImage,
@@ -158,11 +157,6 @@ function SearchResultCard({ land, isSelected, onSelect }) {
       <ResultCardBody>
         <ResultAddress>
           <span>{land?.address || "주소 정보 없음"}</span>
-
-          {/* 북마크 아이콘은 검색 결과 카드의 시각 요소로만 표시합니다. */}
-          <ResultBookmark aria-hidden="true">
-            <Bookmark size={17} strokeWidth={1.7} />
-          </ResultBookmark>
         </ResultAddress>
 
         <ResultInfoRow>

@@ -126,13 +126,6 @@ export const ResultAddress = styled.div`
   }
 `;
 
-// 주소 오른쪽의 북마크 아이콘 영역입니다.
-export const ResultBookmark = styled.span`
-  display: inline-flex;
-  flex: 0 0 auto;
-  color: #8a7a63;
-`;
-
 // 면적처럼 라벨과 값을 나란히 표시하는 행입니다.
 export const ResultInfoRow = styled.div`
   display: flex;
