@@ -1,14 +1,17 @@
 import styled from "styled-components";
 
 export const SpaceWrapper = styled.div`
-  width: 100vw;
-  min-height: 100vh;
+  /* 전역 80% 배율에서도 화면 가로를 가득 채우도록 보정합니다. */
+  width: 125vw;
+  /* 전역 80% 배율에서도 페이지 배경이 실제 화면 하단까지 이어지게 합니다. */
+  min-height: 125vh;
   background: var(--color-page-bg);
   overflow: hidden;
 `;
 
 export const SpaceMain = styled.main`
-  height: calc(100vh - 72px);
+  /* 125vh에서 네비게이션 높이를 제외해 본문이 잘리지 않게 합니다. */
+  height: calc(125vh - 72px);
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;

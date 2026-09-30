@@ -324,8 +324,93 @@ function Map() {
       : address.includes(targetRegionName);
   };
 
+  // 토지가 현재 저장된 필터 조건을 모두 만족하는지 확인합니다.
+  const isLandMatchingAppliedFilters = (land, filterBody) => {
+    // 토지의 거래 유형과 숫자 값을 비교 가능한 형태로 변환합니다.
+    const transactionType = land?.transactionType;
+    const desiredPrice = Number(land?.desiredPrice);
+    const area = Number(land?.area);
+
+    // 거래 유형 조건이 있으면 같은 유형의 토지만 허용합니다.
+    if (filterBody.transactionType) {
+      const allowedTypes = Array.isArray(filterBody.transactionType)
+        ? filterBody.transactionType
+        : [filterBody.transactionType];
+
+      // 선택된 거래 유형에 포함되지 않으면 검색 결과에서 제외합니다.
+      if (!allowedTypes.includes(transactionType)) return false;
+    }
+
+    // 저장된 지역 필터도 검색 지역 조건과 함께 적용합니다.
+    const regionConditions = [
+      [filterBody.sido, land?.regionSido],
+      [filterBody.sigungu, land?.regionSigungu],
+      [filterBody.eupmyeondong, land?.regionEupmyeondong],
+    ];
+
+    // 선택된 지역 중 하나라도 토지 지역과 다르면 제외합니다.
+    if (
+      regionConditions.some(
+        ([expected, actual]) =>
+          expected && !String(actual || "").includes(expected)
+      )
+    ) {
+      return false;
+    }
+
+    // 면적 값이 없거나 최소 면적보다 작으면 제외합니다.
+    if (
+      filterBody.minArea !== null &&
+      (!Number.isFinite(area) || area < filterBody.minArea)
+    ) {
+      return false;
+    }
+
+    // 면적 값이 없거나 최대 면적보다 크면 제외합니다.
+    if (
+      filterBody.maxArea !== null &&
+      (!Number.isFinite(area) || area > filterBody.maxArea)
+    ) {
+      return false;
+    }
+
+    // 임대 토지는 임대가 범위를 사용하고 나머지는 매매가 범위를 사용합니다.
+    const minPrice =
+      transactionType === "LEASE"
+        ? filterBody.leaseMinPrice
+        : filterBody.saleMinPrice;
+    const maxPrice =
+      transactionType === "LEASE"
+        ? filterBody.leaseMaxPrice
+        : filterBody.saleMaxPrice;
+
+    // 가격 값이 없거나 최소 가격보다 작으면 제외합니다.
+    if (
+      minPrice !== null &&
+      (!Number.isFinite(desiredPrice) || desiredPrice < minPrice)
+    ) {
+      return false;
+    }
+
+    // 가격 값이 없거나 최대 가격보다 크면 제외합니다.
+    if (
+      maxPrice !== null &&
+      (!Number.isFinite(desiredPrice) || desiredPrice > maxPrice)
+    ) {
+      return false;
+    }
+
+    // 모든 저장 필터 조건을 만족한 토지만 검색 결과에 포함합니다.
+    return true;
+  };
+
   // 전체 조회 API에서 검색 지역에 포함된 토지 목록을 가져옵니다.
-  const fetchSearchLands = async ({ searchRequestId, searchKeyword, searchRegion }) => {
+  const fetchSearchLands = async ({
+    searchRequestId,
+    searchKeyword,
+    searchRegion,
+    filters,
+  }) => {
     try {
       // 검색할 때만 GET /api/lands 전체 조회 API를 호출합니다.
       const allLands = await fetchAllLandList();
@@ -333,9 +418,13 @@ function Map() {
       // 더 최신 검색이 시작됐다면 이전 전체 조회 결과를 반영하지 않습니다.
       if (searchRequestId !== searchRequestIdRef.current) return;
 
-      // 전체 토지에서 검색한 지역에 포함되는 토지만 남깁니다.
+      // 전체 목록을 순회하기 전에 저장된 필터 값을 한 번만 정규화합니다.
+      const filterBody = createLandFilterBody(filters, null);
+
+      // 전체 토지에서 검색 지역과 저장된 필터를 모두 만족하는 토지만 남깁니다.
       const matchingLands = allLands.filter((land) =>
-        isLandInSearchRegion(land, searchKeyword, searchRegion)
+        isLandInSearchRegion(land, searchKeyword, searchRegion) &&
+        isLandMatchingAppliedFilters(land, filterBody)
       );
 
       // 필터링된 토지 목록을 검색 결과 패널에 표시합니다.
@@ -717,6 +806,7 @@ function Map() {
       searchRequestId,
       searchKeyword: trimmedKeyword,
       searchRegion,
+      filters: appliedFiltersRef.current,
     });
   };
 
@@ -791,7 +881,10 @@ function Map() {
       )}
 
       {/* 지도 위 필터 컴포넌트 영역입니다. */}
-      <FilterArea>
+      <FilterArea
+        // 검색 결과 패널이 열리면 필터 영역을 패널 오른쪽으로 이동합니다.
+        $isSearchOpen={searchPreviewState.isOpen}
+      >
         <Filter
           // 현재 적용된 필터 조건입니다.
           filters={appliedFilters}

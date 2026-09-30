@@ -140,8 +140,13 @@ function BasicInfo({
         </BasicInfoRow>
 
         <BasicInfoRow>
-          <InfoLabel>용도지역·지구</InfoLabel>
-          <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+          <InfoLabel>용도 지역</InfoLabel>
+          {/* 필터 API가 전달하는 용도 지역명을 표시합니다. */}
+          {land?.prposAreaName ? (
+            <InfoValue>{land.prposAreaName}</InfoValue>
+          ) : (
+            <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+          )}
         </BasicInfoRow>
 
         <BasicInfoRow>
@@ -168,11 +173,6 @@ function BasicInfo({
           ) : (
             <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
           )}
-        </BasicInfoRow>
-
-        <BasicInfoRow>
-          <InfoLabel>용도지역·지구 상세</InfoLabel>
-          <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
         </BasicInfoRow>
 
         <BasicInfoRow>

@@ -8,7 +8,6 @@ import { Bookmark, ImageIcon, X } from "lucide-react";
 import {
   EmptyMessage,
   ResultAddress,
-  ResultBookmark,
   ResultCard,
   ResultCardBody,
   ResultImage,
@@ -159,11 +158,6 @@ function SearchResultCard({ land, isSelected, onSelect }) {
       <ResultCardBody>
         <ResultAddress>
           <span>{land?.address || "주소 정보 없음"}</span>
-
-          {/* 북마크 아이콘은 검색 결과 카드의 시각 요소로만 표시합니다. */}
-          <ResultBookmark aria-hidden="true">
-            <Bookmark size={17} strokeWidth={1.7} />
-          </ResultBookmark>
         </ResultAddress>
 
         <ResultInfoRow>
