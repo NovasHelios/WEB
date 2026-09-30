@@ -720,6 +720,22 @@ function Map() {
     });
   };
 
+  const handleClearSearch = () => {
+    // 검색어와 검색 결과 패널을 함께 초기화합니다.
+    searchRequestIdRef.current += 1;
+    landDetailRequestIdRef.current += 1;
+    setKeyword("");
+    setSelectedLand(null);
+    setSearchPreviewState((prev) => ({
+      ...prev,
+      isOpen: false,
+      keyword: "",
+      lands: [],
+      isLoading: false,
+      error: "",
+    }));
+  };
+
   // 추천 지역 클릭 시 해당 지역명으로 검색 실행
   const handleSuggestionClick = async (suggestion) => {
     setKeyword(suggestion);
@@ -769,6 +785,8 @@ function Map() {
           selectedLandId={selectedLand?.id ?? selectedLand?.landId}
           // 카드 클릭 시 해당 토지 위치로 이동하고 상세보기를 엽니다.
           onSelectLand={handleSelectSearchLand}
+          // X 버튼으로 검색어와 결과를 초기화합니다.
+          onClear={handleClearSearch}
         />
       )}
 

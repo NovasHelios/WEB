@@ -258,10 +258,10 @@ const NavBar = ({
             <button
               key={label}
               type="button"
-              className={`relative flex h-full items-center gap-2 whitespace-nowrap border-b-2 transition-colors ${
+              className={`relative flex h-full items-center gap-2 whitespace-nowrap transition-colors after:absolute after:bottom-[22px] after:left-0 after:right-0 after:h-[2px] after:content-[''] ${
                 active
-                  ? "border-[#d49f00] text-[#a87900]"
-                  : "border-transparent text-[#555555] hover:text-[#a87900]"
+                  ? "text-[#a87900] after:bg-[#d49f00]"
+                  : "text-[#555555] after:bg-transparent hover:text-[#a87900]"
               }`}
               aria-current={active ? "page" : undefined}
               onClick={() => {
@@ -285,8 +285,8 @@ const NavBar = ({
           <button
             type="button"
             onClick={() => navigate(isLoggedIn ? "/chat" : "/login")}
-            className={`flex h-9 w-9 items-center justify-center border-b-2 transition-colors ${
-              isChatActive ? "border-[#d49f00] text-[#a87900]" : "border-transparent text-[#555555] hover:text-[#a87900]"
+            className={`relative flex h-9 w-9 items-center justify-center transition-colors after:absolute after:bottom-[4px] after:left-0 after:right-0 after:h-[2px] after:content-[''] ${
+              isChatActive ? "text-[#a87900] after:bg-[#d49f00]" : "text-[#555555] after:bg-transparent hover:text-[#a87900]"
             }`}
             aria-label="채팅"
             aria-current={isChatActive ? "page" : undefined}
@@ -298,10 +298,10 @@ const NavBar = ({
           <button
             type="button"
             onClick={() => navigate("/settings")}
-            className={`flex h-9 w-9 items-center justify-center border-b-2 transition-colors ${
+            className={`relative flex h-9 w-9 items-center justify-center transition-colors after:absolute after:bottom-[4px] after:left-0 after:right-0 after:h-[2px] after:content-[''] ${
               isSettingsActive
-                ? "border-[#d49f00] text-[#a87900]"
-                : "border-transparent text-[#555555] hover:text-[#a87900]"
+                ? "text-[#a87900] after:bg-[#d49f00]"
+                : "text-[#555555] after:bg-transparent hover:text-[#a87900]"
             }`}
             aria-label="설정"
             aria-current={isSettingsActive ? "page" : undefined}

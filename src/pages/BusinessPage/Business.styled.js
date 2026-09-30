@@ -12,10 +12,10 @@ export const BusinessPageRoot = styled.div`
 export const BusinessMain = styled.main`
   width: min(100%, 1512px);
   margin: 0 auto;
-  padding: 40px 32px 56px;
+  padding: 2.5rem clamp(1rem, 5.8vw, 7rem) 3.5rem;
 
   @media (max-width: 640px) {
-    padding: 28px 20px 40px;
+    padding: 1.75rem 1.25rem 2.5rem;
   }
 `;
 

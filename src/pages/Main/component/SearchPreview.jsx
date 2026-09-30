@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 // 검색 결과 카드의 북마크와 이미지 대체 영역에 사용할 아이콘입니다.
-import { Bookmark, ImageIcon } from "lucide-react";
+import { Bookmark, ImageIcon, X } from "lucide-react";
 
 // 검색 결과 패널에서 사용할 styled 컴포넌트입니다.
 import {
@@ -20,6 +20,7 @@ import {
   ResultPriceRow,
   SearchPreviewHeader,
   SearchPreviewPanel,
+  SearchPreviewCloseButton,
   SearchResultCount,
   SearchResultTitle,
   StatusMessage,
@@ -188,16 +189,22 @@ function SearchPreview({
   error,
   selectedLandId,
   onSelectLand,
+  onClear,
 }) {
   return (
     <SearchPreviewPanel aria-label="토지 검색 결과">
       {/* 검색 결과 제목과 조회 개수를 표시합니다. */}
       <SearchPreviewHeader>
-        <SearchResultTitle>검색 결과</SearchResultTitle>
-        <SearchResultCount>
-          {keyword ? `${keyword} · ` : ""}
-          {lands.length}건의 토지 발견
-        </SearchResultCount>
+        <div>
+          <SearchResultTitle>검색 결과</SearchResultTitle>
+          <SearchResultCount>
+            {keyword ? `${keyword} · ` : ""}
+            {lands.length}건의 토지 발견
+          </SearchResultCount>
+        </div>
+        <SearchPreviewCloseButton type="button" onClick={onClear} aria-label="검색 결과 닫기">
+          <X size={24} strokeWidth={2.2} />
+        </SearchPreviewCloseButton>
       </SearchPreviewHeader>
 
       {/* 조회 중에는 기존 목록 대신 로딩 문구를 표시합니다. */}

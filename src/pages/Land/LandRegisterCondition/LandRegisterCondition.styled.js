@@ -297,7 +297,7 @@ export const ConditionFieldValue = styled.input`
   background: transparent;
   font-size: var(--font-lg);
   line-height: 1.4;
-  color: #7a7a7a;
+  color: #111111;
   padding: 0;
   min-width: 0;
 

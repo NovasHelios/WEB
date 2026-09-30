@@ -19,10 +19,39 @@ export const SearchPreviewPanel = styled.aside`
 
 // 검색 결과 제목과 개수를 배치하는 상단 영역입니다.
 export const SearchPreviewHeader = styled.header`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   flex: 0 0 auto;
   padding: 24px 20px 20px;
   border-bottom: 1px solid #e5d6c3;
   background: #ffffff;
+`;
+
+// 검색 결과 패널을 닫고 검색어를 초기화하는 버튼입니다.
+export const SearchPreviewCloseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #4a4339;
+  cursor: pointer;
+
+  &:hover {
+    background: #f4ecdf;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #b88620;
+    outline-offset: 2px;
+  }
 `;
 
 // 검색 결과 패널의 제목입니다.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -40,7 +40,7 @@ const conditionTabs = {
     valueLabel: "희망 가격",
     prefix: "",
     suffix: "만원",
-    placeholder: "150000",
+    placeholder: "150,000",
   },
   rent: {
     key: "rent",
@@ -118,8 +118,18 @@ function LandRegisterCondition() {
   const [error, setError] = useState("");
 
   const current = useMemo(() => conditionTabs[selected], [selected]);
+  const landAreaNumber = Math.floor(Number(String(registerData.area || "").replace(/[^\d.]/g, "")) || 0);
   const desiredAreaNumber = Number(String(desiredArea).replace(/[^\d]/g, ""));
   const areaGap = Math.max(REQUIRED_AREA_FOR_100KW - desiredAreaNumber, 0);
+
+  useEffect(() => {
+    // 토지 면적 정보가 늦게 들어와도 이미 입력된 희망 면적을 즉시 제한합니다.
+    if (!landAreaNumber || desiredAreaNumber <= landAreaNumber) return;
+
+    const limitedArea = formatAreaInput(landAreaNumber);
+    setDesiredArea(limitedArea);
+    setRegisterData((prev) => ({ ...prev, desiredArea: limitedArea }));
+  }, [desiredAreaNumber, landAreaNumber, setRegisterData]);
 
   const handleValueChange = (event) => {
     const nextValue = formatPriceInput(event.target.value);
@@ -142,7 +152,12 @@ function LandRegisterCondition() {
 
   const handleDesiredAreaChange = (event) => {
     // 희망 면적을 전역 등록 데이터에 저장해 다음 단계에서도 유지합니다.
-    const nextValue = formatAreaInput(event.target.value);
+    const rawValue = String(event.target.value).replace(/[^\d]/g, "");
+    const numericValue = Number(rawValue);
+    const limitedValue = landAreaNumber > 0
+      ? Math.min(numericValue || 0, landAreaNumber)
+      : numericValue;
+    const nextValue = formatAreaInput(limitedValue || "");
     setDesiredArea(nextValue);
     setRegisterData((prev) => ({ ...prev, desiredArea: nextValue }));
     setError("");
@@ -177,6 +192,11 @@ function LandRegisterCondition() {
 
     if (!desiredAreaValue || Number.isNaN(desiredAreaValue)) {
       setError("희망 면적을 입력해주세요.");
+      return;
+    }
+
+    if (landAreaNumber > 0 && desiredAreaValue > landAreaNumber) {
+      setError(`희망 면적은 토지 면적 ${formatAreaInput(landAreaNumber)}㎡ 이하로 입력해주세요.`);
       return;
     }
 
@@ -305,7 +325,8 @@ function LandRegisterCondition() {
                 inputMode="numeric"
                 value={desiredArea}
                 onChange={handleDesiredAreaChange}
-                placeholder="예: 1000"
+                placeholder="예: 1,000"
+                max={landAreaNumber > 0 ? landAreaNumber : undefined}
                 aria-label="희망 면적"
               />
             </ConditionField>

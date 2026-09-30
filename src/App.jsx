@@ -9,6 +9,7 @@ import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 import BusinessPage from "./pages/BusinessPage/BusinessPage";
 import Settings from "./pages/Settings";
+import BusinessProfile from "./pages/BusinessProfile/BusinessProfile";
 import { LandRegisterProvider } from "./contexts/LandRegisterContext";
 import {
   LandRegister,
@@ -37,6 +38,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/oauth2/callback" element={<OAuthCallback />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/business" element={<BusinessProfile />} />
+          <Route path="/business/profile" element={<BusinessProfile />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/business-connections" element={<BusinessPage />} />
           <Route path="/settings" element={<Settings />} />

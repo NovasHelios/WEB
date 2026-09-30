@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = "accessToken";
 const LOGIN_NOTICE_KEY = "loginNotice";
 const USER_DISPLAY_NAME_KEY = "userDisplayName";
+const PROFILE_IMAGE_PROMPT_KEY = "profileImagePromptPending";
 export const USER_DISPLAY_NAME_CHANGED_EVENT = "helios:user-display-name-changed";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -29,6 +30,20 @@ export const markLoginNotice = () => {
   localStorage.setItem(LOGIN_NOTICE_KEY, "true");
 };
 
+export const markProfileImagePromptPending = () => {
+  // 로그인 직후 프로필 이미지 설정 안내를 준비합니다.
+  localStorage.setItem(PROFILE_IMAGE_PROMPT_KEY, "true");
+};
+
+export const isProfileImagePromptPending = () => (
+  localStorage.getItem(PROFILE_IMAGE_PROMPT_KEY) === "true"
+);
+
+export const clearProfileImagePromptPending = () => {
+  // 이미지 저장 또는 나중에 선택 후 안내를 종료합니다.
+  localStorage.removeItem(PROFILE_IMAGE_PROMPT_KEY);
+};
+
 export const consumeLoginNotice = () => {
   // 예약된 로그인 안내를 읽고 즉시 제거합니다.
   const shouldShow = localStorage.getItem(LOGIN_NOTICE_KEY) === "true";
@@ -40,6 +55,7 @@ export const clearAccessToken = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(LOGIN_NOTICE_KEY);
   localStorage.removeItem(USER_DISPLAY_NAME_KEY);
+  clearProfileImagePromptPending();
 };
 
 const decodeJwtPayload = (token) => {

@@ -7,7 +7,12 @@ import LoginButton from "./LoginButton";
 import LoginError from "./LoginError";
 import logoImage from "@/images/logo.png";
 import { Api } from "@/contents/apiEndpoints";
-import { markLoginNotice, setAccessToken, setStoredUserDisplayName } from "@/lib/auth";
+import {
+  markLoginNotice,
+  markProfileImagePromptPending,
+  setAccessToken,
+  setStoredUserDisplayName,
+} from "@/lib/auth";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -66,6 +71,7 @@ const LoginForm = () => {
       setAccessToken(data.data.accessToken);
       setStoredUserDisplayName(data.data.name || data.data.email);
       markLoginNotice();
+      markProfileImagePromptPending();
 
       const role = data.data.role;
 

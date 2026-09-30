@@ -292,6 +292,30 @@ export const ChatLandHeader = styled.div`
   }
 `;
 
+// 채팅 우측 토지 정보 패널을 닫는 버튼입니다.
+export const ChatLandCloseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #5f5a52;
+  cursor: pointer;
+
+  &:hover {
+    background: #eee7da;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #d6a81b;
+    outline-offset: 2px;
+  }
+`;
+
 // 토지 이미지 자리입니다.
 export const ChatLandImage = styled.div`
   height: 164px;

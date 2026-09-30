@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
-import { ChevronUp, LogOut, Paperclip, Search, Send, Map } from "lucide-react";
+import { LogOut, Paperclip, Search, Send, Map, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
@@ -24,6 +24,7 @@ import {
   ChatLandImage,
   ChatLandInfo,
   ChatLandPanel,
+  ChatLandCloseButton,
   ChatLandRow,
   ChatListHeader,
   ChatMain,
@@ -143,6 +144,7 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
+  const [isLandPanelOpen, setIsLandPanelOpen] = useState(true);
   const [detailLand, setDetailLand] = useState(null);
   const [myEmail, setMyEmail] = useState("");
   const [messageInput, setMessageInput] = useState("");
@@ -589,7 +591,10 @@ function Chat() {
                 key={room.roomId}
                 type="button"
                 $active={String(room.roomId) === String(selectedRoomId)}
-                onClick={() => setSelectedRoomId(room.roomId)}
+                onClick={() => {
+                  setSelectedRoomId(room.roomId);
+                  setIsLandPanelOpen(true);
+                }}
               >
                 <strong>{room.counterpartName || room.counterpartEmail || "상대방"}</strong>
                 <span>{room.counterpartEmail || "담당자 정보 없음"}</span>
@@ -620,6 +625,12 @@ function Chat() {
                   <Map size={15} />
                   토지 상세 보기
                 </ChatActionButton>
+                {!isLandPanelOpen && selectedLand ? (
+                  <ChatActionButton type="button" $variant="outline" onClick={() => setIsLandPanelOpen(true)}>
+                    <Map size={15} />
+                    토지 정보
+                  </ChatActionButton>
+                ) : null}
               </ChatRoomHeader>
 
               {error ? <ChatStatusText $error>{error}</ChatStatusText> : null}
@@ -679,10 +690,16 @@ function Chat() {
           )}
         </ChatMain>
 
-        <ChatLandPanel>
+        {isLandPanelOpen ? <ChatLandPanel>
           <ChatLandHeader>
             <h2>토지 정보</h2>
-            <ChevronUp size={18} strokeWidth={2} />
+            <ChatLandCloseButton
+              type="button"
+              onClick={() => setIsLandPanelOpen(false)}
+              aria-label="토지 정보 닫기"
+            >
+              <X size={18} strokeWidth={2} />
+            </ChatLandCloseButton>
           </ChatLandHeader>
 
           {selectedLand ? (
@@ -711,7 +728,7 @@ function Chat() {
           ) : (
             <ChatEmpty>찾을 수 없습니다</ChatEmpty>
           )}
-        </ChatLandPanel>
+        </ChatLandPanel> : null}
       </ChatShell>
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
     </ChatPage>

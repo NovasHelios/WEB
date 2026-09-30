@@ -71,6 +71,17 @@ const completionModes = {
   },
 };
 
+const formatRegisteredPrice = (value, transactionType) => {
+  // 마지막 화면의 가격은 조건 단계의 만원 단위를 거래 유형에 맞춰 표시합니다.
+  if (transactionType === "hope") return "가격 미정";
+
+  const numeric = Number(String(value || "").replace(/[^\d]/g, ""));
+  if (!numeric || Number.isNaN(numeric)) return "-";
+
+  const formatted = numeric.toLocaleString("ko-KR");
+  return transactionType === "rent" ? `월 ${formatted}만원` : `${formatted}만원`;
+};
+
 function LandRegisterComplete() {
   const navigate = useNavigate();
   useRequireLogin();
@@ -80,6 +91,7 @@ function LandRegisterComplete() {
   const desiredPyeong = desiredArea ? Math.round(desiredArea / 3.3058).toLocaleString("ko-KR") : "";
 
   const current = useMemo(() => completionModes[selected] || completionModes.sale, [selected]);
+  const registeredPrice = formatRegisteredPrice(registerData.price, selected);
 
   return (
     <CompletePage>
@@ -153,7 +165,7 @@ function LandRegisterComplete() {
                   <CompleteCardInfoItem>
                     <CompleteCardInfoLabel>희망 가격</CompleteCardInfoLabel>
                     <CompleteCardInfoValue $emphasis>
-                      {registerData.price || current.priceEmphasis}
+                      {registeredPrice === "-" ? current.priceEmphasis : registeredPrice}
                     </CompleteCardInfoValue>
                   </CompleteCardInfoItem>
                   <CompleteCardInfoItem>

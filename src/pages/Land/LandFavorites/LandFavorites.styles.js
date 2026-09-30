@@ -9,8 +9,12 @@ export const FavoritesPage = styled.div`
 export const FavoritesShell = styled.main`
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 16px;
+  padding: 1rem clamp(1rem, 5.8vw, 7rem);
   box-sizing: border-box;
+
+  @media (max-width: 760px) {
+    padding: 1rem;
+  }
 `;
 
 export const FavoritesHeader = styled.section`

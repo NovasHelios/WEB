@@ -37,11 +37,11 @@ export const SpacePage = styled.div`
 
 export const SpaceInner = styled.div`
   width: 100%;
-  padding: 16px;
+  padding: 1rem clamp(1rem, 5.8vw, 7rem);
   box-sizing: border-box;
 
   @media (max-width: 760px) {
-    padding: 16px;
+    padding: 1rem;
   }
 `;
 

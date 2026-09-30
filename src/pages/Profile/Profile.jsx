@@ -334,6 +334,13 @@ function Profile() {
               <ProfileButton type="button" $variant="outline" onClick={handleLogout}>
                 로그아웃
               </ProfileButton>
+              <ProfileButton
+                type="button"
+                $variant="outline"
+                onClick={() => navigate("/profile/business")}
+              >
+                사업자 프로필
+              </ProfileButton>
               <ProfileButton type="button" onClick={handleOpenEdit} disabled={isLoading || isSaving}>
                 수정하기
               </ProfileButton>
