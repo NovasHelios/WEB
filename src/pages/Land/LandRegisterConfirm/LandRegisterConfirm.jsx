@@ -7,6 +7,7 @@ import {
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterStaticMap, RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 import {
   ConfirmAddressBox,
   ConfirmAddressChangeButton,
@@ -123,6 +124,10 @@ function LandRegisterConfirm() {
               <ConfirmTableRow>
                 <ConfirmTableCell>면적</ConfirmTableCell>
                 <ConfirmTableValue>{registerData.area || "-"}</ConfirmTableValue>
+              </ConfirmTableRow>
+              <ConfirmTableRow>
+                <ConfirmTableCell>공시지가</ConfirmTableCell>
+                <ConfirmTableValue>{formatOfficialLandPrice(registerData.officialLandPrice)}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
                 <ConfirmTableCell>고도</ConfirmTableCell>

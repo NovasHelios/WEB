@@ -169,6 +169,7 @@ function LandRegister() {
           longitude: vworldInfo?.longitude || result.x,
           pnu: vworldInfo?.pnu || "",
           area: vworldInfo?.area || "",
+          officialLandPrice: vworldInfo?.officialLandPrice || "",
           landCategory: vworldInfo?.landCategory || "",
           altitude: vworldInfo?.altitude || "",
           roadAccess: vworldInfo?.roadAccess || "",

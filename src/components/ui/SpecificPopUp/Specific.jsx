@@ -55,6 +55,7 @@ import {
   formatRegisteredDate,
   formatTransactionType,
 } from "./specificFormatters";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 // 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
 import AiChat from "@/components/ui/AiChat/AiChat";
 
@@ -208,6 +209,10 @@ function Specific({ land, onClose }) {
               <InfoRow>
                 <span>면적</span>
                 <strong>{formatArea(land.area)}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>공시지가</span>
+                <strong>{formatOfficialLandPrice(land.officialLandPrice || land.publicLandPrice || land.pblntfPclnd)}</strong>
               </InfoRow>
               <InfoRow>
                 <span>지목</span>

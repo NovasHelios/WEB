@@ -3,6 +3,7 @@ import { useState } from "react";
 
 // 검색 결과 카드의 북마크와 이미지 대체 영역에 사용할 아이콘입니다.
 import { Bookmark, ImageIcon, X } from "lucide-react";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 
 // 검색 결과 패널에서 사용할 styled 컴포넌트입니다.
 import {
@@ -163,6 +164,11 @@ function SearchResultCard({ land, isSelected, onSelect }) {
         <ResultInfoRow>
           <span>면적</span>
           <strong>{formatArea(land?.area)}</strong>
+        </ResultInfoRow>
+
+        <ResultInfoRow>
+          <span>공시지가</span>
+          <strong>{formatOfficialLandPrice(land?.officialLandPrice || land?.publicLandPrice || land?.pblntfPclnd, "정보 없음")}</strong>
         </ResultInfoRow>
 
         {/* 현재 필터 응답에 예상 용량이 없으므로 가짜 값을 표시하지 않습니다. */}

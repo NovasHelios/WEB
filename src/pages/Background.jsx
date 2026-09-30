@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import bgimg from "../images/HeliosBackground.png";
 import { Api } from "@/contents/apiEndpoints";
 import {
@@ -71,6 +71,7 @@ const ProfilePrompt = styled.div`
     color: #766c5e;
     font-size: var(--font-sm);
     line-height: 1.6;
+    white-space: nowrap;
   }
 `;
 
@@ -117,12 +118,6 @@ const ProfilePromptActions = styled.div`
   }
 `;
 
-const ProfilePromptError = styled.p`
-  margin: 12px 0 0 !important;
-  color: #c2410c !important;
-  font-size: var(--font-xs) !important;
-`;
-
 const getProfileImage = (user) => (
   user?.profileImagePath ||
   user?.profileImageUrl ||
@@ -134,10 +129,8 @@ const getProfileImage = (user) => (
 
 function ProfileImagePrompt() {
   const location = useLocation();
-  const inputRef = useRef(null);
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     // 로그인 직후 프로필을 확인하고 이미지가 없을 때만 팝업을 표시합니다.
@@ -177,33 +170,11 @@ function ProfileImagePrompt() {
     setIsOpen(false);
   };
 
-  const handleImageChange = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    setIsUploading(true);
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-      const response = await authFetch(Api.MyProfileImage, {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("프로필 이미지 저장에 실패했습니다.");
-      }
-
-      clearProfileImagePromptPending();
-      setIsOpen(false);
-    } catch (uploadError) {
-      setError(uploadError.message || "프로필 이미지 저장에 실패했습니다.");
-    } finally {
-      setIsUploading(false);
-    }
+  const handleMoveToProfile = () => {
+    // 팝업을 닫고 프로필 페이지의 이미지 변경 기능으로 이동합니다.
+    clearProfileImagePromptPending();
+    setIsOpen(false);
+    navigate("/profile");
   };
 
   if (!isOpen) return null;
@@ -213,15 +184,11 @@ function ProfileImagePrompt() {
       <ProfilePrompt role="dialog" aria-modal="true" aria-labelledby="profile-image-prompt-title">
         <ProfilePromptAvatar>H</ProfilePromptAvatar>
         <h2 id="profile-image-prompt-title">프로필 이미지를 설정해 주세요</h2>
-        <p>프로필 이미지를 등록하면 채팅과 프로필에서 더 쉽게 알아볼 수 있어요.</p>
+        <p>프로필 이미지를 등록하면 더 쉽게 알아볼 수 있어요.</p>
         <ProfilePromptActions>
-          <button type="button" onClick={handleSkip} disabled={isUploading}>나중에</button>
-          <button type="button" onClick={() => inputRef.current?.click()} disabled={isUploading}>
-            {isUploading ? "저장 중..." : "이미지 선택"}
-          </button>
+          <button type="button" onClick={handleSkip}>나중에</button>
+          <button type="button" onClick={handleMoveToProfile}>프로필로 이동</button>
         </ProfilePromptActions>
-        <input ref={inputRef} type="file" accept="image/*" onChange={handleImageChange} hidden />
-        {error ? <ProfilePromptError>{error}</ProfilePromptError> : null}
       </ProfilePrompt>
     </ProfilePromptBackdrop>
   );
