@@ -11,7 +11,7 @@ export const ProfilePage = styled.div`
 export const ProfileShell = styled.main`
   max-width: 980px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px var(--page-inline-padding);
 `;
 
 // 프로필 페이지 제목입니다.
@@ -20,7 +20,7 @@ export const ProfileHeader = styled.section`
 
   h1 {
     margin: 0;
-    font-size: var(--font-2xl);
+    font-size: var(--font-page-title);
     font-weight: var(--font-bold);
     letter-spacing: -0.04em;
   }
@@ -28,7 +28,7 @@ export const ProfileHeader = styled.section`
   p {
     margin: 12px 0 0;
     color: #766c5e;
-    font-size: var(--font-md);
+    font-size: var(--font-page-description);
   }
 `;
 

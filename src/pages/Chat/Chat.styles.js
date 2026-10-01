@@ -2,7 +2,8 @@ import styled from "styled-components";
 
 // 채팅 페이지 전체 레이아웃입니다.
 export const ChatPage = styled.div`
-  min-height: 100vh;
+  /* 전역 화면 배율에서도 채팅 영역이 세로로 잘리지 않도록 보정합니다. */
+  min-height: 125vh;
   background: var(--color-page-bg);
   color: #1f1f1f;
 `;
@@ -10,8 +11,9 @@ export const ChatPage = styled.div`
 // 채팅 본문 3단 영역입니다.
 export const ChatShell = styled.main`
   display: flex;
-  height: calc(100vh - 72px);
-  min-height: 620px;
+  /* 네비게이션 아래 채팅 3단 영역이 화면 끝까지 이어지게 합니다. */
+  height: calc(125vh - 72px);
+  min-height: calc(125vh - 72px);
   overflow: hidden;
 `;
 
@@ -30,7 +32,7 @@ export const ChatListHeader = styled.div`
 
   h1 {
     margin: 0 0 16px;
-    font-size: var(--font-2xl);
+    font-size: var(--font-page-title);
     font-weight: var(--font-bold);
     letter-spacing: -0.04em;
   }

@@ -9,7 +9,7 @@ export const FavoritesPage = styled.div`
 export const FavoritesShell = styled.main`
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 1rem clamp(1rem, 5.8vw, 7rem);
+  padding: 1rem var(--page-inline-padding);
   box-sizing: border-box;
 
   @media (max-width: 760px) {
@@ -26,7 +26,7 @@ export const FavoritesHeader = styled.section`
 
 export const FavoritesTitle = styled.h1`
   margin: 0;
-  font-size: var(--font-2xl);
+  font-size: var(--font-page-title);
   line-height: var(--line-tight);
   font-weight: var(--font-bold);
   letter-spacing: -0.05em;
@@ -34,7 +34,7 @@ export const FavoritesTitle = styled.h1`
 
 export const FavoritesDescription = styled.p`
   margin: 0;
-  font-size: var(--font-md);
+  font-size: var(--font-page-description);
   line-height: 1.6;
   color: #6a6a6a;
 `;

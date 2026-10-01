@@ -49,3 +49,52 @@ export const DetailPanelArea = styled.div`
   width: 0;
   height: 0;
 `;
+
+// 지도 화면의 기본 alert 대신 서비스 스타일 안내창을 표시합니다.
+export const MapAlertOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(31, 28, 23, 0.38);
+`;
+
+export const MapAlertDialog = styled.div`
+  width: min(100%, 420px);
+  padding: 28px;
+  border: 1px solid #e4c46c;
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 18px 48px rgba(56, 43, 20, 0.2);
+  box-sizing: border-box;
+`;
+
+export const MapAlertTitle = styled.h2`
+  margin: 0;
+  color: #2a251c;
+  font-size: var(--font-lg);
+  font-weight: var(--font-bold);
+`;
+
+export const MapAlertMessage = styled.p`
+  margin: 14px 0 24px;
+  color: #6f6658;
+  font-size: var(--font-md);
+  line-height: 1.6;
+`;
+
+export const MapAlertButton = styled.button`
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d9aa1f;
+  border-radius: 8px;
+  background: #d9aa1f;
+  color: #2a251c;
+  font-size: var(--font-md);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+`;

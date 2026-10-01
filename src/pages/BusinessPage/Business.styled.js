@@ -12,7 +12,7 @@ export const BusinessPageRoot = styled.div`
 export const BusinessMain = styled.main`
   width: min(100%, 1512px);
   margin: 0 auto;
-  padding: 2.5rem clamp(1rem, 5.8vw, 7rem) 3.5rem;
+  padding: 2.5rem var(--page-inline-padding) 3.5rem;
 
   @media (max-width: 640px) {
     padding: 1.75rem 1.25rem 2.5rem;
@@ -28,7 +28,7 @@ export const BusinessHeader = styled.header`
 export const BusinessTitle = styled.h1`
   margin: 0;
   color: #1f1f1f;
-  font-size: 52px;
+  font-size: var(--font-page-title);
   font-weight: var(--font-bold);
   line-height: 1.2;
 
@@ -41,7 +41,7 @@ export const BusinessTitle = styled.h1`
 export const BusinessDescription = styled.p`
   margin: 24px 0 0;
   color: #4f4b43;
-  font-size: 18px;
+  font-size: var(--font-page-description);
   font-weight: var(--font-medium);
   line-height: 1.65;
 

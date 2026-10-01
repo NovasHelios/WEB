@@ -36,6 +36,16 @@ import {
   LandRegisterVisualMapIcon,
 } from "./LandRegister.styled";
 
+const hasAddressNumber = (matched) => {
+  const parcelNumber = matched.address?.main_address_no;
+  const roadNumber = matched.road_address?.main_building_no;
+
+  return Boolean(
+    (parcelNumber && parcelNumber !== "0") ||
+      (roadNumber && roadNumber !== "0")
+  );
+};
+
 function LandRegister() {
   const navigate = useNavigate();
   useRequireLogin();
@@ -46,6 +56,7 @@ function LandRegister() {
   const [searchResult, setSearchResult] = useState("");
   const [isAddressChecking, setIsAddressChecking] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
+  const addressValidationIdRef = useRef(0);
   const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
 
   const previewMessage = useMemo(() => {
@@ -108,20 +119,38 @@ function LandRegister() {
     const geocoder = new window.kakao.maps.services.Geocoder();
 
     return new Promise((resolve) => {
-      geocoder.addressSearch(value, (result, status) => {
-        if (status !== window.kakao.maps.services.Status.OK || result.length === 0) {
-          resolve(null);
-          return;
-        }
+      try {
+        geocoder.addressSearch(value, (result, status) => {
+          if (status !== window.kakao.maps.services.Status.OK || !Array.isArray(result)) {
+            resolve(null);
+            return;
+          }
 
-        const matched = result[0];
-        resolve({
-          address: matched.address_name || value,
-          roadAddress: matched.road_address?.address_name || "",
-          x: matched.x || "",
-          y: matched.y || "",
+          // 행정구역 결과보다 지번 또는 도로명 번호가 있는 상세 주소를 우선 사용합니다.
+          const matched = result.find(
+            (item) =>
+              ["REGION_ADDR", "ROAD_ADDR"].includes(item.address_type) &&
+              hasAddressNumber(item)
+          );
+
+          if (!matched) {
+            resolve(null);
+            return;
+          }
+
+          resolve({
+            address: matched.address_name || value,
+            roadAddress: matched.road_address?.address_name || "",
+            x: matched.x || "",
+            y: matched.y || "",
+            // 시·군·구 같은 행정구역만 입력된 경우에는 등록할 수 없습니다.
+            isDetailedAddress: true,
+          });
         });
-      });
+      } catch {
+        // 지도 SDK 예외가 발생해도 검색 상태가 멈추지 않게 실패 결과로 처리합니다.
+        resolve(null);
+      }
     });
   };
 
@@ -137,12 +166,16 @@ function LandRegister() {
 
     setIsAddressChecking(true);
     setAddressMessage("주소를 확인하는 중입니다.");
+    const validationId = addressValidationIdRef.current + 1;
+    addressValidationIdRef.current = validationId;
 
     validateAddress(trimmed)
       .then(async (result) => {
-        if (!result) {
+        if (validationId !== addressValidationIdRef.current) return;
+
+        if (!result || !result.isDetailedAddress) {
           setSearchResult("");
-          setAddressMessage("유효한 주소를 찾지 못했습니다. 다시 확인해 주세요.");
+          setAddressMessage("시·군·구가 아닌 상세 지번 또는 도로명 주소를 입력해 주세요.");
           setRegisterData((prev) => ({
             ...prev,
             isAddressValid: false,
@@ -155,7 +188,16 @@ function LandRegister() {
           return;
         }
 
-        const vworldInfo = await fetchVworldLandInfo(trimmed);
+        let vworldInfo;
+        try {
+          vworldInfo = await fetchVworldLandInfo(trimmed);
+        } catch {
+          // 공공 데이터 조회 실패가 주소 검증 결과까지 무효화하지 않도록 처리합니다.
+          vworldInfo = null;
+        }
+
+        if (validationId !== addressValidationIdRef.current) return;
+
         setSearchResult(`입력된 주소: ${trimmed}`);
         setAddressMessage("유효한 주소로 확인되었습니다.");
         setRegisterData((prev) => ({
@@ -177,12 +219,16 @@ function LandRegister() {
         }));
       })
       .finally(() => {
-        setIsAddressChecking(false);
+        if (validationId === addressValidationIdRef.current) {
+          setIsAddressChecking(false);
+        }
       });
   };
 
   const handleAddressChange = (event) => {
     // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
+    addressValidationIdRef.current += 1;
+    setIsAddressChecking(false);
     setSearchResult("");
     setAddressMessage("");
     setRegisterData((prev) => ({
@@ -196,6 +242,7 @@ function LandRegister() {
       longitude: "",
       pnu: "",
       area: "",
+      officialLandPrice: "",
       landCategory: "",
       altitude: "",
       roadAccess: "",

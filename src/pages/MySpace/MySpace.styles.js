@@ -40,7 +40,7 @@ export const SpacePage = styled.div`
 
 export const SpaceInner = styled.div`
   width: 100%;
-  padding: 1rem clamp(1rem, 5.8vw, 7rem);
+  padding: 1rem var(--page-inline-padding);
   box-sizing: border-box;
 
   @media (max-width: 760px) {
@@ -57,7 +57,7 @@ export const SpaceHeader = styled.div`
 
 export const SpaceTitle = styled.h1`
   margin: 0;
-  font-size: var(--font-2xl);
+  font-size: var(--font-page-title);
   font-weight: var(--font-bold);
   letter-spacing: -0.05em;
   color: #1f1c17;
@@ -65,7 +65,7 @@ export const SpaceTitle = styled.h1`
 
 export const SpaceTopNote = styled.p`
   margin: 10px 0 0;
-  font-size: var(--font-md);
+  font-size: var(--font-page-description);
   line-height: 1.6;
   color: #6f6658;
 `;
@@ -238,8 +238,9 @@ export const SpaceBadge = styled.span`
 
 export const SpaceCardMeta = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  grid-template-columns: repeat(3, 180px);
+  justify-content: start;
+  gap: 12px 24px;
   padding-top: 12px;
   border-top: 1px solid #efe4cf;
 
@@ -267,13 +268,24 @@ export const SpaceCardMetaValue = styled.div`
   font-size: ${(props) => (props.$highlight ? "var(--font-lg)" : "var(--font-md)")};
   font-weight: var(--font-bold);
   color: ${(props) => (props.$highlight ? "#9a7400" : "#2a251c")};
+  white-space: nowrap;
 `;
 
 export const SpaceInfoRow = styled.div`
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  /* 거래 정보는 같은 폭의 왼쪽 정렬 칸으로 배치합니다. */
+  display: grid;
+  grid-template-columns: repeat(2, 180px);
+  gap: 16px 24px;
   padding-top: 8px;
+
+  > div {
+    min-width: 0;
+    text-align: left;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+  }
 `;
 
 export const SpaceCardFooter = styled.div`

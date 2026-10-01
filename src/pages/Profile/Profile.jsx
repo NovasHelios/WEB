@@ -188,7 +188,9 @@ function Profile() {
       const response = await authFetch(Api.MyProfile, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        // 이름은 수정하지 않지만 API 필수값이라 기존 이름을 함께 보냅니다.
         body: JSON.stringify({
+          name: profile.name,
           phone: formatPhoneNumber(editProfile.phone),
         }),
       });

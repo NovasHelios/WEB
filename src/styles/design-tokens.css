@@ -10,6 +10,11 @@
   --font-xl: 24px;
   --font-2xl: 32px;
   --font-3xl: 40px;
+  --font-page-title: clamp(36px, 3.25vw, 52px);
+  --font-page-description: 18px;
+
+  /* 지도 외 본문 페이지의 공통 좌우 여백입니다. */
+  --page-inline-padding: clamp(1rem, 2.9vw, 3.5rem);
 
   /* 나르샤 폰트 굵기 */
   --font-regular: 400;
