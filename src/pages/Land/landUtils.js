@@ -31,7 +31,7 @@ export const getCreatedDate = (land) =>
   new Date();
 
 export const normalizeBaseUrl = (value) => {
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue.replace(/\/$/, "");
   }

@@ -51,7 +51,7 @@ import {
 } from "./MySpace.styles";
 
 const normalizeBaseUrl = (value) => {
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue.replace(/\/$/, "");
   }
