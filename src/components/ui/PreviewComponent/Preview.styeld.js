@@ -10,7 +10,8 @@ export const Panel = styled.aside`
   display: flex;
   flex-direction: column;
   width: 500px;
-  height: calc(100vh - 72px);
+  /* 전역 80% 배율에서도 패널이 실제 화면 하단까지 채워지도록 보정합니다. */
+  height: calc(125vh - 72px);
   overflow: hidden;
   border-left: 1px solid #e8e3dc;
   background: #ffffff;

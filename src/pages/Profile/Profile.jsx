@@ -29,7 +29,7 @@ import {
 
 const normalizeBaseUrl = (value) => {
   // 서버 이미지 경로를 절대 경로로 만들기 위한 기본 주소입니다.
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue.replace(/\/$/, "");
   }

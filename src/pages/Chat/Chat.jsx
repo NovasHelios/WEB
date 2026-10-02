@@ -43,7 +43,7 @@ import {
 
 const normalizeBaseUrl = (value) => {
   // 서버 파일 경로를 절대 URL로 바꿉니다.
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue.replace(/\/$/, "");
   }

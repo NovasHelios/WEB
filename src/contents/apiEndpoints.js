@@ -1,4 +1,4 @@
-const BASE = "https://www.helioss.site";
+const BASE = "https://api.helioss.site";
 
 export const Api = {
   // Auth

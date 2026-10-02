@@ -28,7 +28,7 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "https://www.helioss.site",
+        target: "https://api.helioss.site",
         changeOrigin: true,
         secure: true,
       },

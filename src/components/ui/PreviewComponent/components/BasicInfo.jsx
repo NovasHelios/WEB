@@ -69,7 +69,7 @@ const resolveDocumentUrl = (path) => {
 
   // 환경변수가 없으면 현재 백엔드 주소를 사용합니다.
   const baseUrl = (
-    import.meta.env.VITE_API_BASE_URL || "https://www.helioss.site"
+    import.meta.env.VITE_API_BASE_URL || "https://api.helioss.site"
   ).replace(/\/$/, "");
 
   // 상대경로 앞의 중복 슬래시를 제거한 뒤 서버 주소와 연결합니다.

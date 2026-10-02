@@ -5,7 +5,8 @@ import styled from "styled-components";
 export const MapPage = styled.div`
   position: relative;
   width: 100%;
-  height: 100vh;
+  /* 전역 80% 배율을 적용한 뒤에도 실제 화면 높이를 가득 채우도록 보정합니다. */
+  height: 125vh;
   overflow: hidden;
   background: #ffffff;
 `;
@@ -13,7 +14,8 @@ export const MapPage = styled.div`
 // Kakao 지도가 실제로 렌더링되는 영역입니다.
 export const MapContainer = styled.div`
   width: 100%;
-  height: calc(100vh - 72px);
+  /* 125vh에서 상단 네비게이션 높이를 제외해 지도 하단이 잘리지 않게 합니다. */
+  height: calc(125vh - 72px);
   margin-top: 72px;
 `;
 

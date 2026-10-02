@@ -6,6 +6,9 @@
 @tailwind utilities;
 @layer base {
   html {
+    /* 배포 환경에서도 전체 UI를 브라우저 80% 배율처럼 축소합니다. */
+    zoom: 80%;
+
     font-family: var(--font-family-base);
     font-size: var(--font-md);
     line-height: var(--line-normal);
