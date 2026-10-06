@@ -1,16 +1,6 @@
 // 라우터 이동 기능과 현재 경로 확인을 위한 훅입니다.
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-
-// 로그인 토큰 확인을 위한 인증 유틸입니다.
-import {
-  authFetch,
-  getStoredUserDisplayName,
-  getValidAccessToken,
-  setStoredUserDisplayName,
-  USER_DISPLAY_NAME_CHANGED_EVENT,
-} from "@/lib/auth";
-import { Api } from "@/contents/apiEndpoints";
+import { useAccount } from "@/contexts/AccountContext";
 
 // 상단 메뉴에 사용할 아이콘입니다.
 import {
@@ -21,7 +11,7 @@ import {
   Mountain,
   UserCircle,
   Search,
-  Settings,
+  BadgeDollarSign,
 } from "lucide-react";
 
 // 새 홈 화면 상단 로고 이미지입니다.
@@ -66,48 +56,10 @@ const NavBar = ({
   // 추천 리스트에서 강조할 시도명을 계산합니다.
   const sidoName = normalizeSido?.(keyword) || keyword;
 
-  // 현재 로그인 상태를 확인합니다.
-  const isLoggedIn = Boolean(getValidAccessToken());
-  const [displayName, setDisplayName] = useState(() => formatDisplayName(getStoredUserDisplayName()));
-
-  useEffect(() => {
-    const handleDisplayNameChange = (event) => {
-      // 프로필 수정 직후 navbar 이름을 즉시 갱신합니다.
-      setDisplayName(formatDisplayName(event.detail || getStoredUserDisplayName()));
-    };
-
-    window.addEventListener(USER_DISPLAY_NAME_CHANGED_EVENT, handleDisplayNameChange);
-
-    const fetchUserName = async () => {
-      // 로그인 상태일 때만 사용자 이름을 가져옵니다.
-      if (!isLoggedIn) {
-        setDisplayName("");
-        return;
-      }
-
-      try {
-        const response = await authFetch(Api.MyProfile, { method: "GET" });
-        const data = await response.json();
-
-        if (!response.ok) {
-          setDisplayName("");
-          return;
-        }
-
-        const nextDisplayName = formatDisplayName(data?.data?.name || data?.data?.email);
-        setDisplayName(nextDisplayName);
-        setStoredUserDisplayName(nextDisplayName);
-      } catch {
-        setDisplayName("");
-      }
-    };
-
-    void fetchUserName();
-
-    return () => {
-      window.removeEventListener(USER_DISPLAY_NAME_CHANGED_EVENT, handleDisplayNameChange);
-    };
-  }, [isLoggedIn]);
+  // 페이지 이동 중에도 공통으로 보관된 계정 정보를 즉시 사용합니다.
+  const { isLoggedIn, user } = useAccount();
+  const displayName = formatDisplayName(user?.name || user?.email);
+  const isBusinessAccount = isLoggedIn && user?.plan === "BUSINESS";
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.
   const handleProfileClick = () => {
@@ -130,7 +82,9 @@ const NavBar = ({
       url: "/space",
       activePaths: ["/space", "/land/register"],
     },
-    { label: "관심 토지", icon: Heart, url: "/land/favorites", activePaths: ["/land/favorites"] },
+    ...(isBusinessAccount
+      ? [{ label: "관심 토지", icon: Heart, url: "/land/favorites", activePaths: ["/land/favorites"] }]
+      : []),
     {
       label: "사업 연결",
       icon: Handshake,
@@ -152,18 +106,18 @@ const NavBar = ({
   };
 
   const isChatActive = pathname === "/chat";
-  const isSettingsActive = pathname === "/settings";
+  const isPlansActive = pathname === "/plans";
   const isProfileActive = pathname === "/profile";
 
   return (
     <>
       {/* navbar는 화면 기준 좌표에 고정하고, 아래 spacer로 본문 겹침을 막습니다. */}
-      <header className="fixed left-0 right-0 top-0 z-50 flex h-[72px] w-full min-w-0 flex-shrink-0 items-center border-b border-[#e8e1cf] bg-white px-5">
+      <header style={{ height: "var(--navbar-height)" }} className="fixed left-0 right-0 top-0 z-50 flex max-[1024px]:flex-wrap w-full min-w-0 flex-shrink-0 items-center border-b border-[#e8e1cf] bg-white px-5">
         {/* 왼쪽 로고 영역입니다. */}
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="flex h-full flex-shrink-0 items-center"
+          className="flex h-full max-[1024px]:h-14 flex-shrink-0 items-center"
           aria-label="홈으로 이동"
         >
           {/* 첨부한 helios 로고 이미지를 표시합니다. */}
@@ -175,7 +129,7 @@ const NavBar = ({
         </button>
 
         {/* 가운데 검색창과 추천 리스트 영역입니다. */}
-        <div className="relative ml-8 mr-auto w-[448px] max-w-[36vw] flex-shrink min-w-[260px]">
+        <div className="relative ml-8 max-[1024px]:ml-3 mr-auto w-[448px] max-w-[36vw] max-[1024px]:max-w-none max-[1024px]:flex-1 flex-shrink min-w-0">
           {/* 검색 form은 기존 검색 기능과 연결합니다. */}
           <form
             onSubmit={(event) => {
@@ -249,7 +203,7 @@ const NavBar = ({
         </div>
 
         {/* 오른쪽 메뉴 영역입니다. */}
-        <nav className="flex h-full flex-shrink-0 items-center gap-7 text-sm font-medium text-[#555555]">
+        <nav aria-label="주요 메뉴" className="flex h-full max-[1024px]:h-14 max-[1024px]:w-full max-[1024px]:overflow-x-auto flex-shrink-0 items-center gap-7 max-[1024px]:gap-4 text-sm font-medium text-[#555555] [&>button]:shrink-0 [&>button]:whitespace-nowrap">
           {/* 현재 페이지와 일치하는 메뉴는 색상과 밑줄로 표시합니다. */}
           {menuItems.map(({ label, icon: Icon, url, activePaths }) => {
             const active = isMenuActive(activePaths);
@@ -294,19 +248,19 @@ const NavBar = ({
             <MessageSquare className="h-5 w-5" strokeWidth={1.9} />
           </button>
 
-          {/* 설정 버튼은 개발중 안내 화면으로 이동합니다. */}
+          {/* 플랜 버튼은 요금제 안내 화면으로 이동합니다. */}
           <button
             type="button"
-            onClick={() => navigate("/settings")}
+            onClick={() => navigate("/plans")}
             className={`relative flex h-9 w-9 items-center justify-center transition-colors after:absolute after:bottom-[4px] after:left-0 after:right-0 after:h-[2px] after:content-[''] ${
-              isSettingsActive
+              isPlansActive
                 ? "text-[#a87900] after:bg-[#d49f00]"
                 : "text-[#555555] after:bg-transparent hover:text-[#a87900]"
             }`}
-            aria-label="설정"
-            aria-current={isSettingsActive ? "page" : undefined}
+            aria-label="플랜"
+            aria-current={isPlansActive ? "page" : undefined}
           >
-            <Settings className="h-5 w-5" strokeWidth={1.9} />
+            <BadgeDollarSign className="h-5 w-5" strokeWidth={1.9} />
           </button>
 
           {/* 로그인 상태를 텍스트로 명확하게 표시합니다. */}
@@ -332,7 +286,7 @@ const NavBar = ({
           </button>
         </nav>
       </header>
-      <div className="h-[72px] flex-shrink-0" aria-hidden="true" />
+      <div style={{ height: "var(--navbar-height)" }} className="flex-shrink-0" aria-hidden="true" />
     </>
   );
 };

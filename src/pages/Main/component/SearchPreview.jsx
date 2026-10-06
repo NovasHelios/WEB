@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 // 검색 결과 카드의 북마크와 이미지 대체 영역에 사용할 아이콘입니다.
-import { Bookmark, ImageIcon, X } from "lucide-react";
+import { ImageIcon, X } from "lucide-react";
 import { formatOfficialLandPrice } from "@/utils/landFormatters";
 
 // 검색 결과 패널에서 사용할 styled 컴포넌트입니다.
@@ -28,7 +28,7 @@ import {
 
 // API 서버 기본 주소를 환경변수 또는 운영 주소에서 가져옵니다.
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "https://www.helioss.site"
+  import.meta.env.VITE_API_BASE_URL || "https://api.helioss.site"
 ).replace(/\/$/, "");
 
 // 서버 이미지 경로를 브라우저에서 사용할 절대 URL로 변환합니다.

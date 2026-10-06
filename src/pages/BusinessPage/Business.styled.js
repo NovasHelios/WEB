@@ -1,22 +1,17 @@
 // styled-components를 사용해 사업 연결 페이지 디자인을 정의합니다.
 import styled from "styled-components";
+import { listPageShell, listPageTitle, listPageDescription, ListPageDivider } from "@/styles/listPage";
 
 // 사업 연결 페이지의 전체 배경입니다.
 export const BusinessPageRoot = styled.div`
-  min-height: 100vh;
+  min-height: var(--app-viewport-height);
   background: #f8f7f3;
   color: #1f1f1f;
 `;
 
 // 제목과 사업자 목록을 가운데 정렬하는 본문입니다.
 export const BusinessMain = styled.main`
-  width: min(100%, 1512px);
-  margin: 0 auto;
-  padding: 2.5rem var(--page-inline-padding) 3.5rem;
-
-  @media (max-width: 640px) {
-    padding: 1.75rem 1.25rem 2.5rem;
-  }
+  ${listPageShell}
 `;
 
 // 페이지 제목과 설명을 묶는 상단 영역입니다.
@@ -26,58 +21,24 @@ export const BusinessHeader = styled.header`
 
 // 사업 연결 페이지의 대표 제목입니다.
 export const BusinessTitle = styled.h1`
-  margin: 0;
-  color: #1f1f1f;
-  font-size: var(--font-page-title);
-  font-weight: var(--font-bold);
-  line-height: 1.2;
-
-  @media (max-width: 640px) {
-    font-size: 36px;
-  }
+  ${listPageTitle}
 `;
 
 // 사업 연결 페이지의 목적을 설명하는 문장입니다.
 export const BusinessDescription = styled.p`
-  margin: 24px 0 0;
-  color: #4f4b43;
-  font-size: var(--font-page-description);
-  font-weight: var(--font-medium);
-  line-height: 1.65;
-
-  @media (max-width: 640px) {
-    font-size: 15px;
-
-    br {
-      display: none;
-    }
-  }
+  ${listPageDescription}
 `;
 
 // 페이지 소개와 사업자 목록을 구분하는 선입니다.
-export const BusinessDivider = styled.hr`
-  width: 100%;
-  height: 1px;
-  margin: 32px 0 0;
-  border: 0;
-  background: #e6e1d8;
-`;
+export const BusinessDivider = ListPageDivider;
 
 // 사업자 카드를 반응형 열로 배치하는 목록입니다.
 export const BusinessGrid = styled.section`
   display: grid;
-  grid-template-columns: repeat(4, 350px);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21.875rem), 21.875rem));
   gap: 16px;
   justify-content: start;
   margin-top: 40px;
-
-  @media (max-width: 1480px) {
-    grid-template-columns: repeat(3, 350px);
-  }
-
-  @media (max-width: 1120px) {
-    grid-template-columns: repeat(2, 350px);
-  }
 
   @media (max-width: 760px) {
     grid-template-columns: 1fr;

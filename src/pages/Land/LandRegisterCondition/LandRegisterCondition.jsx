@@ -196,7 +196,13 @@ function LandRegisterCondition() {
       return;
     }
 
-    if (!desiredAreaValue || Number.isNaN(desiredAreaValue)) {
+    // 실제 면적을 확인하지 못하면 크기 제한을 우회해 제출하지 못하게 합니다.
+    if (!Number.isFinite(landAreaNumber) || landAreaNumber <= 0) {
+      setError("토지 면적을 확인하지 못했습니다. 주소 검색 단계에서 다시 조회해주세요.");
+      return;
+    }
+
+    if (!Number.isFinite(desiredAreaValue) || desiredAreaValue <= 0) {
       setError("희망 면적을 입력해주세요.");
       return;
     }

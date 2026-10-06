@@ -9,6 +9,7 @@ import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
 import { fetchVworldLandInfo } from "@/API/vworldAPI";
+import { findDetailedLandAddress } from "@/utils/validateLandAddress";
 import {
   LandRegisterBottomButton,
   LandRegisterButtonIcon,
@@ -36,16 +37,6 @@ import {
   LandRegisterVisualMapIcon,
 } from "./LandRegister.styled";
 
-const hasAddressNumber = (matched) => {
-  const parcelNumber = matched.address?.main_address_no;
-  const roadNumber = matched.road_address?.main_building_no;
-
-  return Boolean(
-    (parcelNumber && parcelNumber !== "0") ||
-      (roadNumber && roadNumber !== "0")
-  );
-};
-
 function LandRegister() {
   const navigate = useNavigate();
   useRequireLogin();
@@ -57,6 +48,8 @@ function LandRegister() {
   const [isAddressChecking, setIsAddressChecking] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
   const addressValidationIdRef = useRef(0);
+  // 화면 이탈 후 늦게 도착한 주소 조회가 새 등록 데이터를 덮어쓰지 않게 합니다.
+  useEffect(() => () => { addressValidationIdRef.current += 1; }, []);
   const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
 
   const previewMessage = useMemo(() => {
@@ -111,47 +104,14 @@ function LandRegister() {
   }, [hasValidLocation, registerData.latitude, registerData.longitude]);
 
   const validateAddress = async (value) => {
-    // Kakao 주소 검색 결과로 입력 주소의 유효성을 확인합니다.
-    if (!window.kakao?.maps?.services?.Geocoder) {
-      return false;
-    }
-
-    const geocoder = new window.kakao.maps.services.Geocoder();
-
-    return new Promise((resolve) => {
-      try {
-        geocoder.addressSearch(value, (result, status) => {
-          if (status !== window.kakao.maps.services.Status.OK || !Array.isArray(result)) {
-            resolve(null);
-            return;
-          }
-
-          // 행정구역 결과보다 지번 또는 도로명 번호가 있는 상세 주소를 우선 사용합니다.
-          const matched = result.find(
-            (item) =>
-              ["REGION_ADDR", "ROAD_ADDR"].includes(item.address_type) &&
-              hasAddressNumber(item)
-          );
-
-          if (!matched) {
-            resolve(null);
-            return;
-          }
-
-          resolve({
-            address: matched.address_name || value,
-            roadAddress: matched.road_address?.address_name || "",
-            x: matched.x || "",
-            y: matched.y || "",
-            // 시·군·구 같은 행정구역만 입력된 경우에는 등록할 수 없습니다.
-            isDetailedAddress: true,
-          });
-        });
-      } catch {
-        // 지도 SDK 예외가 발생해도 검색 상태가 멈추지 않게 실패 결과로 처리합니다.
-        resolve(null);
-      }
-    });
+    // 등록과 수정에 같은 검증 규칙과 제한 시간을 적용합니다.
+    const matched = await findDetailedLandAddress(value);
+    if (!matched) return null;
+    return {
+      address: matched.address_name || value,
+      roadAddress: matched.road_address?.address_name || "",
+      x: matched.x || "", y: matched.y || "", isDetailedAddress: true,
+    };
   };
 
   const handleSearch = (event) => {

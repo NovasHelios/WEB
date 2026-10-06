@@ -7,6 +7,8 @@ import {
   authFetch,
   clearProfileImagePromptPending,
   consumeLoginNotice,
+  hasLoginNotice,
+  LOGIN_NOTICE_EVENT,
   getValidAccessToken,
   isProfileImagePromptPending,
 } from "@/lib/auth";
@@ -195,17 +197,23 @@ function ProfileImagePrompt() {
 }
 
 function Background({ children }) {
-  const [showLoginNotice, setShowLoginNotice] = useState(false);
+  const [showLoginNotice, setShowLoginNotice] = useState(hasLoginNotice);
+
+  // 라우트가 유지된 상태에서 로그인해도 성공 안내 이벤트를 받습니다.
+  useEffect(() => {
+    const showNotice = () => setShowLoginNotice(true);
+    window.addEventListener(LOGIN_NOTICE_EVENT, showNotice);
+    return () => window.removeEventListener(LOGIN_NOTICE_EVENT, showNotice);
+  }, []);
 
   useEffect(() => {
     // 로그인 성공 직후 한 번만 안내 팝업을 표시합니다.
-    if (!consumeLoginNotice()) return undefined;
-
-    setShowLoginNotice(true);
+    if (!showLoginNotice) return undefined;
+    consumeLoginNotice();
     const timerId = window.setTimeout(() => setShowLoginNotice(false), 2200);
 
     return () => window.clearTimeout(timerId);
-  }, []);
+  }, [showLoginNotice]);
 
   return (
     <BgWrapper $bgimg={bgimg}>

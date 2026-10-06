@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Heart, Mountain, Map, Camera } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+import AreaValue from "@/components/ui/AreaValue";
+import { ListPageDivider } from "@/styles/listPage";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import {
   formatMoney,
-  formatArea,
   normalizeBaseUrl,
   resolveImageUrl,
   normalizeWish,
@@ -31,7 +32,6 @@ import {
   FavoritesMetaGrid,
   FavoritesMetaItem,
   FavoritesMetaLabel,
-  FavoritesMetaSub,
   FavoritesMetaValue,
   FavoritesPage,
   FavoritesPageButton,
@@ -74,9 +74,9 @@ function LandFavorites() {
   // 상세 정보 조회 중인 토지 ID입니다.
   const [detailLoadingId, setDetailLoadingId] = useState(null);
   // 현재 목록 페이지
-  const [currentPage, setCurrentPage] = useState(1);
+  const [requestedPage, setCurrentPage] = useState(1);
 
-  const fetchWishes = async () => {
+  const fetchWishes = useCallback(async () => {
     // 로그인하지 않은 사용자는 관심 토지 조회 전에 로그인 화면으로 이동합니다.
     if (!getValidAccessToken()) {
       navigate("/login", { replace: true });
@@ -131,13 +131,13 @@ function LandFavorites() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     // 관심 토지 페이지 진입 시 찜 목록을 조회합니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchWishes();
-  }, []);
+  }, [fetchWishes]);
 
   const filteredWishes = useMemo(() => {
     if (activeFilter === "all") return wishes;
@@ -160,6 +160,8 @@ function LandFavorites() {
   }, [activeSort, filteredWishes]);
 
   const totalPages = Math.ceil(sortedWishes.length / ITEMS_PER_PAGE);
+  // 삭제 후 페이지 수가 줄어도 존재하는 마지막 페이지를 표시합니다.
+  const currentPage = Math.min(requestedPage, Math.max(1, totalPages));
 
   const paginatedWishes = useMemo(() => {
     // 관심 토지 목록은 현재 페이지에 해당하는 항목만 표시합니다.
@@ -167,10 +169,6 @@ function LandFavorites() {
     return sortedWishes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [currentPage, sortedWishes]);
 
-  useEffect(() => {
-    // 필터/정렬/목록 변경 시 비어있는 페이지에 머물지 않도록 첫 페이지로 돌립니다.
-    setCurrentPage(1);
-  }, [activeFilter, activeSort, wishes.length]);
 
   // 로그인하지 않은 사용자는 에러 문구 대신 로그인 화면으로 바로 이동합니다.
   if (!getValidAccessToken()) return null;
@@ -247,6 +245,7 @@ function LandFavorites() {
           <FavoritesDescription>
             내가 찜한 토지를 한눈에 확인하고 관리할 수 있습니다.
           </FavoritesDescription>
+          <ListPageDivider />
         </FavoritesHeader>
 
         {/* 필터와 정렬 */}
@@ -257,7 +256,7 @@ function LandFavorites() {
                 key={filter.key}
                 type="button"
                 $active={activeFilter === filter.key}
-                onClick={() => setActiveFilter(filter.key)}
+                onClick={() => { setActiveFilter(filter.key); setCurrentPage(1); }}
               >
                 {filter.label}
               </FavoritesFilterButton>
@@ -268,7 +267,7 @@ function LandFavorites() {
             <FavoritesSortCount>총 {filteredWishes.length}건</FavoritesSortCount>
             <FavoritesSortLabel
               type="button"
-              onClick={() => setActiveSort((prev) => (prev === "recent" ? "oldest" : "recent"))}
+              onClick={() => { setActiveSort((prev) => (prev === "recent" ? "oldest" : "recent")); setCurrentPage(1); }}
             >
               {activeSort === "recent" ? "최근 저장순" : "오래된 저장순"}
               <ChevronDown size={18} strokeWidth={2} />
@@ -325,9 +324,13 @@ function LandFavorites() {
                             면적
                           </FavoritesMetaLabel>
                           <FavoritesMetaValue>
-                            {formatArea(wish.area)}
-                            <FavoritesMetaSub>㎡</FavoritesMetaSub>
+                            <AreaValue value={wish.area} />
                           </FavoritesMetaValue>
+                        </FavoritesMetaItem>
+
+                        <FavoritesMetaItem>
+                          <FavoritesMetaLabel><Mountain size={14} strokeWidth={2} />희망 면적</FavoritesMetaLabel>
+                          <FavoritesMetaValue><AreaValue value={wish.desiredArea} /></FavoritesMetaValue>
                         </FavoritesMetaItem>
 
                         <FavoritesMetaItem>
@@ -390,7 +393,7 @@ function LandFavorites() {
                   type="button"
                   aria-label="이전 페이지"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 >
                   <ChevronLeft size={18} strokeWidth={2.3} />
                 </FavoritesPageButton>
@@ -411,7 +414,7 @@ function LandFavorites() {
                   type="button"
                   aria-label="다음 페이지"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 >
                   <ChevronRight size={18} strokeWidth={2.3} />
                 </FavoritesPageButton>

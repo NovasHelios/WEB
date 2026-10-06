@@ -236,34 +236,6 @@ const formatKoreanPrice = (price) => {
   return `${tenThousand.toLocaleString()}만`;
 };
 
-// 금액 직접 입력값을 확정할 때 최소 단위인 1,000만 미만이면 1,000만으로 보정합니다.
-const normalizeConfirmedPriceInput = (value) => {
-  // 빈 값은 전체 조건으로 처리하기 위해 null을 유지합니다.
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  // 입력값을 숫자로 변환합니다.
-  const numberValue = Number(value);
-
-  // 숫자로 변환할 수 없으면 전체 조건으로 처리합니다.
-  if (Number.isNaN(numberValue)) {
-    return null;
-  }
-
-  // 0은 전체 조건으로 남겨둡니다.
-  if (numberValue === 0) {
-    return null;
-  }
-
-  // 1,000만 미만이면 1,000만으로 보정합니다.
-  if (numberValue < 1000) {
-    return 1000;
-  }
-
-  // 1,000만 이상이면 입력값을 그대로 사용합니다.
-  return numberValue;
-};
 
 // 금액 범위를 버튼에 표시할 문구로 변환합니다.
 const formatPriceRangeLabel = (label, range, defaultMin, defaultMax) => {
@@ -397,20 +369,6 @@ function Filter({ filters, onApplyFilters }) {
     });
   };
 
-  // 만원 단위 입력값을 원 단위 값으로 변환합니다.
-  const convertManToWon = (value) => {
-    // 값이 없으면 조건 없음으로 처리합니다.
-    if (value === null || value === "") return null;
-
-    // 입력값을 숫자로 변환합니다.
-    const numberValue = Number(value);
-
-    // 숫자가 아니거나 음수이면 조건 없음으로 처리합니다.
-    if (Number.isNaN(numberValue) || numberValue < 0) return null;
-
-    // 만원 단위를 원 단위로 변환합니다.
-    return numberValue * 10000;
-  };
 
   // 숫자 입력값을 1,000 형태로 표시합니다.
   const formatNumberInput = (value) => {
@@ -421,11 +379,6 @@ function Filter({ filters, onApplyFilters }) {
     return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  // 콤마가 포함된 입력값에서 숫자만 추출합니다.
-  const parseNumberInput = (value) => {
-    // 입력값에서 숫자가 아닌 문자를 제거합니다.
-    return value.replace(/[^\d]/g, "");
-  };
 
   // 원 단위 값을 만원 단위 입력값으로 변환합니다.
   const convertWonToMan = (value) => {

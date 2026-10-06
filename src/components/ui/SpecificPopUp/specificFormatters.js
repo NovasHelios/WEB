@@ -3,7 +3,7 @@ import { formatExactKoreanMoneyFromManwon } from "@/utils/priceFormat";
 // API 서버 기본 주소를 안전하게 정리합니다.
 const normalizeBaseUrl = (value) => {
   // 환경변수가 없으면 운영 서버 주소를 기본값으로 사용합니다.
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
 
   // 완전한 URL이면 마지막 슬래시만 제거합니다.
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {

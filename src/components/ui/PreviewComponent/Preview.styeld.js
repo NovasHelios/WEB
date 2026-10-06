@@ -4,14 +4,14 @@ import styled from "styled-components";
 // 지도 오른쪽에 표시되는 새 미리보기 패널입니다.
 export const Panel = styled.aside`
   position: fixed;
-  top: 72px;
+  top: var(--navbar-height);
   right: 0;
   z-index: 35;
   display: flex;
   flex-direction: column;
   width: 500px;
   /* 전역 80% 배율에서도 패널이 실제 화면 하단까지 채워지도록 보정합니다. */
-  height: calc(125vh - 72px);
+  height: calc(var(--app-viewport-height) - var(--navbar-height));
   overflow: hidden;
   border-left: 1px solid #e8e3dc;
   background: #ffffff;

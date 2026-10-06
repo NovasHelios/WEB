@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import useAuthToken from "@/hooks/useAuthToken";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import {
@@ -29,7 +30,7 @@ import {
 
 const normalizeBaseUrl = (value) => {
   // 서버 이미지 경로를 절대 경로로 만들기 위한 기본 주소입니다.
-  const rawValue = value || "https://www.helioss.site";
+  const rawValue = value || "https://api.helioss.site";
   if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
     return rawValue.replace(/\/$/, "");
   }
@@ -81,6 +82,12 @@ const formatPhoneNumber = (value) => {
 };
 
 function Profile() {
+  // 계정 전환이나 로그아웃 시 이전 프로필을 화면에 남기지 않습니다.
+  const token = useAuthToken();
+  return token ? <ProfileContent key={token} /> : <Navigate to="/login" replace />;
+}
+
+function ProfileContent() {
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
   const [profile, setProfile] = useState({
@@ -88,6 +95,7 @@ function Profile() {
     name: "",
     phone: "",
     role: "",
+    plan: "",
     profileImagePath: "",
   });
   const [previewImage, setPreviewImage] = useState("");
@@ -132,6 +140,7 @@ function Profile() {
           name: user.name || "",
           phone: formatPhoneNumber(user.phone),
           role: user.role || "",
+          plan: typeof user.plan === "string" ? user.plan : user.plan?.plan || "",
           profileImagePath,
         });
         setPreviewImage(resolveImageUrl(profileImagePath));
@@ -266,6 +275,8 @@ function Profile() {
   };
 
   const initial = profile.name?.trim()?.[0] || profile.email?.trim()?.[0] || "H";
+  const isCompany = String(profile.plan).toUpperCase() === "BUSINESS";
+  const planLabel = String(profile.plan || "").toUpperCase();
 
   return (
     <ProfilePage>
@@ -315,6 +326,10 @@ function Profile() {
               <ProfileInput value={profile.role || "-"} disabled />
             </ProfileField>
             <ProfileField>
+              이용 플랜
+              <ProfileInput value={planLabel || "-"} disabled />
+            </ProfileField>
+            <ProfileField>
               이름
               <ProfileInput value={profile.name || "-"} disabled />
             </ProfileField>
@@ -336,13 +351,15 @@ function Profile() {
               <ProfileButton type="button" $variant="outline" onClick={handleLogout}>
                 로그아웃
               </ProfileButton>
-              <ProfileButton
-                type="button"
-                $variant="outline"
-                onClick={() => navigate("/profile/business")}
-              >
-                사업자 프로필
-              </ProfileButton>
+              {isCompany ? (
+                <ProfileButton
+                  type="button"
+                  $variant="outline"
+                  onClick={() => navigate("/profile/business")}
+                >
+                  사업자 프로필
+                </ProfileButton>
+              ) : null}
               <ProfileButton type="button" onClick={handleOpenEdit} disabled={isLoading || isSaving}>
                 수정하기
               </ProfileButton>

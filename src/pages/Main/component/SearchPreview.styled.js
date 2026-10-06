@@ -4,7 +4,7 @@ import styled from "styled-components";
 // NavBar 아래에서 지도 왼쪽을 덮는 검색 결과 패널입니다.
 export const SearchPreviewPanel = styled.aside`
   position: fixed;
-  top: 72px;
+  top: var(--navbar-height);
   bottom: 0;
   left: 0;
   z-index: 28;
