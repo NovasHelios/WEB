@@ -78,6 +78,9 @@ export const WorkflowSidebarStepDesc = styled.p`
 `;
 
 export const WorkflowSidebarInfoCard = styled.section`
+  /* 입력 영역과 진행 현황 두 열을 모두 차지하는 하단 안내로 배치합니다. */
+  grid-column: 1 / -1;
+  min-width: 0;
   border-radius: 8px;
   padding: 24px 18px 22px;
   box-sizing: border-box;

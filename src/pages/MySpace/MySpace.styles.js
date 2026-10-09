@@ -6,7 +6,7 @@ export const SpaceWrapper = styled.div`
   width: 100%;
   /* 전역 80% 배율에서도 페이지 배경이 실제 화면 하단까지 이어지게 합니다. */
   min-height: var(--app-viewport-height);
-  background: var(--color-page-bg);
+  background: var(--color-list-page-bg);
   overflow: hidden;
 `;
 
@@ -17,7 +17,7 @@ export const SpaceMain = styled.main`
 
 export const SpacePage = styled.div`
   min-height: 100%;
-  background: var(--color-page-bg);
+  background: var(--color-list-page-bg);
 `;
 
 export const SpaceInner = styled.div`

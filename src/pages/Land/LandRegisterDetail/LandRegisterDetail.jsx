@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -32,8 +32,9 @@ const MAX_LENGTH = 1000;
 function LandRegisterDetail() {
   const navigate = useNavigate();
   useRequireLogin();
-  const { setRegisterData } = useLandRegister();
-  const [memo, setMemo] = useState("");
+  // 이전 단계로 돌아와도 화면과 제출 데이터가 같은 메모를 사용합니다.
+  const { registerData, setRegisterData } = useLandRegister();
+  const memo = registerData.memo || "";
 
   const memoCount = memo.length;
   const memoHint = useMemo(() => {
@@ -66,7 +67,6 @@ function LandRegisterDetail() {
                 value={memo}
               onChange={(event) => {
                 const nextMemo = event.target.value.slice(0, MAX_LENGTH);
-                setMemo(nextMemo);
                 setRegisterData((prev) => ({ ...prev, memo: nextMemo }));
               }}
               maxLength={MAX_LENGTH}

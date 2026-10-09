@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, AUTH_CHANGED_EVENT, getValidAccessToken, USER_DISPLAY_NAME_CHANGED_EVENT } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
+import { readApiResponse } from "@/utils/apiResponse";
 
 const AccountContext = createContext(null);
 
@@ -10,6 +11,7 @@ export function AccountProvider({ children }) {
   const token = useAuthToken();
   const [revision, setRevision] = useState(0);
   const [snapshot, setSnapshot] = useState(null);
+  const [requestState, setRequestState] = useState(null);
 
   useEffect(() => {
     // 같은 토큰의 플랜 변경도 반영하며 프로필 이름 변경은 즉시 표시합니다.
@@ -37,26 +39,36 @@ export function AccountProvider({ children }) {
       setSnapshot(null);
       return undefined;
     }
+    // 최초 조회가 멈추더라도 무한 확인 상태 대신 재시도할 수 있게 합니다.
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
     void (async () => {
       try {
         const response = await authFetch(Api.MyProfile, { signal: controller.signal });
-        const data = await response.json();
+        if (!cancelled && token === getValidAccessToken() && response.status === 403) setSnapshot(null);
+        const data = await readApiResponse(response, "계정 정보를 불러오지 못했습니다.");
+        if (!data?.data || typeof data.data !== "object" || Array.isArray(data.data)) throw new Error("계정 정보 응답을 확인할 수 없습니다.");
         if (cancelled || token !== getValidAccessToken()) return;
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) setSnapshot(null);
-          return;
-        }
-        setSnapshot({ token, user: data?.data || null });
-      } catch {
+        setSnapshot({ token, user: data.data });
+        setRequestState({ token, revision, error: "" });
+      } catch (error) {
         // 일시적인 네트워크 실패로 이미 확인한 메뉴가 사라지지 않게 유지합니다.
+        if (!cancelled && token === getValidAccessToken()) {
+          setRequestState({ token, revision, error: controller.signal.aborted ? "계정 조회 시간이 초과됐습니다." : error.message || "계정 정보를 불러오지 못했습니다." });
+        }
+      } finally {
+        window.clearTimeout(timeout);
       }
     })();
-    return () => { cancelled = true; controller.abort(); };
+    return () => { cancelled = true; window.clearTimeout(timeout); controller.abort(); };
   }, [token, revision]);
 
   // 새 계정 조회 중에는 이전 계정의 메뉴나 이름을 노출하지 않습니다.
   const user = token && snapshot?.token === token ? snapshot.user : null;
-  return <AccountContext.Provider value={{ isLoggedIn: Boolean(token), user }}>{children}</AccountContext.Provider>;
+  const settled = requestState?.token === token && requestState?.revision === revision;
+  const accountError = settled ? requestState.error : "";
+  const isAccountLoading = Boolean(token) && !settled;
+  const retryAccount = () => setRevision((value) => value + 1);
+  return <AccountContext.Provider value={{ isLoggedIn: Boolean(token), user, accountError, isAccountLoading, retryAccount }}>{children}</AccountContext.Provider>;
 }
 
 // 공통 계정 상태는 화면 표시용이며 실제 권한 검사는 서버가 수행합니다.
