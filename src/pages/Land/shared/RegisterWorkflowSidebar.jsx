@@ -1,7 +1,5 @@
-import { AlertTriangle, HelpCircle, ShieldCheck } from "lucide-react";
 import {
   WorkflowSidebarCard,
-  WorkflowSidebarInfoCard,
   WorkflowSidebarStepCircle,
   WorkflowSidebarStepCount,
   WorkflowSidebarStepDesc,
@@ -9,7 +7,6 @@ import {
   WorkflowSidebarStepLine,
   WorkflowSidebarSteps,
   WorkflowSidebarStepTitle,
-  WorkflowSidebarText,
   WorkflowSidebarTitle,
 } from "./RegisterWorkflowSidebar.styled";
 
@@ -24,7 +21,7 @@ const workflowSteps = [
 function RegisterWorkflowSidebar({ activeStep = 1 }) {
   return (
     <>
-      <WorkflowSidebarCard>
+      <WorkflowSidebarCard $inset={activeStep === 1}>
         <WorkflowSidebarTitle>등록 진행 현황</WorkflowSidebarTitle>
         <WorkflowSidebarSteps>
           {workflowSteps.map((step, index) => {
@@ -47,21 +44,6 @@ function RegisterWorkflowSidebar({ activeStep = 1 }) {
         </WorkflowSidebarSteps>
       </WorkflowSidebarCard>
 
-      <WorkflowSidebarInfoCard>
-        <WorkflowSidebarTitle>등록 안내</WorkflowSidebarTitle>
-        <WorkflowSidebarText>
-          <ShieldCheck size={17} strokeWidth={2.1} />
-          정확한 정보를 입력할수록 매수자의 더 많은 관심을 받을 수 있습니다.
-        </WorkflowSidebarText>
-        <WorkflowSidebarText>
-          <HelpCircle size={17} strokeWidth={2.1} />
-          등록된 토지 정보는 관리자 검토 후 플랫폼에 공개됩니다.
-        </WorkflowSidebarText>
-        <WorkflowSidebarText>
-          <AlertTriangle size={17} strokeWidth={2.1} />
-          허위 정보 등록 시 서비스 이용에 제한이 있을 수 있습니다.
-        </WorkflowSidebarText>
-      </WorkflowSidebarInfoCard>
     </>
   );
 }

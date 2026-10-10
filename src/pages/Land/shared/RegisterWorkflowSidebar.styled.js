@@ -7,6 +7,11 @@ export const WorkflowSidebarCard = styled.section`
   padding: 22px 20px 24px;
   box-sizing: border-box;
   margin-right: 16px;
+  /* 본문 시작 여백과 진행 현황의 시작 위치를 맞춥니다. */
+  margin-top: ${({ $inset }) => ($inset ? "0" : "2.625rem")};
+  @media (max-width: 1180px) {
+    margin: ${({ $inset }) => ($inset ? "0" : "0 1.25rem 1.5rem")};
+  }
 `;
 
 export const WorkflowSidebarTitle = styled.h3`

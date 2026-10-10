@@ -60,6 +60,10 @@ const NavBar = ({
   const { isLoggedIn, user } = useAccount();
   const displayName = formatDisplayName(user?.name || user?.email);
   const isBusinessAccount = isLoggedIn && user?.plan === "BUSINESS";
+  // 확인된 계정 플랜만 표시하고 로딩 중에는 무료 플랜으로 추정하지 않습니다.
+  const currentPlanLabel = isLoggedIn
+    ? { FREE: "무료", PRO: "프로", BUSINESS: "비즈니스" }[user?.plan]
+    : null;
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.
   const handleProfileClick = () => {
@@ -249,6 +253,7 @@ const NavBar = ({
           </button>
 
           {/* 플랜 버튼은 요금제 안내 화면으로 이동합니다. */}
+          <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={() => navigate("/plans")}
@@ -262,6 +267,17 @@ const NavBar = ({
           >
             <BadgeDollarSign className="h-5 w-5" strokeWidth={1.9} />
           </button>
+          {/* 현재 플랜은 별도 메뉴가 아닌 작은 상태 배지로 표시합니다. */}
+          {currentPlanLabel && (
+            <span
+              className="whitespace-nowrap rounded-full border border-[#e8e1cf] bg-[#faf7ef] px-2 py-0.5 text-xs font-medium text-[#756238]"
+              aria-label={`현재 플랜: ${currentPlanLabel}`}
+              title={`현재 이용 중인 플랜: ${currentPlanLabel}`}
+            >
+              {currentPlanLabel}
+            </span>
+          )}
+          </div>
 
           {/* 로그인 상태를 텍스트로 명확하게 표시합니다. */}
           <button
@@ -286,7 +302,8 @@ const NavBar = ({
           </button>
         </nav>
       </header>
-      <div style={{ height: "var(--navbar-height)" }} className="flex-shrink-0" aria-hidden="true" />
+      {/* 등록 화면의 두 열 그리드에서도 헤더 여백은 전체 행을 차지합니다. */}
+      <div style={{ height: "var(--navbar-height)", gridColumn: "1 / -1" }} className="flex-shrink-0" aria-hidden="true" />
     </>
   );
 };

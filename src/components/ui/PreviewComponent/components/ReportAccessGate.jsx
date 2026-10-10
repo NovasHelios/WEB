@@ -10,20 +10,32 @@ const Gate = styled.section`
   border: 1px solid var(--color-border);
   border-radius: 1rem;
   background: var(--color-surface);
-  padding: clamp(1.5rem, 4vw, 3rem) 1rem;
+  display: grid;
+  min-height: 30rem;
   text-align: center;
   word-break: keep-all;
   overflow-wrap: anywhere;
   .preview {
-    position: absolute; inset: 1.5rem; z-index: -1;
-    display: grid; align-content: start; gap: 1rem;
-    filter: blur(6px); opacity: 0.35; pointer-events: none;
+    grid-area: 1 / 1; min-width: 0;
+    display: grid; align-content: start; gap: 1.5rem;
+    padding: 2rem; text-align: left;
+    filter: blur(7px); pointer-events: none; user-select: none;
   }
-  .preview span { height: 0.75rem; border-radius: 1rem; background: #c6bda9; }
-  .preview span:nth-child(2n) { width: 70%; }
+  .preview-heading { font-size: var(--font-xl); font-weight: var(--font-bold); }
+  .preview-section { display: grid; gap: 0.75rem; }
+  .preview-label { font-weight: var(--font-semibold); color: #63583f; }
+  .preview-line { display: block; height: 0.6rem; border-radius: 0.25rem; background: #a69d8b; }
+  .preview-line:last-child { width: 72%; }
+  .preview-summary { padding: 1.25rem; border: 1px solid #d7c9a6; border-radius: 0.75rem; background: #f6efd9; }
+  /* 안내 카드로 가리지 않고 보고서 위에 반투명 잠금 레이어를 겹칩니다. */
+  .overlay {
+    grid-area: 1 / 1; z-index: 1; min-width: 0;
+    display: grid; place-items: center;
+    padding: 2rem 1rem; background: rgba(255, 253, 248, 0.4);
+  }
   .content {
-    max-width: 26rem; margin: auto; padding: 1.5rem;
-    border-radius: 1rem; background: rgba(255, 253, 248, 0.94);
+    max-width: 26rem;
+    text-shadow: 0 1px 6px #fffdf8, 0 0 16px #fffdf8;
   }
   .lock {
     display: grid; place-items: center; width: 3.5rem; height: 3.5rem;
@@ -45,7 +57,17 @@ const Gate = styled.section`
 // 비로그인과 무료 플랜의 다음 행동을 서로 다른 문구와 링크로 안내합니다.
 export default function ReportAccessGate({ requiresLogin }) {
   return <Gate aria-label="AI 분석 보고서 이용 안내">
-    <div className="preview" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <span key={i} />)}</div>
+    {/* 공개용 모형이며 실제 분석 결과나 점수를 포함하지 않습니다. */}
+    <div className="preview" aria-hidden="true">
+      <div className="preview-heading">AI 분석 보고서</div>
+      {["주요 판단 근거", "긍정적인 조건", "주의가 필요한 조건", "추가 확인사항"].map((label, index) => (
+        <div className={`preview-section${index === 0 ? " preview-summary" : ""}`} key={label}>
+          <div className="preview-label">{label}</div>
+          {Array.from({ length: 3 }, (_, i) => <span className="preview-line" key={i} />)}
+        </div>
+      ))}
+    </div>
+    <div className="overlay">
     <div className="content">
       <div className="lock"><LockKeyhole size={26} aria-hidden="true" /></div>
       <h3>{requiresLogin ? "로그인 후 확인할 수 있어요" : "AI 보고서는 유료 플랜에서 제공돼요"}</h3>
@@ -55,6 +77,7 @@ export default function ReportAccessGate({ requiresLogin }) {
       <Link to={requiresLogin ? "/login" : "/plans"}>
         {requiresLogin ? "로그인하기" : "플랜 확인하기"}<ArrowRight size={16} aria-hidden="true" />
       </Link>
+    </div>
     </div>
   </Gate>;
 }
