@@ -15,7 +15,8 @@ export const Api = {
 
   // Land
     VworldLand: `${BASE}/api/vworld/land`, // GET 주소 기반 토지 자동 조회
-    AiReport: (landId) => `${BASE}/api/ai/report?landId=${encodeURIComponent(landId)}`,
+    LandDevelopmentAnalysis: (landId) =>
+      `${BASE}/api/lands/${encodeURIComponent(landId)}/analysis/development`, // GET 토지 개발 적합도 분석
   Lands: `${BASE}/api/lands`,                                                        // GET 전체조회 / POST 등록 (multipart)
   MyLands: `${BASE}/api/lands/me`,                                                    // GET 내가 등록한 토지 목록
   Land: (landId) => `${BASE}/api/lands/${landId}`,                                   // GET 상세 / PATCH 수정 / DELETE 삭제

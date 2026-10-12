@@ -3,7 +3,7 @@ import { listPageShell, listPageTitle, listPageDescription } from "@/styles/list
 
 export const FavoritesPage = styled.div`
   min-height: var(--app-viewport-height);
-  background: var(--color-page-bg);
+  background: var(--color-list-page-bg);
   color: #232323;
 `;
 

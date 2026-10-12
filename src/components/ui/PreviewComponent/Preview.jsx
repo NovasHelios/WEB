@@ -465,7 +465,7 @@ function Preview({ land }) {
                 formattedPrice={formatPrice(land.desiredPrice)}
               />
             )}
-            {/* 태양광 적합도 탭을 선택하면 현재 토지의 AI 보고서를 조회합니다. */}
+            {/* 태양광 적합도 탭을 선택하면 현재 토지의 개발 적합도를 조회합니다. */}
             {activeTab === "solar" && <SolarSuitability landId={landId} />}
 
             {/* 아직 만들지 않은 상세 설명 탭에는 지원 예정 문구를 표시합니다. */}

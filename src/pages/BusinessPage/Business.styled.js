@@ -5,7 +5,7 @@ import { listPageShell, listPageTitle, listPageDescription, ListPageDivider } fr
 // 사업 연결 페이지의 전체 배경입니다.
 export const BusinessPageRoot = styled.div`
   min-height: var(--app-viewport-height);
-  background: #f8f7f3;
+  background: var(--color-list-page-bg);
   color: #1f1f1f;
 `;
 

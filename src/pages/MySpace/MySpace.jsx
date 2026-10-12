@@ -10,6 +10,9 @@ import { validateLandAddress } from "@/utils/validateLandAddress";
 import AreaValue from "@/components/ui/AreaValue";
 import { ListPageDivider } from "@/styles/listPage";
 import { formatLandDate, landTimestamp, compareNullableNumbers } from "@/utils/landList";
+import { withRequestTimeout, forEachConcurrent } from "@/utils/asyncRequests";
+import { readApiResponse } from "@/utils/apiResponse";
+import { mergeLandImages } from "@/utils/landImages";
 import {
   SpaceActionButton,
   SpaceActionColumn,
@@ -66,12 +69,16 @@ const normalizeBaseUrl = (value) => {
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
 const LOCAL_REGISTERED_AT_KEY = "helios-land-registered-at";
 
-const resolveImageUrl = (path) => {
+const resolveImageUrl = (path, revision) => {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  if (path.startsWith("/")) return `${API_BASE_URL}${path}`;
-  if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
-  return `${API_BASE_URL}/uploads/lands/${path}`;
+  // 저장 경로를 확인하지 못한 경우의 로컬 미리보기도 그대로 표시합니다.
+  if (path.startsWith("blob:") || path.startsWith("data:image/")) return path;
+  const url = path.startsWith("http://") || path.startsWith("https://") ? path
+    : path.startsWith("/") ? `${API_BASE_URL}${path}`
+    : path.startsWith("uploads/") ? `${API_BASE_URL}/${path}`
+    : `${API_BASE_URL}/uploads/lands/${path}`;
+  // 서버가 같은 파일 경로를 덮어써도 수정 직후에는 새 이미지를 요청합니다.
+  return revision ? `${url}${url.includes("?") ? "&" : "?"}v=${revision}` : url;
 };
 
 const getFirstImagePath = (land) => {
@@ -272,7 +279,7 @@ const normalizeLand = (land, index) => {
     price: rawPrice ? formatPrice(rawPrice) : "-",
     desiredArea: formatDesiredArea(rawDesiredArea),
     accent: accentPool[index % accentPool.length],
-    imageUrl: resolveImageUrl(landImage),
+    imageUrl: resolveImageUrl(landImage, land.imageRevision),
     raw: land,
   };
 };
@@ -303,7 +310,7 @@ function MySpace() {
   const [selectedLand, setSelectedLand] = useState(null);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
 
-  const fetchMyLands = useCallback(async () => {
+  const fetchMyLands = useCallback(async (signal) => {
     // 로그인하지 않은 사용자는 내 공간을 볼 수 없으므로 로그인으로 보냅니다.
     if (!getValidAccessToken()) {
       navigate("/login");
@@ -315,26 +322,17 @@ function MySpace() {
     setError("");
 
     try {
-      const response = await authFetch(Api.MyLands, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const contentType = response.headers.get("content-type") || "";
-      const data = contentType.includes("application/json") ? await response.json() : null;
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          navigate("/login");
-          return;
-        }
-
-        throw new Error(data?.message || data?.data?.message || "내 토지 목록을 불러오지 못했습니다.");
-      }
-
+      const data = await withRequestTimeout(async (requestSignal) => {
+        const response = await authFetch(Api.MyLands, { signal: requestSignal });
+        return readApiResponse(response, "내 토지 목록을 불러오지 못했습니다.");
+      }, signal);
+      if (signal?.aborted) return;
       const list = extractArray(data);
-      const enrichedList = await Promise.all(
-        list.map(async (land) => {
+      // 전체 목록은 먼저 표시하고 누락된 정보만 도착하는 순서대로 보완합니다.
+      setLands(list.map(normalizeLand));
+      setIsLoading(false);
+      await forEachConcurrent(list, async (land, index) => {
+          if (signal?.aborted) return;
           // 목록 응답에 없는 등록일·희망 면적을 상세 API에서 보완합니다.
           const hasDesiredArea =
             land.desiredArea !== null && land.desiredArea !== undefined && land.desiredArea !== "";
@@ -344,36 +342,33 @@ function MySpace() {
           if (!landId) return land;
 
           try {
-            const detailResponse = await authFetch(Api.Land(landId), {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            });
-            if (!detailResponse.ok) return land;
-
-            const detailContentType = detailResponse.headers.get("content-type") || "";
-            const detailData = detailContentType.includes("application/json")
-              ? await detailResponse.json()
-              : null;
-            return { ...land, ...extractObject(detailData) };
+            const detailData = await withRequestTimeout(async (requestSignal) => {
+              const response = await authFetch(Api.Land(landId), { signal: requestSignal });
+              return readApiResponse(response, "토지 상세 정보를 불러오지 못했습니다.");
+            }, signal);
+            if (signal?.aborted) return;
+            const updated = normalizeLand({ ...land, ...extractObject(detailData) }, index);
+            // 사용자가 이미 수정·삭제한 행에는 오래된 보완 응답을 덮어쓰지 않습니다.
+            setLands((prev) => prev.map((item) => item.raw === land ? updated : item));
           } catch {
             return land;
           }
-        }),
-      );
-
-      setLands(enrichedList.map(normalizeLand));
+      });
     } catch (err) {
-      setError(err.message || "내 토지 목록을 불러오지 못했습니다.");
+      if (signal?.aborted) return;
+      setError(err.name === "AbortError" ? "목록 조회 시간이 초과됐습니다. 새로고침 후 다시 시도해주세요." : err.message || "내 토지 목록을 불러오지 못했습니다.");
       setLands([]);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [navigate]);
 
   useEffect(() => {
+    const controller = new AbortController();
     // 내 공간 페이지 진입 시 내가 등록한 토지를 조회합니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchMyLands();
+    void fetchMyLands(controller.signal);
+    return () => controller.abort();
   }, [fetchMyLands]);
 
   const sortedLands = useMemo(() => {
@@ -418,18 +413,18 @@ function MySpace() {
       const data = contentType.includes("application/json") ? await response.json() : null;
       const detailRaw = response.ok ? data?.data : null;
       const nextLand = detailRaw
-        ? { ...land, raw: { ...land.raw, ...detailRaw } }
+        ? { ...land, raw: mergeLandImages({ ...land.raw, ...detailRaw }, detailRaw, getFirstImagePath(land.raw || land)) }
         : land;
 
       setEditingLand(nextLand);
       setEditForm(getEditFormFromLand(nextLand));
       setEditImageFile(null);
-      setEditImagePreview(resolveImageUrl(getFirstImagePath(nextLand.raw || nextLand)));
+      setEditImagePreview(resolveImageUrl(getFirstImagePath(nextLand.raw || nextLand), nextLand.raw?.imageRevision));
     } catch {
       setEditingLand(land);
       setEditForm(getEditFormFromLand(land));
       setEditImageFile(null);
-      setEditImagePreview(resolveImageUrl(getFirstImagePath(land.raw || land)));
+      setEditImagePreview(resolveImageUrl(getFirstImagePath(land.raw || land), land.raw?.imageRevision));
     } finally {
       setEditLoadingId(null);
     }
@@ -466,6 +461,12 @@ function MySpace() {
     event.preventDefault();
 
     if (!editingLand?.id || savingId) return;
+    // 주소 조회·이미지 업로드 사이에 계정이 바뀌면 후속 저장을 중단합니다.
+    const savingToken = getValidAccessToken();
+    if (!savingToken) {
+      setEditError("로그인 후 다시 시도해주세요.");
+      return;
+    }
     if (!editForm.address.trim()) {
       setEditError("주소를 입력해주세요.");
       return;
@@ -473,6 +474,7 @@ function MySpace() {
 
     setSavingId(editingLand.id);
     setEditError("");
+    let informationSaved = false;
 
     try {
       // 내 토지 수정 요청을 서버에 보냅니다.
@@ -480,6 +482,7 @@ function MySpace() {
         setEditError("시·군·구가 아닌 상세 지번 또는 도로명 주소를 검색 가능한 상태에서 입력해주세요.");
         return;
       }
+      if (savingToken !== getValidAccessToken()) return;
       const payload = {
         address: editForm.address.trim(),
         desiredPrice: editForm.transactionType === "BUSINESS_HOPE"
@@ -503,6 +506,14 @@ function MySpace() {
       if (!response.ok) {
         throw new Error(data?.message || data?.data?.message || "토지를 수정하지 못했습니다.");
       }
+      if (savingToken !== getValidAccessToken()) return;
+
+      // 정보 저장 성공은 즉시 반영합니다. 후속 이미지 실패가 이를 되돌리지는 않습니다.
+      const savedRaw = { ...editingLand.raw, ...payload, ...(data?.data || {}) };
+      const savedLand = { ...normalizeLand(savedRaw, 0), accent: editingLand.accent };
+      informationSaved = true;
+      setLands((prev) => prev.map((land) => land.id === editingLand.id ? savedLand : land));
+      setEditingLand(savedLand);
 
       let imageData = null;
       if (editImageFile) {
@@ -521,20 +532,31 @@ function MySpace() {
         }
       }
 
-      const updatedRaw = {
-        ...editingLand.raw,
-        ...payload,
-        ...(data?.data || {}),
-        ...(imageData?.data || imageData || {}),
-        ...(editImageFile ? { landImagePath: editImagePreview } : {}),
-      };
+      // 이미지 응답이 경로를 주지 않으면 상세 조회로 실제 저장 경로를 확인합니다.
+      let imageUpdate = imageData?.data || imageData;
+      if (editImageFile && !getFirstImagePath(imageUpdate || {})) {
+        try {
+          imageUpdate = await withRequestTimeout(async (signal) => {
+            const response = await authFetch(Api.Land(editingLand.id), { signal });
+            return extractObject(await readApiResponse(response, "이미지 정보를 확인하지 못했습니다."));
+          });
+        } catch {
+          // 업로드 자체는 성공했으므로 재조회 실패는 새 미리보기로 보완합니다.
+          imageUpdate = null;
+        }
+      }
+      if (savingToken !== getValidAccessToken()) return;
+      const updatedRaw = editImageFile ? mergeLandImages(savedRaw, imageUpdate, editImagePreview) : savedRaw;
+      if (editImageFile) updatedRaw.imageRevision = Date.now();
       const updatedLand = normalizeLand(updatedRaw, 0);
       setLands((prev) =>
         prev.map((land) => (land.id === editingLand.id ? { ...updatedLand, accent: land.accent } : land))
       );
       setEditingLand(null);
     } catch (err) {
-      setEditError(err.message || "토지를 수정하지 못했습니다.");
+      setEditError(informationSaved
+        ? "토지 정보는 저장됐지만 이미지 업로드를 완료하지 못했습니다. 선택한 이미지는 유지돼 있어요. 다시 저장하거나 창을 닫아주세요."
+        : err.message || "토지를 수정하지 못했습니다.");
     } finally {
       setSavingId(null);
     }
@@ -768,6 +790,8 @@ function MySpace() {
       {editingLand ? (
         <SpaceModalOverlay>
           <SpaceModal onSubmit={handleUpdateLand}>
+            {/* 저장 중에는 닫기·취소·파일 선택을 포함한 모든 입력을 잠급니다. */}
+            <fieldset disabled={Boolean(savingId)} aria-busy={Boolean(savingId)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             {/* 내 토지 수정 모달 */}
             <SpaceModalHeader>
               <h2>토지 수정</h2>
@@ -814,10 +838,16 @@ function MySpace() {
             <SpaceModalField>
               희망 가격 (만원 단위)
               <SpaceModalInput
-                value={editForm.desiredPrice}
+                value={editForm.transactionType === "BUSINESS_HOPE" ? "" : editForm.desiredPrice}
                 onChange={handleEditChange("desiredPrice")}
-                placeholder="예) 15000"
+                disabled={editForm.transactionType === "BUSINESS_HOPE"}
+                aria-describedby={editForm.transactionType === "BUSINESS_HOPE" ? "business-hope-price-note" : undefined}
+                placeholder={editForm.transactionType === "BUSINESS_HOPE" ? "가격 협의" : "예) 15,000"}
               />
+              {/* 사업 희망은 가격을 저장하지 않는다는 점을 명확하게 안내합니다. */}
+              {editForm.transactionType === "BUSINESS_HOPE" ? (
+                <p id="business-hope-price-note">사업 희망은 가격을 입력하지 않습니다. 구체적인 조건은 사업자와 협의해 주세요.</p>
+              ) : null}
             </SpaceModalField>
 
             <SpaceModalField>
@@ -839,6 +869,7 @@ function MySpace() {
                 {savingId === editingLand.id ? "저장 중" : "저장"}
               </SpaceActionButton>
             </SpaceModalActions>
+            </fieldset>
           </SpaceModal>
         </SpaceModalOverlay>
       ) : null}

@@ -37,6 +37,8 @@
   --color-brand-strong: #d49f00;
   --color-brand-dark: #8a6800;
   --color-page-bg: #faf6ee;
+  /* 내 공간·관심 토지·사업 연결에 공통으로 사용하는 목록 배경입니다. */
+  --color-list-page-bg: #f8f7f3;
   --color-surface: #fffdf8;
   --color-surface-soft: #fbfaf7;
   --color-text: #1f1c17;

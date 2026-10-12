@@ -47,9 +47,11 @@ export const ChatListHeader = styled.div`
 
   h1 {
     margin: 0 0 16px;
-    font-size: var(--font-page-title);
+    /* 채팅 패널 제목은 전체 페이지 제목보다 작은 전용 규격을 사용합니다. */
+    font-size: var(--font-xl);
     font-weight: var(--font-bold);
-    letter-spacing: -0.04em;
+    line-height: 1.3;
+    letter-spacing: normal;
   }
 `;
 

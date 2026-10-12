@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import useAuthToken from "@/hooks/useAuthToken";
 
 /* eslint-disable react-refresh/only-export-components */
 
@@ -39,7 +40,7 @@ const isRegisterRoute = (pathname) => pathname.startsWith("/land/register");
 
 const LandRegisterContext = createContext(null);
 
-export function LandRegisterProvider({ children }) {
+function LandRegisterSession({ children }) {
   const { pathname } = useLocation();
   const previousPathnameRef = useRef(pathname);
 
@@ -71,6 +72,12 @@ export function LandRegisterProvider({ children }) {
   );
 
   return <LandRegisterContext.Provider value={value}>{children}</LandRegisterContext.Provider>;
+}
+
+// 인증 세션 변경 시 초안과 하위 입력 상태를 함께 폐기해 계정 간 재사용을 막습니다.
+export function LandRegisterProvider({ children }) {
+  const token = useAuthToken();
+  return <LandRegisterSession key={token || "anonymous"}>{children}</LandRegisterSession>;
 }
 
 export function useLandRegister() {
