@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Plus, ShieldCheck } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
 import { Link, Navigate } from "react-router-dom";
+import BusinessTimePicker from "./BusinessTimePicker";
 import {
   BusinessBasicGrid,
   BusinessBottomGrid,
@@ -22,8 +23,6 @@ import {
   BusinessIntroduction,
   BusinessOptionLabel,
   BusinessOptionPanel,
-  BusinessPill,
-  BusinessPillRow,
   BusinessProfileActions,
   BusinessProfileDescription,
   BusinessProfileHeader,
@@ -38,15 +37,12 @@ import {
   BusinessSaveMessage,
   BusinessSettingCard,
   BusinessSettingRow,
-  BusinessTimeInput,
   BusinessSmallButton,
   BusinessSwitch,
   BusinessTag,
   BusinessTags,
 } from "./BusinessProfile.styles";
 
-const additionalSpecialties = ["태양광 유지보수", "EPC 관리", "개발 컨설팅"];
-const regions = ["대구", "경북", "경남", "서울/수도권", "충청/세종", "전라권", "강원권", "제주"];
 
 const defaultProfile = {
   name: "",
@@ -71,7 +67,26 @@ function BusinessProfileForm() {
   const [nationwideActive, setNationwideActive] = useState(false);
   const [profile, setProfile] = useState(defaultProfile);
   const [selectedSpecialties, setSelectedSpecialties] = useState([]);
+  // 분야는 입력 후 명시적으로 추가하며 취소한 초안은 저장하지 않습니다.
+  const [isAddingSpecialty, setIsAddingSpecialty] = useState(false);
+  const [specialtyDraft, setSpecialtyDraft] = useState("");
+  const [specialtyError, setSpecialtyError] = useState("");
+  const specialtyInputRef = useRef(null);
+  const specialtyButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (isAddingSpecialty) specialtyInputRef.current?.focus();
+  }, [isAddingSpecialty]);
   const [selectedRegions, setSelectedRegions] = useState([]);
+  // 활동 지역도 직접 입력한 값만 태그로 추가합니다.
+  const [isAddingRegion, setIsAddingRegion] = useState(false);
+  const [regionDraft, setRegionDraft] = useState("");
+  const [regionError, setRegionError] = useState("");
+  const regionInputRef = useRef(null);
+  const regionButtonRef = useRef(null);
+  useEffect(() => {
+    if (isAddingRegion) regionInputRef.current?.focus();
+  }, [isAddingRegion]);
   const [isConsultationActive, setIsConsultationActive] = useState(true);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
@@ -133,8 +148,8 @@ function BusinessProfileForm() {
         Array.isArray(business.activeRegions) ? business.activeRegions : current
       ));
       setIsConsultationActive((current) => business.consultationAvailable ?? current);
-      setStartTime((current) => business.consultationStartTime || current);
-      setEndTime((current) => business.consultationEndTime || current);
+      setStartTime((current) => business.consultationStartTime?.slice(0, 5) || current);
+      setEndTime((current) => business.consultationEndTime?.slice(0, 5) || current);
     };
 
     void loadProfile().catch((error) => {
@@ -149,11 +164,26 @@ function BusinessProfileForm() {
   // Swagger 요청 필드만 서버에 저장하고 실패를 완료로 표시하지 않습니다.
   const handleSave = async () => {
     if (isSaving || !isReady) return;
+    if (isAddingRegion && regionDraft.trim()) {
+      setRegionError("입력한 지역을 추가하거나 취소한 뒤 저장해주세요.");
+      regionInputRef.current?.focus();
+      return;
+    }
+    if (isAddingSpecialty && specialtyDraft.trim()) {
+      setSpecialtyError("입력한 분야를 추가하거나 취소한 뒤 저장해주세요.");
+      specialtyInputRef.current?.focus();
+      return;
+    }
     if (!profile.company.trim() || !businessMeta.businessNumber.trim()) {
       setSaveMessage("회사명과 사업자등록번호를 입력해주세요.");
       return;
     }
-    if (isConsultationActive && (!startTime || !endTime || startTime >= endTime)) {
+    // 직접 입력한 시간도 서버에 보내기 전에 형식과 순서를 확인합니다.
+    if (![startTime, endTime].every((time) => /^([01]\d|2[0-3]):[0-5]\d$/.test(time))) {
+      setSaveMessage("상담 시간을 24시간 형식으로 입력해주세요. 예: 09:00, 18:30");
+      return;
+    }
+    if (isConsultationActive && startTime >= endTime) {
       setSaveMessage("상담 종료 시간은 시작 시간보다 늦어야 합니다.");
       return;
     }
@@ -191,15 +221,49 @@ function BusinessProfileForm() {
     setSaveMessage("");
   };
 
-  const addSpecialty = () => {
-    const nextSpecialty = additionalSpecialties.find((item) => !selectedSpecialties.includes(item));
-    if (nextSpecialty) setSelectedSpecialties((current) => [...current, nextSpecialty]);
+  const closeSpecialtyInput = () => {
+    setIsAddingSpecialty(false);
+    setSpecialtyDraft("");
+    setSpecialtyError("");
+    specialtyButtonRef.current?.focus();
   };
 
-  const toggleRegion = (region) => {
-    setSelectedRegions((current) => current.includes(region)
-      ? current.filter((item) => item !== region)
-      : [...current, region]);
+  // 공백을 정리하고 대소문자만 다른 중복 분야도 차단합니다.
+  const addSpecialty = () => {
+    const nextSpecialty = specialtyDraft.trim().replace(/\s+/g, " ");
+    if (!nextSpecialty) {
+      setSpecialtyError("추가할 분야를 입력해주세요.");
+      specialtyInputRef.current?.focus();
+      return;
+    }
+    if (selectedSpecialties.some((item) => item.trim().replace(/\s+/g, " ").toLowerCase() === nextSpecialty.toLowerCase())) {
+      setSpecialtyError("이미 추가한 분야입니다.");
+      specialtyInputRef.current?.focus();
+      return;
+    }
+    setSelectedSpecialties((current) => [...current, nextSpecialty]);
+    setSaveMessage("");
+    closeSpecialtyInput();
+  };
+
+  const closeRegionInput = () => {
+    setIsAddingRegion(false);
+    setRegionDraft("");
+    setRegionError("");
+    regionButtonRef.current?.focus();
+  };
+
+  // 빈 지역과 공백·대소문자만 다른 중복 입력을 차단합니다.
+  const addRegion = () => {
+    const region = regionDraft.trim().replace(/\s+/g, " ");
+    if (!region || selectedRegions.some((item) => item.trim().replace(/\s+/g, " ").toLowerCase() === region.toLowerCase())) {
+      setRegionError(region ? "이미 추가한 지역입니다." : "추가할 지역을 입력해주세요.");
+      regionInputRef.current?.focus();
+      return;
+    }
+    setSelectedRegions((current) => [...current, region]);
+    setSaveMessage("");
+    closeRegionInput();
   };
 
   return (
@@ -245,12 +309,37 @@ function BusinessProfileForm() {
             <BusinessProfileSectionTitle><span>2</span>대표 분야 및 소개</BusinessProfileSectionTitle>
           </BusinessProfileSectionHeader>
           <BusinessIntroduction>
-            <BusinessField>
+            <BusinessField as="div">
               대표 분야 *
               <BusinessTags>
-                {selectedSpecialties.map((specialty) => <BusinessTag key={specialty} type="button" onClick={() => toggleSpecialty(specialty)}>{specialty} ×</BusinessTag>)}
-                <BusinessTag type="button" $add onClick={addSpecialty}><Plus size={13} /> 분야 추가</BusinessTag>
+                {selectedSpecialties.map((specialty) => <BusinessTag key={specialty} type="button" aria-label={`${specialty} 삭제`} onClick={() => toggleSpecialty(specialty)}>{specialty} ×</BusinessTag>)}
+                <BusinessTag ref={specialtyButtonRef} type="button" $add aria-expanded={isAddingSpecialty} aria-controls="specialty-editor" onClick={() => {
+                  setIsAddingSpecialty(true);
+                  specialtyInputRef.current?.focus();
+                }}><Plus size={13} /> 분야 추가</BusinessTag>
               </BusinessTags>
+              {/* 한글 조합 중 Enter는 무시하고, Enter 추가와 Escape 취소를 지원합니다. */}
+              {isAddingSpecialty && <div id="specialty-editor">
+                <BusinessFieldInput
+                  ref={specialtyInputRef}
+                  aria-label="추가할 분야"
+                  placeholder="분야를 입력해주세요 (예: 태양광 유지보수)"
+                  value={specialtyDraft}
+                  aria-invalid={Boolean(specialtyError)}
+                  aria-describedby={specialtyError ? "specialty-error" : undefined}
+                  onChange={(event) => { setSpecialtyDraft(event.target.value); setSpecialtyError(""); }}
+                  onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                    if (event.key === "Enter") { event.preventDefault(); addSpecialty(); }
+                    if (event.key === "Escape") { event.preventDefault(); closeSpecialtyInput(); }
+                  }}
+                />
+                <BusinessTags>
+                  <BusinessSmallButton type="button" onClick={addSpecialty}>추가</BusinessSmallButton>
+                  <BusinessSmallButton type="button" onClick={closeSpecialtyInput}>취소</BusinessSmallButton>
+                </BusinessTags>
+                {specialtyError && <p id="specialty-error" role="alert">{specialtyError}</p>}
+              </div>}
             </BusinessField>
             <BusinessField>대표 분야 한 줄 소개 *<BusinessFieldInput value={profile.shortIntro} onChange={updateProfile("shortIntro")} /></BusinessField>
             <BusinessField>사업자 소개 *<BusinessFieldTextarea value={profile.introduction} onChange={updateProfile("introduction")} /></BusinessField>
@@ -264,18 +353,43 @@ function BusinessProfileForm() {
             </BusinessProfileSectionHeader>
             <BusinessOptionPanel>
               <BusinessOptionLabel>활동 가능 권역 선택 <label><input type="checkbox" checked={nationwideActive} onChange={(event) => setNationwideActive(event.target.checked)} /> 전국 협의 가능</label></BusinessOptionLabel>
-              <BusinessPillRow>
-                {regions.map((region) => <BusinessPill key={region} type="button" $active={selectedRegions.includes(region)} onClick={() => toggleRegion(region)}>{region}</BusinessPill>)}
-              </BusinessPillRow>
+              {/* 저장된 지역은 유지하고 새 지역은 직접 입력하여 추가합니다. */}
+              <BusinessTags>
+                {selectedRegions.map((region) => <BusinessTag key={region} type="button" aria-label={`${region} 삭제`} onClick={() => {
+                  setSelectedRegions((current) => current.filter((item) => item !== region));
+                  setSaveMessage("");
+                }}>{region} ×</BusinessTag>)}
+                <BusinessTag ref={regionButtonRef} type="button" $add aria-expanded={isAddingRegion} aria-controls="region-editor" onClick={() => {
+                  setIsAddingRegion(true);
+                  regionInputRef.current?.focus();
+                }}><Plus size={13} /> 지역 추가</BusinessTag>
+              </BusinessTags>
+              {isAddingRegion && <div id="region-editor">
+                <BusinessFieldInput ref={regionInputRef} aria-label="추가할 지역"
+                  placeholder="지역을 입력해주세요 (예: 대구, 서울/수도권)"
+                  value={regionDraft} aria-invalid={Boolean(regionError)}
+                  aria-describedby={regionError ? "region-error" : undefined}
+                  onChange={(event) => { setRegionDraft(event.target.value); setRegionError(""); }}
+                  onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                    if (event.key === "Enter") { event.preventDefault(); addRegion(); }
+                    if (event.key === "Escape") { event.preventDefault(); closeRegionInput(); }
+                  }} />
+                <BusinessTags>
+                  <BusinessSmallButton type="button" onClick={addRegion}>추가</BusinessSmallButton>
+                  <BusinessSmallButton type="button" onClick={closeRegionInput}>취소</BusinessSmallButton>
+                </BusinessTags>
+                {regionError && <p id="region-error" role="alert">{regionError}</p>}
+              </div>}
               <BusinessSettingCard>
                 <BusinessSettingRow><div><strong>상담 요청 활성화</strong><br /><span>활성화 시 토지주로부터 즉시 상담 요청을 받습니다.</span></div><BusinessSwitch as="button" type="button" $active={isConsultationActive} aria-pressed={isConsultationActive} onClick={() => setIsConsultationActive((current) => !current)} /></BusinessSettingRow>
                 <BusinessSettingRow>
                   <div><strong>상담 가능 시간대</strong></div>
                   <div>
                     {/* 상담 가능한 시작·종료 시간을 직접 입력합니다. */}
-                    <BusinessTimeInput type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} aria-label="상담 시작 시간" />
+                    <BusinessTimePicker value={startTime} onChange={setStartTime} label="상담 시작 시간" disabled={!isReady || isSaving} />
                     <span>~</span>
-                    <BusinessTimeInput type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} aria-label="상담 종료 시간" />
+                    <BusinessTimePicker value={endTime} onChange={setEndTime} label="상담 종료 시간" disabled={!isReady || isSaving} />
                   </div>
                 </BusinessSettingRow>
               </BusinessSettingCard>

@@ -3,7 +3,8 @@ const BASE = import.meta.env.DEV ? "" : "https://api.helioss.site";
 const SOCKET_BASE = import.meta.env.DEV
   ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
   : BASE.replace(/^http/, "ws");
-const OAUTH_BASE = import.meta.env.DEV ? "" : BASE;
+// Google 로그인은 로컬에서도 프록시 대신 백엔드 인증 서버에서 시작합니다.
+const OAUTH_BASE = "https://api.helioss.site";
 
 export const Api = {
   // Auth
