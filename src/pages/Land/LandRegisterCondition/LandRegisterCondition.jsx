@@ -40,7 +40,7 @@ const conditionTabs = {
     valueLabel: "희망 가격",
     prefix: "",
     suffix: "만원",
-    placeholder: "150000",
+    placeholder: "150,000",
   },
   rent: {
     key: "rent",
@@ -63,8 +63,9 @@ const conditionTabs = {
 };
 
 const toServerTransactionType = (value) => {
-  // 서버는 SALE/LEASE만 받으므로 화면 값을 서버 enum으로 변환합니다.
+  // 화면 거래 유형을 서버에서 구분 가능한 enum으로 전달합니다.
   if (value === "rent") return "LEASE";
+  if (value === "hope") return "BUSINESS_HOPE";
   return "SALE";
 };
 
@@ -118,8 +119,13 @@ function LandRegisterCondition() {
   const [error, setError] = useState("");
 
   const current = useMemo(() => conditionTabs[selected], [selected]);
+  const landAreaNumber = Math.floor(Number(String(registerData.area || "").replace(/[^\d.]/g, "")) || 0);
   const desiredAreaNumber = Number(String(desiredArea).replace(/[^\d]/g, ""));
-  const areaGap = Math.max(REQUIRED_AREA_FOR_100KW - desiredAreaNumber, 0);
+  const normalizedDesiredAreaNumber = landAreaNumber > 0
+    ? Math.min(desiredAreaNumber || 0, landAreaNumber)
+    : desiredAreaNumber;
+  const displayedDesiredArea = formatAreaInput(normalizedDesiredAreaNumber);
+  const areaGap = Math.max(REQUIRED_AREA_FOR_100KW - normalizedDesiredAreaNumber, 0);
 
   const handleValueChange = (event) => {
     const nextValue = formatPriceInput(event.target.value);
@@ -142,7 +148,12 @@ function LandRegisterCondition() {
 
   const handleDesiredAreaChange = (event) => {
     // 희망 면적을 전역 등록 데이터에 저장해 다음 단계에서도 유지합니다.
-    const nextValue = formatAreaInput(event.target.value);
+    const rawValue = String(event.target.value).replace(/[^\d]/g, "");
+    const numericValue = Number(rawValue);
+    const limitedValue = landAreaNumber > 0
+      ? Math.min(numericValue || 0, landAreaNumber)
+      : numericValue;
+    const nextValue = formatAreaInput(limitedValue || "");
     setDesiredArea(nextValue);
     setRegisterData((prev) => ({ ...prev, desiredArea: nextValue }));
     setError("");
@@ -163,10 +174,20 @@ function LandRegisterCondition() {
     // 마지막 조건 단계에서 모든 등록 정보를 한 번에 multipart로 전송합니다.
     const images = registerData.photos || [];
     const desiredPrice = toWonPrice(selected === "hope" ? "" : values[selected]);
-    const desiredAreaValue = Number(String(desiredArea).replace(/[^\d]/g, ""));
+    const desiredAreaValue = normalizedDesiredAreaNumber;
 
     if (!registerData.address?.trim()) {
       setError("주소를 먼저 입력해주세요.");
+      return;
+    }
+
+    if (
+      !registerData.isAddressValid ||
+      !registerData.latitude ||
+      !registerData.longitude
+    ) {
+      // URL로 조건 단계에 직접 접근해도 주소 검증을 우회할 수 없게 합니다.
+      setError("주소 검색에서 상세 지번 또는 도로명 주소를 먼저 확인해주세요.");
       return;
     }
 
@@ -175,8 +196,19 @@ function LandRegisterCondition() {
       return;
     }
 
-    if (!desiredAreaValue || Number.isNaN(desiredAreaValue)) {
+    // 실제 면적을 확인하지 못하면 크기 제한을 우회해 제출하지 못하게 합니다.
+    if (!Number.isFinite(landAreaNumber) || landAreaNumber <= 0) {
+      setError("토지 면적을 확인하지 못했습니다. 주소 검색 단계에서 다시 조회해주세요.");
+      return;
+    }
+
+    if (!Number.isFinite(desiredAreaValue) || desiredAreaValue <= 0) {
       setError("희망 면적을 입력해주세요.");
+      return;
+    }
+
+    if (landAreaNumber > 0 && desiredAreaValue > landAreaNumber) {
+      setError(`희망 면적은 토지 면적 ${formatAreaInput(landAreaNumber)}㎡ 이하로 입력해주세요.`);
       return;
     }
 
@@ -229,10 +261,25 @@ function LandRegisterCondition() {
         throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
       }
 
+      // 백엔드에 등록일 필드가 추가되기 전까지 신규 등록 시각을 임시 보관합니다.
+      const submittedLand = data?.data ?? data;
+      const landKey = submittedLand?.landId ?? submittedLand?.id ?? registerData.address.trim();
+      if (landKey) {
+        try {
+          const storedDates = JSON.parse(localStorage.getItem("helios-land-registered-at") || "{}");
+          localStorage.setItem(
+            "helios-land-registered-at",
+            JSON.stringify({ ...storedDates, [landKey]: new Date().toISOString() }),
+          );
+        } catch {
+          // 임시 날짜 저장에 실패해도 서버 등록 결과는 정상적으로 이어갑니다.
+        }
+      }
+
       setRegisterData((prev) => ({
         ...prev,
-        submittedLand: data?.data ?? data,
-        desiredArea,
+        submittedLand,
+        desiredArea: formatAreaInput(desiredAreaValue),
         price: selected === "hope" ? "가격 미정" : values[selected],
         transactionType: selected,
       }));
@@ -303,9 +350,10 @@ function LandRegisterCondition() {
             <ConditionField>
               <ConditionFieldValue
                 inputMode="numeric"
-                value={desiredArea}
+                value={displayedDesiredArea}
                 onChange={handleDesiredAreaChange}
-                placeholder="예: 1000"
+                placeholder="예: 1,000"
+                max={landAreaNumber > 0 ? landAreaNumber : undefined}
                 aria-label="희망 면적"
               />
             </ConditionField>

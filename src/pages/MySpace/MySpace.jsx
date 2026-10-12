@@ -1,11 +1,15 @@
 import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
+import { validateLandAddress } from "@/utils/validateLandAddress";
+import AreaValue from "@/components/ui/AreaValue";
+import { ListPageDivider } from "@/styles/listPage";
+import { formatLandDate, landTimestamp, compareNullableNumbers } from "@/utils/landList";
 import {
   SpaceActionButton,
   SpaceActionColumn,
@@ -60,6 +64,7 @@ const normalizeBaseUrl = (value) => {
 };
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+const LOCAL_REGISTERED_AT_KEY = "helios-land-registered-at";
 
 const resolveImageUrl = (path) => {
   if (!path) return "";
@@ -123,25 +128,60 @@ const formatArea = (value) => {
   return Number.isInteger(value) ? value.toLocaleString("ko-KR") : String(value);
 };
 
-const formatDate = (value) => {
-  // 등록일이 없으면 오늘 날짜로 대체하지 않고 빈 상태를 표시합니다.
-  if (!value) return "-";
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return date.toISOString().slice(0, 10).replaceAll("-", ".");
+const formatDesiredArea = (value) => {
+  // 희망 면적은 ㎡와 평을 함께 표시해 등록 조건을 바로 확인합니다.
+  if (value === null || value === undefined || value === "") return "-";
+  const area = Number(String(value).replace(/[^\d.]/g, ""));
+  if (!Number.isFinite(area) || area <= 0) return "-";
+  const formattedArea = area.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  const pyeong = Math.round(area / 3.3058).toLocaleString("ko-KR");
+  return `${formattedArea}㎡ (약 ${pyeong}평)`;
 };
 
-const getCreatedDate = (land) =>
-  land.createdAt ||
-  land.createdDate ||
-  land.registeredAt ||
-  land.registerDate ||
-  land.created_at ||
-  null;
+const getCreatedDate = (land) => {
+  // 서버의 날짜 표기 방식이 달라도 등록일을 우선적으로 찾습니다.
+  const candidates = [
+    land.createdAt,
+    land.createdDate,
+    land.registeredAt,
+    land.registerDate,
+    land.registrationDate,
+    land.registeredDate,
+    land.regDate,
+    land.registDate,
+    land.createDate,
+    land.createdOn,
+    land.created_at,
+    land.registered_at,
+    land.registration_date,
+    land.reg_date,
+    land.registDt,
+    land.regDt,
+    land.reg_dt,
+    land.data?.createdAt,
+    land.data?.createdDate,
+    land.data?.registrationDate,
+  ];
+
+  const directDate = candidates.find((value) => value !== null && value !== undefined && value !== "");
+  if (directDate) return directDate;
+
+  // 백엔드 등록일 필드가 생기기 전까지 신규 등록분의 시각을 임시 보완합니다.
+  try {
+    const storedDates = JSON.parse(localStorage.getItem(LOCAL_REGISTERED_AT_KEY) || "{}");
+    const landKey = land.landId ?? land.id ?? land.address;
+    if (landKey && storedDates[landKey]) return storedDates[landKey];
+  } catch {
+    // 저장된 임시 날짜를 읽지 못해도 목록 표시를 계속합니다.
+  }
+
+  // DTO가 등록일을 별도 이름으로 내려주는 경우를 대비합니다.
+  const dateEntry = Object.entries(land).find(([key, value]) => {
+    return value && /^(created|registered|registration|regist|register)/i.test(key) && !/updated/i.test(key);
+  });
+
+  return dateEntry?.[1] || null;
+};
 
 const extractArray = (payload) => {
   // 서버 응답 구조가 바뀌어도 목록 배열만 안전하게 꺼냅니다.
@@ -158,16 +198,36 @@ const extractArray = (payload) => {
   return candidates.find(Array.isArray) || [];
 };
 
+const extractObject = (payload) => {
+  // 상세 응답의 data 래퍼를 벗겨 실제 토지 객체를 가져옵니다.
+  if (!payload || typeof payload !== "object") return null;
+  return payload.data?.data || payload.data || payload.result || payload;
+};
+
 const getTransactionLabel = (value) => {
   const normalized = String(value || "").toUpperCase();
-  if (normalized.includes("LEASE") || normalized.includes("RENT")) return "임대";
-  if (normalized.includes("HOPE")) return "사업 희망";
+  if (normalized.includes("LEASE") || normalized.includes("RENT") || normalized.includes("임대")) return "임대";
+  if (normalized.includes("HOPE") || normalized.includes("사업")) return "사업 희망";
   return "매매";
+};
+
+const getTransactionValue = (land) => {
+  // 상태(PENDING 등)는 거래 방식으로 사용하지 않고 유형 필드만 읽습니다.
+  return (
+    land.transactionType ||
+    land.dealType ||
+    land.tradeType ||
+    land.salesType ||
+    land.transactionMethod ||
+    land.landTransactionType ||
+    "SALE"
+  );
 };
 
 const getEditTransactionType = (value, fallbackLabel) => {
   // 서버 거래 방식 값을 수정 폼에서 쓰는 값으로 정규화합니다.
   const normalized = String(value || fallbackLabel || "").toUpperCase();
+  if (normalized.includes("HOPE") || normalized.includes("사업")) return "BUSINESS_HOPE";
   if (normalized.includes("LEASE") || normalized.includes("RENT") || fallbackLabel === "임대") return "LEASE";
   return "SALE";
 };
@@ -180,15 +240,17 @@ const getEditFormFromLand = (land) => {
     address: raw.address || land.title || "",
     desiredPrice: toManwonInput(raw.desiredPrice ?? raw.amount ?? raw.price),
     description: raw.description || raw.memo || raw.content || "",
-    transactionType: getEditTransactionType(raw.transactionType || raw.status, land.tradeType),
+    transactionType: getEditTransactionType(getTransactionValue(raw), land.tradeType),
   };
 };
 
 const normalizeLand = (land, index) => {
   // 서버 응답을 카드에서 쓰기 좋은 형태로 정리합니다.
-  const transactionType = land.transactionType || land.status || "SALE";
+  const transactionType = getTransactionValue(land);
   const landImage = getFirstImagePath(land);
   const rawPrice = land.desiredPrice ?? land.amount ?? land.price ?? null;
+  const rawDesiredArea = land.desiredArea ?? land.hopeArea ?? land.requestedArea;
+  const isBusinessHope = !rawPrice && rawDesiredArea;
   const accentPool = [
     ["#cfe9a5", "#7fb96c"],
     ["#b9e0ff", "#79aedd"],
@@ -202,9 +264,13 @@ const normalizeLand = (land, index) => {
     type: land.lcCodeNm || land.regstrSeCodeNm || "전",
     region: land.useZone || land.lndpclAr || land.region || "지역 정보 없음",
     area: land.area ? `${formatArea(land.area)}㎡` : "-",
-    date: formatDate(getCreatedDate(land)),
-    tradeType: getTransactionLabel(transactionType),
+    date: formatLandDate(getCreatedDate(land)),
+    registeredAt: landTimestamp(getCreatedDate(land)),
+    rawPrice,
+    // 사업 희망은 가격 없이 희망 면적만 등록된 경우에도 구분합니다.
+    tradeType: isBusinessHope ? "사업 희망" : getTransactionLabel(transactionType),
     price: rawPrice ? formatPrice(rawPrice) : "-",
+    desiredArea: formatDesiredArea(rawDesiredArea),
     accent: accentPool[index % accentPool.length],
     imageUrl: resolveImageUrl(landImage),
     raw: land,
@@ -213,7 +279,9 @@ const normalizeLand = (land, index) => {
 
 function MySpace() {
   const navigate = useNavigate();
-  const [keyword, setKeyword] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchKeyword = (searchParams.get("keyword") || "").trim().toLowerCase();
+  const [keyword, setKeyword] = useState(() => searchParams.get("keyword") || "");
   const [activeSort, setActiveSort] = useState("최근 등록순");
   const [lands, setLands] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -265,7 +333,35 @@ function MySpace() {
       }
 
       const list = extractArray(data);
-      setLands(list.map(normalizeLand));
+      const enrichedList = await Promise.all(
+        list.map(async (land) => {
+          // 목록 응답에 없는 등록일·희망 면적을 상세 API에서 보완합니다.
+          const hasDesiredArea =
+            land.desiredArea !== null && land.desiredArea !== undefined && land.desiredArea !== "";
+          if (getCreatedDate(land) && hasDesiredArea) return land;
+
+          const landId = land.landId ?? land.id;
+          if (!landId) return land;
+
+          try {
+            const detailResponse = await authFetch(Api.Land(landId), {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+            if (!detailResponse.ok) return land;
+
+            const detailContentType = detailResponse.headers.get("content-type") || "";
+            const detailData = detailContentType.includes("application/json")
+              ? await detailResponse.json()
+              : null;
+            return { ...land, ...extractObject(detailData) };
+          } catch {
+            return land;
+          }
+        }),
+      );
+
+      setLands(enrichedList.map(normalizeLand));
     } catch (err) {
       setError(err.message || "내 토지 목록을 불러오지 못했습니다.");
       setLands([]);
@@ -282,26 +378,27 @@ function MySpace() {
 
   const sortedLands = useMemo(() => {
     // 상태 필터 제거 후 전체 토지를 기준으로 정렬합니다.
-    const next = [...lands];
+    // URL 검색어를 실제 주소 목록에 적용한 뒤 정렬합니다.
+    const next = lands.filter((land) => !searchKeyword || String(land.title || "").toLowerCase().includes(searchKeyword));
 
     if (activeSort === "최근 등록순") {
-      return next.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      return next.sort((a, b) => compareNullableNumbers(a.registeredAt, b.registeredAt, true));
     }
 
     if (activeSort === "오래된 등록순") {
-      return next.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      return next.sort((a, b) => compareNullableNumbers(a.registeredAt, b.registeredAt));
     }
 
     if (activeSort === "가격 높은 순") {
-      return next.sort((a, b) => (Number(String(b.price).replace(/[^\d]/g, "")) || 0) - (Number(String(a.price).replace(/[^\d]/g, "")) || 0));
+      return next.sort((a, b) => compareNullableNumbers(a.rawPrice, b.rawPrice, true));
     }
 
     if (activeSort === "가격 낮은 순") {
-      return next.sort((a, b) => (Number(String(a.price).replace(/[^\d]/g, "")) || 0) - (Number(String(b.price).replace(/[^\d]/g, "")) || 0));
+      return next.sort((a, b) => compareNullableNumbers(a.rawPrice, b.rawPrice));
     }
 
     return next;
-  }, [activeSort, lands]);
+  }, [activeSort, lands, searchKeyword]);
 
   const totalCount = useMemo(() => lands.length, [lands]);
 
@@ -379,9 +476,15 @@ function MySpace() {
 
     try {
       // 내 토지 수정 요청을 서버에 보냅니다.
+      if (!(await validateLandAddress(editForm.address))) {
+        setEditError("시·군·구가 아닌 상세 지번 또는 도로명 주소를 검색 가능한 상태에서 입력해주세요.");
+        return;
+      }
       const payload = {
         address: editForm.address.trim(),
-        desiredPrice: editForm.desiredPrice
+        desiredPrice: editForm.transactionType === "BUSINESS_HOPE"
+          ? null
+          : editForm.desiredPrice
           ? toWonPrice(editForm.desiredPrice)
           : editingLand.raw?.desiredPrice ?? editingLand.raw?.amount ?? editingLand.raw?.price ?? null,
         description: editForm.description.trim(),
@@ -502,7 +605,7 @@ function MySpace() {
           onToggleSidebar={() => {}}
           keyword={keyword}
           onChangeKeyword={setKeyword}
-          onSearch={() => navigate(`/land?keyword=${encodeURIComponent(keyword)}`)}
+          onSearch={() => setSearchParams(keyword.trim() ? { keyword: keyword.trim() } : {})}
           isSuggestionOpen={false}
           regionSuggestions={[]}
         />
@@ -518,6 +621,7 @@ function MySpace() {
                 <SpaceTopNote>내가 등록한 토지 목록과 현황을 확인할 수 있습니다.</SpaceTopNote>
               </div>
 
+              {/* 등록 현황과 등록 버튼은 분리선 위에 함께 표시합니다. */}
               <SpaceTopRow>
                 <SpaceStatText>
                   총 <strong>{totalCount}</strong>건의 토지를 등록하셨습니다.
@@ -529,11 +633,12 @@ function MySpace() {
                 </SpaceTopAction>
               </SpaceTopRow>
             </SpaceHeader>
+            <ListPageDivider />
 
             <SpaceToolbar>
               <SpaceSortBar>
                 <SpaceStatText>
-                  <strong>총 {totalCount}건</strong>
+                  <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
                 </SpaceStatText>
                 {/* 정렬 선택 */}
                 <SpaceFilterButton
@@ -564,6 +669,10 @@ function MySpace() {
             ) : null}
 
             <SpaceContainer>
+              {/* 검색 결과가 없을 때 빈 목록만 보이지 않도록 안내합니다. */}
+              {!isLoading && !error && sortedLands.length === 0 ? (
+                <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
+              ) : null}
               {sortedLands.map((item) => (
                 <SpaceCard key={item.id}>
                   <SpaceCardRow>
@@ -592,9 +701,15 @@ function MySpace() {
                             <Shapes size={14} strokeWidth={2.2} />
                             면적
                           </SpaceCardMetaLabel>
-                          <SpaceCardMetaValue>{item.area}</SpaceCardMetaValue>
+                          <SpaceCardMetaValue><AreaValue value={item.raw.area} /></SpaceCardMetaValue>
                         </SpaceCardMetaItem>
-
+                        <SpaceCardMetaItem>
+                          <SpaceCardMetaLabel>
+                            <Shapes size={14} strokeWidth={2.2} />
+                            희망 면적
+                          </SpaceCardMetaLabel>
+                          <SpaceCardMetaValue><AreaValue value={item.raw.desiredArea ?? item.raw.hopeArea ?? item.raw.requestedArea} /></SpaceCardMetaValue>
+                        </SpaceCardMetaItem>
                         <SpaceCardMetaItem>
                           <SpaceCardMetaLabel>
                             <CalendarDays size={14} strokeWidth={2.2} />
@@ -610,7 +725,7 @@ function MySpace() {
                           <SpaceCardMetaValue>{item.tradeType}</SpaceCardMetaValue>
                         </div>
                         <div>
-        <SpaceCardMetaLabel>희망 가격</SpaceCardMetaLabel>
+                          <SpaceCardMetaLabel>희망 가격</SpaceCardMetaLabel>
                           <SpaceCardMetaValue $highlight>{item.price}</SpaceCardMetaValue>
                         </div>
                       </SpaceInfoRow>
@@ -692,6 +807,7 @@ function MySpace() {
               >
                 <option value="SALE">매매</option>
                 <option value="LEASE">임대</option>
+                <option value="BUSINESS_HOPE">사업 희망</option>
               </SpaceModalSelect>
             </SpaceModalField>
 

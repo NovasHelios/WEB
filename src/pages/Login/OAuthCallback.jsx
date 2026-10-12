@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { markLoginNotice, setAccessToken, setStoredUserDisplayName } from "@/lib/auth";
+import {
+  markLoginNotice,
+  markProfileImagePromptPending,
+  setAccessToken,
+  setStoredUserDisplayName,
+} from "@/lib/auth";
 
 const getEmailFromToken = (token) => {
   // OAuth 직후 프로필 API 응답 전에도 계정 표시가 흔들리지 않게 JWT subject를 사용합니다.
@@ -32,6 +37,7 @@ function OAuthCallback() {
     setAccessToken(token);
     setStoredUserDisplayName(getEmailFromToken(token));
     markLoginNotice();
+    markProfileImagePromptPending();
     navigate("/", { replace: true });
   }, [navigate, searchParams]);
 

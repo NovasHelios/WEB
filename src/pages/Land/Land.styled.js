@@ -10,7 +10,7 @@ export const LandPage = styled.div`
 
 export const LandInner = styled.div`
   width: 100%;
-  padding: 28px 28px 36px 28px;
+  padding: 28px var(--page-inline-padding) 36px;
   box-sizing: border-box;
 
   @media (max-width: 1100px) {

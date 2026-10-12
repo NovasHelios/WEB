@@ -11,6 +11,11 @@ import {
   NavBarArea,
   FilterArea,
   DetailPanelArea,
+  MapAlertOverlay,
+  MapAlertDialog,
+  MapAlertTitle,
+  MapAlertMessage,
+  MapAlertButton,
 } from "./Map.styled";
 
 import markupImage from "@/images/markup.png";
@@ -125,6 +130,9 @@ function Map() {
 
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
+
+  // 지도 화면에서 사용할 서비스 스타일 안내창 상태입니다.
+  const [alertMessage, setAlertMessage] = useState("");
 
   // 주소 검색 결과 패널의 표시 상태와 조회 결과를 관리합니다.
   const [searchPreviewState, setSearchPreviewState] = useState({
@@ -759,7 +767,7 @@ function Map() {
 
     // 검색 결과가 없으면 안내 후 종료합니다.
     if (!point) {
-      alert("검색 결과가 없습니다.");
+      setAlertMessage("검색 결과가 없습니다.");
       return;
     }
 
@@ -768,7 +776,7 @@ function Map() {
 
     // 지도가 아직 준비되지 않았으면 안내 후 종료합니다.
     if (!map) {
-      alert("지도가 아직 준비되지 않았습니다.");
+      setAlertMessage("지도가 아직 준비되지 않았습니다.");
       return;
     }
 
@@ -808,6 +816,22 @@ function Map() {
       searchRegion,
       filters: appliedFiltersRef.current,
     });
+  };
+
+  const handleClearSearch = () => {
+    // 검색어와 검색 결과 패널을 함께 초기화합니다.
+    searchRequestIdRef.current += 1;
+    landDetailRequestIdRef.current += 1;
+    setKeyword("");
+    setSelectedLand(null);
+    setSearchPreviewState((prev) => ({
+      ...prev,
+      isOpen: false,
+      keyword: "",
+      lands: [],
+      isLoading: false,
+      error: "",
+    }));
   };
 
   // 추천 지역 클릭 시 해당 지역명으로 검색 실행
@@ -859,6 +883,8 @@ function Map() {
           selectedLandId={selectedLand?.id ?? selectedLand?.landId}
           // 카드 클릭 시 해당 토지 위치로 이동하고 상세보기를 엽니다.
           onSelectLand={handleSelectSearchLand}
+          // X 버튼으로 검색어와 결과를 초기화합니다.
+          onClear={handleClearSearch}
         />
       )}
 
@@ -883,6 +909,23 @@ function Map() {
           land={selectedLand}
         />
       </DetailPanelArea>
+
+      {alertMessage ? (
+        <MapAlertOverlay
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAlertMessage("");
+          }}
+        >
+          <MapAlertDialog role="alertdialog" aria-modal="true" aria-labelledby="map-alert-title">
+            <MapAlertTitle id="map-alert-title">알림</MapAlertTitle>
+            <MapAlertMessage>{alertMessage}</MapAlertMessage>
+            <MapAlertButton type="button" onClick={() => setAlertMessage("")} autoFocus>
+              확인
+            </MapAlertButton>
+          </MapAlertDialog>
+        </MapAlertOverlay>
+      ) : null}
 
       {/* AI 채팅은 미리보기보다 뒤, 지도보다 앞에 표시합니다. */}
       <AiChat />

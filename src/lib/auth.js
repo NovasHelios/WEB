@@ -1,6 +1,10 @@
 const ACCESS_TOKEN_KEY = "accessToken";
+export const AUTH_CHANGED_EVENT = "helios:auth-changed";
 const LOGIN_NOTICE_KEY = "loginNotice";
+export const LOGIN_NOTICE_EVENT = "helios:login-notice";
+export const hasLoginNotice = () => localStorage.getItem(LOGIN_NOTICE_KEY) === "true";
 const USER_DISPLAY_NAME_KEY = "userDisplayName";
+const PROFILE_IMAGE_PROMPT_KEY = "profileImagePromptPending";
 export const USER_DISPLAY_NAME_CHANGED_EVENT = "helios:user-display-name-changed";
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -12,6 +16,7 @@ const normalizeAccessToken = (token) => {
 
 export const setAccessToken = (token) => {
   localStorage.setItem(ACCESS_TOKEN_KEY, normalizeAccessToken(token));
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 };
 
 export const getStoredUserDisplayName = () => localStorage.getItem(USER_DISPLAY_NAME_KEY) || "";
@@ -27,6 +32,21 @@ export const setStoredUserDisplayName = (name) => {
 export const markLoginNotice = () => {
   // 로그인 성공 안내를 한 번만 띄우기 위해 표시 예약값을 저장합니다.
   localStorage.setItem(LOGIN_NOTICE_KEY, "true");
+  window.dispatchEvent(new Event(LOGIN_NOTICE_EVENT));
+};
+
+export const markProfileImagePromptPending = () => {
+  // 로그인 직후 프로필 이미지 설정 안내를 준비합니다.
+  localStorage.setItem(PROFILE_IMAGE_PROMPT_KEY, "true");
+};
+
+export const isProfileImagePromptPending = () => (
+  localStorage.getItem(PROFILE_IMAGE_PROMPT_KEY) === "true"
+);
+
+export const clearProfileImagePromptPending = () => {
+  // 이미지 저장 또는 나중에 선택 후 안내를 종료합니다.
+  localStorage.removeItem(PROFILE_IMAGE_PROMPT_KEY);
 };
 
 export const consumeLoginNotice = () => {
@@ -40,6 +60,8 @@ export const clearAccessToken = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(LOGIN_NOTICE_KEY);
   localStorage.removeItem(USER_DISPLAY_NAME_KEY);
+  clearProfileImagePromptPending();
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 };
 
 const decodeJwtPayload = (token) => {
@@ -86,12 +108,14 @@ export const buildAuthHeaders = (headers = {}) => {
 };
 
 export const authFetch = async (input, init = {}) => {
+  // 이전 계정의 지연된 401 응답이 새 로그인까지 지우지 않게 합니다.
+  const requestToken = getValidAccessToken();
   const response = await fetch(input, {
     ...init,
     headers: buildAuthHeaders(init.headers),
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && requestToken === getAccessToken()) {
     clearAccessToken();
   }
 

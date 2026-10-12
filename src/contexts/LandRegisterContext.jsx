@@ -13,6 +13,7 @@ const defaultRegisterData = {
   longitude: "",
   pnu: "",
   area: "",
+  officialLandPrice: "",
   desiredArea: "",
   landCategory: "",
   altitude: "",

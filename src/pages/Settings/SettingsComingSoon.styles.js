@@ -13,7 +13,7 @@ export const SettingsShell = styled.main`
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 72px);
-  padding: 48px 24px 96px;
+  padding: 48px var(--page-inline-padding) 96px;
 `;
 
 // 설정 개발중 안내 카드입니다.
@@ -47,7 +47,7 @@ export const SettingsIconBox = styled.div`
 // 설정 개발중 제목입니다.
 export const SettingsTitle = styled.h1`
   margin: 0;
-  font-size: var(--font-3xl);
+  font-size: var(--font-page-title);
   font-weight: var(--font-bold);
   letter-spacing: -0.04em;
 
@@ -61,7 +61,7 @@ export const SettingsDescription = styled.p`
   margin: 16px auto 0;
   max-width: 500px;
   color: #6f6658;
-  font-size: var(--font-md);
+  font-size: var(--font-page-description);
   line-height: 1.7;
 `;
 

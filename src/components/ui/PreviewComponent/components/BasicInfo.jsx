@@ -24,6 +24,7 @@ import {
   TransactionBadge,
   UnsupportedValue,
 } from "../Preview.styeld";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 
 // 아직 서버에서 전달받지 못한 정보에 표시할 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -152,6 +153,11 @@ function BasicInfo({
         <BasicInfoRow>
           <InfoLabel>총 면적</InfoLabel>
           <InfoValue>{formattedArea}</InfoValue>
+        </BasicInfoRow>
+
+        <BasicInfoRow>
+          <InfoLabel>공시지가</InfoLabel>
+          <InfoValue>{formatOfficialLandPrice(land?.officialLandPrice || land?.publicLandPrice || land?.pblntfPclnd)}</InfoValue>
         </BasicInfoRow>
 
         <BasicInfoRow>

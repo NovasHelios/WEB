@@ -167,7 +167,7 @@ export const DetailTopShell = styled.section`
   width: 100%;
   max-width: 1500px;
   margin: 0 auto;
-  padding: 42px 48px 28px;
+  padding: 42px var(--page-inline-padding) 28px;
   box-sizing: border-box;
 
   @media (max-width: 1180px) {

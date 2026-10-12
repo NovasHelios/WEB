@@ -1,36 +1,18 @@
 import styled from "styled-components";
+import { listPageShell, listPageTitle, listPageDescription } from "@/styles/listPage";
 
 export const SpaceWrapper = styled.div`
   /* 전역 80% 배율에서도 화면 가로를 가득 채우도록 보정합니다. */
-  width: 125vw;
+  width: 100%;
   /* 전역 80% 배율에서도 페이지 배경이 실제 화면 하단까지 이어지게 합니다. */
-  min-height: 125vh;
+  min-height: var(--app-viewport-height);
   background: var(--color-page-bg);
   overflow: hidden;
 `;
 
 export const SpaceMain = styled.main`
-  /* 125vh에서 네비게이션 높이를 제외해 본문이 잘리지 않게 합니다. */
-  height: calc(125vh - 72px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-gutter: stable;
-  scrollbar-color: #d2d2d2 transparent;
-
-  &::-webkit-scrollbar {
-    width: 28px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background: #d2d2d2;
-    background-clip: padding-box;
-  }
+  /* 다른 목록 화면과 같은 문서 스크롤을 사용해 별도 우측 여백을 없앱니다. */
+  min-height: calc(var(--app-viewport-height) - var(--navbar-height));
 `;
 
 export const SpacePage = styled.div`
@@ -39,13 +21,7 @@ export const SpacePage = styled.div`
 `;
 
 export const SpaceInner = styled.div`
-  width: 100%;
-  padding: 16px;
-  box-sizing: border-box;
-
-  @media (max-width: 760px) {
-    padding: 16px;
-  }
+  ${listPageShell}
 `;
 
 export const SpaceHeader = styled.div`
@@ -56,18 +32,11 @@ export const SpaceHeader = styled.div`
 `;
 
 export const SpaceTitle = styled.h1`
-  margin: 0;
-  font-size: var(--font-2xl);
-  font-weight: var(--font-bold);
-  letter-spacing: -0.05em;
-  color: #1f1c17;
+  ${listPageTitle}
 `;
 
 export const SpaceTopNote = styled.p`
-  margin: 10px 0 0;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: #6f6658;
+  ${listPageDescription}
 `;
 
 export const SpaceTopRow = styled.div`
@@ -111,7 +80,8 @@ export const SpaceToolbar = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  margin-bottom: 16px;
+  /* 분리선과 정렬 도구 사이에 여백을 확보합니다. */
+  margin: 1.5rem 0 1rem;
   flex-wrap: wrap;
 `;
 
@@ -238,8 +208,11 @@ export const SpaceBadge = styled.span`
 
 export const SpaceCardMeta = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  /* 값 길이에 맞춰 칸 전체가 줄바꿈되도록 왼쪽에 묶습니다. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+  gap: 12px 24px;
   padding-top: 12px;
   border-top: 1px solid #efe4cf;
 
@@ -249,6 +222,8 @@ export const SpaceCardMeta = styled.div`
 `;
 
 export const SpaceCardMetaItem = styled.div`
+  min-width: min(100%, 13rem);
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -267,13 +242,25 @@ export const SpaceCardMetaValue = styled.div`
   font-size: ${(props) => (props.$highlight ? "var(--font-lg)" : "var(--font-md)")};
   font-weight: var(--font-bold);
   color: ${(props) => (props.$highlight ? "#9a7400" : "#2a251c")};
+  overflow-wrap: anywhere;
 `;
 
 export const SpaceInfoRow = styled.div`
+  /* 거래 정보는 같은 폭의 왼쪽 정렬 칸으로 배치합니다. */
   display: flex;
-  gap: 16px;
   flex-wrap: wrap;
+  gap: 16px 24px;
   padding-top: 8px;
+
+  > div {
+    min-width: min(100%, 13rem);
+    max-width: 100%;
+    text-align: left;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+  }
 `;
 
 export const SpaceCardFooter = styled.div`

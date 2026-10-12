@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // 상세보기 팝업에서 사용할 아이콘입니다.
 import {
   Bot,
@@ -55,8 +55,8 @@ import {
   formatRegisteredDate,
   formatTransactionType,
 } from "./specificFormatters";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 // 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
-import AiChat from "@/components/ui/AiChat/AiChat";
 
 // 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -72,21 +72,16 @@ const solarAnalysisItems = [
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
+  // 토지가 바뀌면 이미지 선택·실패 상태를 함께 새로 만듭니다.
+  return land ? <SpecificContent key={land.id ?? land.landId ?? land.address} land={land} onClose={onClose} /> : null;
+}
+
+function SpecificContent({ land, onClose }) {
   // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
   const [isHeroImageFailed, setIsHeroImageFailed] = useState(false);
   // 현재 대표 이미지로 보여줄 이미지 번호입니다.
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // 다른 토지 상세를 열면 이미지 실패 상태를 초기화합니다.
-  useEffect(() => {
-    setIsHeroImageFailed(false);
-  }, [land?.id, land?.landId]);
-
-  // 다른 토지를 열면 첫 번째 이미지부터 보여줍니다.
-  useEffect(() => {
-    // 새 토지 상세보기로 바뀔 때 대표 이미지를 초기화합니다.
-    setSelectedImageIndex(0);
-  }, [land?.id]);
 
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
   if (!land) return null;
@@ -208,6 +203,10 @@ function Specific({ land, onClose }) {
               <InfoRow>
                 <span>면적</span>
                 <strong>{formatArea(land.area)}</strong>
+              </InfoRow>
+              <InfoRow>
+                <span>공시지가</span>
+                <strong>{formatOfficialLandPrice(land.officialLandPrice || land.publicLandPrice || land.pblntfPclnd)}</strong>
               </InfoRow>
               <InfoRow>
                 <span>지목</span>

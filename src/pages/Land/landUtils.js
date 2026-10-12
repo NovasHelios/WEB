@@ -91,6 +91,7 @@ export const normalizeWish = (wish, index) => ({
   address: wish.address ?? "-",
   desiredPrice: wish.desiredPrice ?? null,
   area: wish.area ?? null,
+  desiredArea: wish.desiredArea ?? wish.hopeArea ?? wish.requestedArea ?? null,
   status: wish.status ?? "-",
   transactionType: wish.transactionType ?? null,
   description: wish.description ?? "-",
@@ -109,5 +110,6 @@ export const getTransactionLabel = (value) => {
   const upper = String(value).toUpperCase();
   if (upper === "SALE") return "매매";
   if (upper === "LEASE" || upper === "RENT") return "임대";
+  if (upper === "BUSINESS_HOPE") return "사업 희망";
   return String(value);
 };
