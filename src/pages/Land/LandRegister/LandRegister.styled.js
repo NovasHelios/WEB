@@ -279,13 +279,18 @@ export const LandRegisterAddressInput = styled.input`
   &:focus {
     border-bottom-color: #d6a81b;
   }
+
+  /* 오류 안내와 입력창 강조 색상을 함께 맞춥니다. */
+  &[aria-invalid="true"] {
+    border-bottom-color: #b42318;
+  }
 `;
 
 export const LandRegisterAddressHelper = styled.p`
   margin: -4px 0 0;
   font-size: var(--font-sm);
   line-height: 1.5;
-  color: #8d7852;
+  color: ${({ $error }) => ($error ? "#b42318" : "#8d7852")};
 `;
 
 export const LandRegisterStepBadge = styled.span`

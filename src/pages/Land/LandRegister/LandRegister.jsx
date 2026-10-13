@@ -3,7 +3,7 @@ import {
   Search,
   MapPinned,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
@@ -44,25 +44,14 @@ function LandRegister() {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const { registerData, setRegisterData } = useLandRegister();
-  const [searchResult, setSearchResult] = useState("");
   const [isAddressChecking, setIsAddressChecking] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
+  // 주소 안내는 입력창 아래 한 위치에서 표시하며 오류만 빨간색으로 구분합니다.
+  const [hasAddressError, setHasAddressError] = useState(false);
   const addressValidationIdRef = useRef(0);
   // 화면 이탈 후 늦게 도착한 주소 조회가 새 등록 데이터를 덮어쓰지 않게 합니다.
   useEffect(() => () => { addressValidationIdRef.current += 1; }, []);
   const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
-
-  const previewMessage = useMemo(() => {
-    // 검색 결과가 있으면 미리보기 문구로 사용
-    if (addressMessage) {
-      return addressMessage;
-    }
-
-    if (searchResult) {
-      return searchResult;
-    }
-    return "주소를 검색하면 지도에 위치가 표시됩니다.";
-  }, [addressMessage, searchResult]);
 
   useEffect(() => {
     // 검증된 주소 좌표가 있으면 Kakao 지도를 생성하고 위치를 표시합니다.
@@ -120,11 +109,13 @@ function LandRegister() {
     const trimmed = registerData.address.trim();
 
     if (!trimmed) {
+      setHasAddressError(true);
       setAddressMessage("주소를 입력한 뒤 검색해 주세요.");
       return;
     }
 
     setIsAddressChecking(true);
+    setHasAddressError(false);
     setAddressMessage("주소를 확인하는 중입니다.");
     const validationId = addressValidationIdRef.current + 1;
     addressValidationIdRef.current = validationId;
@@ -134,7 +125,7 @@ function LandRegister() {
         if (validationId !== addressValidationIdRef.current) return;
 
         if (!result || !result.isDetailedAddress) {
-          setSearchResult("");
+          setHasAddressError(true);
           setAddressMessage("시·군·구가 아닌 상세 지번 또는 도로명 주소를 입력해 주세요.");
           setRegisterData((prev) => ({
             ...prev,
@@ -158,7 +149,7 @@ function LandRegister() {
 
         if (validationId !== addressValidationIdRef.current) return;
 
-        setSearchResult(`입력된 주소: ${trimmed}`);
+        setHasAddressError(false);
         setAddressMessage("유효한 주소로 확인되었습니다.");
         setRegisterData((prev) => ({
           ...prev,
@@ -178,6 +169,13 @@ function LandRegister() {
           shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
         }));
       })
+      .catch(() => {
+        // 지난 검색의 오류가 새 입력 안내를 덮어쓰지 않게 합니다.
+        if (validationId !== addressValidationIdRef.current) return;
+        setHasAddressError(true);
+        setAddressMessage("주소를 확인하지 못했습니다. 잠시 후 다시 검색해주세요.");
+        setRegisterData((prev) => ({ ...prev, isAddressValid: false }));
+      })
       .finally(() => {
         if (validationId === addressValidationIdRef.current) {
           setIsAddressChecking(false);
@@ -189,7 +187,7 @@ function LandRegister() {
     // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
     addressValidationIdRef.current += 1;
     setIsAddressChecking(false);
-    setSearchResult("");
+    setHasAddressError(false);
     setAddressMessage("");
     setRegisterData((prev) => ({
       ...prev,
@@ -241,6 +239,9 @@ function LandRegister() {
               <LandRegisterAddressFieldWrap onSubmit={handleSearch}>
                 <LandRegisterAddressField>
                   <LandRegisterAddressInput
+                    aria-label="등록할 토지 주소"
+                    aria-describedby="land-address-helper"
+                    aria-invalid={hasAddressError}
                     value={registerData.address}
                     onChange={handleAddressChange}
                     placeholder="주소를 입력해주세요. (예: 경기도 안성시 일죽면 산북리 123)"
@@ -253,8 +254,8 @@ function LandRegister() {
                 </LandRegisterPrimaryButton>
               </LandRegisterAddressFieldWrap>
 
-              <LandRegisterAddressHelper>
-                도로명, 지번, 건물명 등 다양한 방법으로 검색 가능합니다.
+              <LandRegisterAddressHelper id="land-address-helper" $error={hasAddressError} aria-live="polite" aria-atomic="true">
+                {addressMessage || "상세 지번 또는 건물번호가 포함된 도로명 주소를 입력해주세요. 시·군·구만으로는 등록할 수 없습니다."}
               </LandRegisterAddressHelper>
 
               <LandRegisterPanelSubtext>
@@ -269,7 +270,7 @@ function LandRegister() {
                       <MapPinned size={34} strokeWidth={1.7} />
                     </LandRegisterVisualMapIcon>
                     <LandRegisterVisualEmpty>
-                      {previewMessage}
+                      주소를 검색하면 지도에 위치가 표시됩니다.
                     </LandRegisterVisualEmpty>
                   </>
                 ) : null}
