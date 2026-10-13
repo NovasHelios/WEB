@@ -49,7 +49,8 @@ export const BusinessGrid = styled.section`
 export const BusinessCardContainer = styled.article`
   display: flex;
   width: min(100%, 350px);
-  height: 510px;
+  min-height: 510px;
+  overflow-wrap: anywhere;
   min-width: 0;
   box-sizing: border-box;
   flex-direction: column;
@@ -63,9 +64,9 @@ export const BusinessCardContainer = styled.article`
 
 // 원형 프로필 이미지가 들어가는 고정 크기 영역입니다.
 export const BusinessProfileWrap = styled.div`
-  width: 250px;
-  height: 250px;
-  flex: 0 0 250px;
+  width: min(100%, 250px);
+  aspect-ratio: 1;
+  flex-shrink: 0;
   overflow: hidden;
   border-radius: 50%;
   background: #6f706f;
@@ -121,6 +122,21 @@ export const BusinessSpecialty = styled.p`
   font-size: 18px;
   font-weight: var(--font-bold);
   line-height: 1.45;
+`;
+
+// 긴 실제 정보가 있어도 카드 밖으로 밀리지 않는 상세 조회 버튼입니다.
+export const BusinessDetailButton = styled.button`
+  margin-top: 1rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--color-brand-dark);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-brand-dark);
+  font: inherit;
+  cursor: pointer;
+  &:hover { background: #fff7df; }
+  &:disabled { opacity: 0.6; cursor: wait; }
+  &:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 3px; }
 `;
 
 // 사업자의 현재 상담 가능 상태입니다.

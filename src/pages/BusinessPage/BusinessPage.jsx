@@ -5,6 +5,7 @@ import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
+import BusinessCard from "./component/BusinessCard";
 import { BusinessDescription, BusinessDivider, BusinessGrid, BusinessHeader,
   BusinessMain, BusinessPageRoot, BusinessTitle } from "./Business.styled";
 
@@ -78,13 +79,18 @@ function BusinessList({ token }) {
         {loading ? <p role="status">사업자 목록을 불러오는 중입니다.</p> : null}
         {error ? <p role="alert">{error}</p> : null}
         {token && !loading && !error && visibleProfiles.length === 0 ? <p>검색 조건에 맞는 사업자가 없습니다.</p> : null}
-        {visibleProfiles.map((profile) => <ProfileCard key={profile.id}>
-          <h2>{profile.companyName || "회사명 미등록"}</h2>
-          <p>{(profile.mainFields || []).join(" · ") || "전문 분야 미등록"}</p>
-          <p>{profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록"}</p>
-          <p>{profile.consultationAvailable ? "상담 가능" : "상담 불가"}</p>
-          <button type="button" disabled={detailId === profile.id} onClick={() => openDetail(profile.id)}>상세 보기</button>
-        </ProfileCard>)}
+        {/* 원래 카드 외형에 실제 API 데이터를 연결하며 사진이 없으면 기본 아이콘을 사용합니다. */}
+        {visibleProfiles.map((profile) => <BusinessCard key={profile.id}
+          business={{
+            company: profile.companyName,
+            department: profile.department,
+            specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
+            regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
+            isAvailable: profile.consultationAvailable,
+          }}
+          isLoading={detailId === profile.id}
+          onViewDetail={() => openDetail(profile.id)}
+        />)}
       </BusinessGrid>
       {detail ? <ProfileCard aria-label="사업자 상세 정보" style={{ marginTop: "2rem" }}>
         <h2>{detail.companyName}</h2>

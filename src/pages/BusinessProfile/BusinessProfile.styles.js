@@ -289,6 +289,8 @@ export const BusinessSettingCard = styled.div`
 
 export const BusinessSettingRow = styled.div`
   display: flex;
+  /* 좁은 화면에서는 시간 입력을 다음 줄로 내려 잘림을 방지합니다. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -306,6 +308,7 @@ export const BusinessSettingRow = styled.div`
 
   > div:last-child {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
@@ -418,7 +421,8 @@ export const BusinessCertificateStatus = styled.div`
     font-size: var(--font-sm);
   }
 
-  span {
+  /* 설명 문구 스타일이 span으로 만든 아이콘 박스에 적용되지 않게 합니다. */
+  > div > span {
     display: block;
     margin-top: 4px;
     color: #81786c;
@@ -428,6 +432,7 @@ export const BusinessCertificateStatus = styled.div`
 
 export const BusinessCertificateIcon = styled.span`
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 40px;
@@ -435,6 +440,12 @@ export const BusinessCertificateIcon = styled.span`
   border-radius: 10px;
   background: #efebe3;
   color: #896600;
+
+  /* 좁은 화면에서도 아이콘의 크기와 중앙 정렬을 유지합니다. */
+  svg {
+    display: block;
+    flex-shrink: 0;
+  }
 `;
 
 export const BusinessSmallButton = styled.button`
