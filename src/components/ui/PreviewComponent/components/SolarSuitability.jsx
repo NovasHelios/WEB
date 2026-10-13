@@ -9,13 +9,21 @@ import ReportAccessGate from "./ReportAccessGate";
 import {
   AnalysisCard,
   AnalysisCardTitle,
+  AnalysisBlurLayer,
   AnalysisContent,
   AnalysisError,
   AnalysisReportBox,
+  AnalysisReportItem,
+  AnalysisReportItemText,
+  AnalysisReportItemTitle,
+  AnalysisReportList,
   AnalysisReportSection,
   AnalysisReportText,
   AnalysisReportTitle,
   AnalysisRetryButton,
+  AnalysisLoadingOverlay,
+  AnalysisLoadingSpinner,
+  AnalysisLoadingText,
   AnalysisStatus,
   AnalysisStatusMessage,
   ScoreDivider,
@@ -40,6 +48,37 @@ const SCORE_ITEMS = [
   { key: "zoneScore", label: "용도지역·용도지구", maxScore: 15 },
 ];
 
+// 서버 보고서의 제목을 화면 디자인에 맞는 표기로 변환합니다.
+const REPORT_SECTION_LABELS = {
+  일사량: "일사량",
+  경사도: "경사도",
+  개발가능면적: "개발 가능 면적",
+  도로접근성: "도로 접근성",
+  토지이용규제: "토지이용 규제",
+  "용도지역·용도지구": "용도 지역·지구",
+};
+
+// 대괄호 제목이 포함된 분석 근거를 제목과 설명 목록으로 분리합니다.
+const parseAnalysisRationale = (rationale) => {
+  // 문자열이 아니거나 비어 있으면 파싱할 보고서가 없는 것으로 처리합니다.
+  if (typeof rationale !== "string" || !rationale.trim()) return [];
+
+  // 다음 대괄호 제목 전까지의 모든 문장을 현재 항목의 설명으로 찾습니다.
+  const sectionPattern = /\[([^\]]+)\]\s*([\s\S]*?)(?=\s*\[[^\]]+\]|$)/g;
+
+  // 서버가 전달한 항목 순서를 유지하면서 화면용 제목과 원문 설명을 만듭니다.
+  return Array.from(rationale.matchAll(sectionPattern), (match) => {
+    // 제목 비교 시 공백 차이로 항목을 놓치지 않도록 공백을 제거합니다.
+    const normalizedTitle = match[1].replace(/\s+/g, "").trim();
+
+    // 정의된 제목은 디자인 표기로 바꾸고 알 수 없는 제목은 원문을 사용합니다.
+    return {
+      title: REPORT_SECTION_LABELS[normalizedTitle] || match[1].trim(),
+      text: match[2].trim(),
+    };
+  }).filter((section) => section.text);
+};
+
 // 서버 점수를 숫자로 바꾸고 화면에서 허용하는 점수 범위 안으로 제한합니다.
 const normalizeScore = (value, maxScore) => {
   const numericValue = Number(value);
@@ -47,8 +86,8 @@ const normalizeScore = (value, maxScore) => {
   return Math.min(Math.max(numericValue, 0), maxScore);
 };
 
-// 선택한 토지의 태양광 적합도와 AI 보고서를 표시하는 컴포넌트입니다.
-function ReportContent({ landId }) {
+// 선택한 토지의 태양광 적합도와 플랜에 맞는 AI 보고서를 표시합니다.
+function ReportContent({ landId, isReportLocked = false }) {
   // 서버에서 받은 개발 적합도 분석 결과입니다.
   const [analysis, setAnalysis] = useState(null);
   // 개발 적합도 분석을 요청하고 있는지 나타냅니다.
@@ -125,12 +164,16 @@ function ReportContent({ landId }) {
   const totalScore = normalizeScore(analysis?.totalScore, 100);
   // 정상 응답이 준비된 뒤에만 점수 바가 실제 값까지 채워지게 합니다.
   const isAnalysisReady = !isLoading && !errorMessage && Boolean(analysis);
+  // 서버의 종합 분석 근거를 보고서 항목 목록으로 변환합니다.
+  const reportSections = parseAnalysisRationale(analysis?.rationale);
 
   return (
     // 분석 조회 상태, 점수, 보고서, 오류 복구 동작을 표시합니다.
     <AnalysisContent aria-live="polite" aria-busy={isLoading}>
-      {/* 데이터 상태와 관계없이 점수 카드 UI를 먼저 표시합니다. */}
-      <AnalysisCard>
+      {/* 로딩 중에는 기존 점수 카드와 보고서를 함께 흐리게 표시합니다. */}
+      <AnalysisBlurLayer $loading={isLoading} aria-hidden={isLoading}>
+        {/* 데이터 상태와 관계없이 점수 카드 UI를 먼저 표시합니다. */}
+        <AnalysisCard>
         <AnalysisCardTitle>인허가 적합도 분석</AnalysisCardTitle>
 
         <TotalScoreRow>
@@ -199,12 +242,16 @@ function ReportContent({ landId }) {
             );
           })}
         </ScoreList>
-      </AnalysisCard>
+        </AnalysisCard>
 
       {/* 보고서 UI도 먼저 표시하고 내부 문구만 요청 상태에 따라 교체합니다. */}
       <AnalysisReportSection>
         <AnalysisReportTitle>AI 분석 보고서</AnalysisReportTitle>
-        <AnalysisReportBox>
+        {/* 무료 플랜에서는 실제 보고서 대신 블러 처리된 잠금 안내를 표시합니다. */}
+        {isReportLocked ? (
+          <ReportAccessGate requiresLogin={false} compact />
+        ) : (
+          <AnalysisReportBox>
           {/* 개발 적합도 분석을 요청하는 동안 보고서 영역에 로딩 문구를 표시합니다. */}
           {isLoading && (
             <AnalysisStatusMessage $compact role="status">
@@ -232,14 +279,38 @@ function ReportContent({ landId }) {
             </AnalysisStatusMessage>
           )}
 
-          {/* 서버가 제공한 분석 근거를 임의로 가공하지 않고 그대로 표시합니다. */}
-          {isAnalysisReady && (
+          {/* 대괄호 제목을 인식한 분석 근거는 항목별 보고서로 표시합니다. */}
+          {isAnalysisReady && reportSections.length > 0 && (
+            <AnalysisReportList>
+              {reportSections.map((section, index) => (
+                <AnalysisReportItem key={`${section.title}-${index}`}>
+                  <AnalysisReportItemTitle>
+                    {section.title}
+                  </AnalysisReportItemTitle>
+                  <AnalysisReportItemText>{section.text}</AnalysisReportItemText>
+                </AnalysisReportItem>
+              ))}
+            </AnalysisReportList>
+          )}
+
+          {/* 제목 형식을 인식하지 못하면 서버 원문을 기존 문단 형태로 표시합니다. */}
+          {isAnalysisReady && reportSections.length === 0 && (
             <AnalysisReportText>
               {analysis.rationale || "등록된 분석 근거가 없습니다."}
             </AnalysisReportText>
           )}
-        </AnalysisReportBox>
+          </AnalysisReportBox>
+        )}
       </AnalysisReportSection>
+      </AnalysisBlurLayer>
+
+      {/* 분석 데이터를 불러오는 동안 블러 영역 위에 로딩 상태를 표시합니다. */}
+      {isLoading && (
+        <AnalysisLoadingOverlay role="status" aria-label="태양광 적합도 로딩 중">
+          <AnalysisLoadingSpinner aria-hidden="true" />
+          <AnalysisLoadingText>로딩 중</AnalysisLoadingText>
+        </AnalysisLoadingOverlay>
+      )}
     </AnalysisContent>
   );
 }
@@ -251,7 +322,7 @@ export default function SolarSuitability({ landId }) {
   if (!isLoggedIn) return <ReportAccessGate requiresLogin />;
   if (isAccountLoading) return <p role="status">계정 정보를 확인하고 있어요.</p>;
   if (accountError || !user) return <div role="alert"><p>{accountError || "계정 정보를 확인할 수 없습니다."}</p><button type="button" onClick={retryAccount}>다시 확인</button></div>;
-  if (user.plan === "FREE") return <ReportAccessGate requiresLogin={false} />;
-  if (!["PRO", "BUSINESS"].includes(user.plan)) return <p role="status">이용 중인 플랜을 확인할 수 없습니다. 프로필에서 플랜을 확인해 주세요.</p>;
-  return <ReportContent key={`${token}:${landId}`} landId={landId} />;
+  // 지원하는 모든 플랜에서 점수 분석은 표시하고 무료 플랜의 보고서만 잠급니다.
+  if (!["FREE", "PRO", "BUSINESS"].includes(user.plan)) return <p role="status">이용 중인 플랜을 확인할 수 없습니다. 프로필에서 플랜을 확인해 주세요.</p>;
+  return <ReportContent key={`${token}:${landId}`} landId={landId} isReportLocked={user.plan === "FREE"} />;
 }

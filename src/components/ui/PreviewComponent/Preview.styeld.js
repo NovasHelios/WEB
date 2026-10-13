@@ -1,5 +1,5 @@
-// styled-components를 사용해 새 미리보기 패널의 기본 틀을 정의합니다.
-import styled from "styled-components";
+// styled-components와 로딩 회전 효과를 정의할 keyframes를 가져옵니다.
+import styled, { keyframes } from "styled-components";
 
 // 지도 오른쪽에 표시되는 새 미리보기 패널입니다.
 export const Panel = styled.aside`
@@ -245,81 +245,6 @@ export const TransactionBadge = styled.span`
   font-size: var(--font-xs);
 `;
 
-// 첨부 서류 영역입니다.
-export const AttachmentSection = styled.section`
-  margin-top: 14px;
-`;
-
-// 첨부 서류 제목입니다.
-export const AttachmentTitle = styled.h4`
-  margin: 0 0 12px;
-  color: #333333;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
-`;
-
-// 첨부 서류 목록입니다.
-export const AttachmentList = styled.div`
-  display: grid;
-  gap: 8px;
-`;
-
-// 첨부 서류 한 항목입니다.
-export const AttachmentItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: 8px 12px;
-  border: 1px solid #e8e3dc;
-  border-radius: 10px;
-  background: #ffffff;
-`;
-
-// 파일 종류와 파일명을 배치하는 영역입니다.
-export const AttachmentInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  > span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid #fecdd3;
-    border-radius: 8px;
-    color: #fb7185;
-    font-size: 10px;
-  }
-
-  small {
-    display: block;
-    margin-top: 2px;
-    color: #a3a3a3;
-    font-size: 10px;
-  }
-`;
-
-// 첨부 파일명입니다.
-export const AttachmentName = styled.strong`
-  display: block;
-  color: #444444;
-  font-size: var(--font-xs);
-  font-weight: var(--font-normal);
-`;
-
-// 첨부 파일 다운로드 링크입니다.
-export const AttachmentDownload = styled.a`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  color: #a3a3a3;
-`;
-
 // 세 정보 화면을 감싸는 탭 영역입니다.
 export const TabSection = styled.section`
   margin-top: 8px;
@@ -377,10 +302,60 @@ export const TabPreparingMessage = styled.p`
 
 // 태양광 적합도 탭의 점수 카드와 보고서를 세로로 배치합니다.
 export const AnalysisContent = styled.section`
-  display: grid;
-  gap: 28px;
+  position: relative;
   padding: 20px;
   color: #1f2937;
+`;
+
+// 로딩 중 기존 분석 화면을 유지하면서 흐리게 표시합니다.
+export const AnalysisBlurLayer = styled.div`
+  display: grid;
+  gap: 28px;
+  filter: ${({ $loading }) => ($loading ? "blur(4px)" : "none")};
+  opacity: ${({ $loading }) => ($loading ? 0.55 : 1)};
+  pointer-events: ${({ $loading }) => ($loading ? "none" : "auto")};
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+`;
+
+// 점 형태 로더를 시계 방향으로 회전시킵니다.
+const analysisLoadingSpin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// 흐려진 분석 화면 중앙에 로딩 상태를 배치합니다.
+export const AnalysisLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 20px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #555555;
+`;
+
+// 여러 점이 이어진 원형 로더를 회전시켜 분석 진행 상태를 표현합니다.
+export const AnalysisLoadingSpinner = styled.span`
+  width: 44px;
+  height: 44px;
+  border: 6px dotted #777777;
+  border-radius: 50%;
+  animation: ${analysisLoadingSpin} 1.1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+// 원형 로더 아래에 표시하는 로딩 안내 문구입니다.
+export const AnalysisLoadingText = styled.strong`
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
 `;
 
 // 인허가 적합도 점수를 표시하는 카드입니다.
@@ -579,6 +554,44 @@ export const AnalysisReportText = styled.p`
   overflow-wrap: anywhere;
 `;
 
+// 파싱된 AI 분석 항목을 하나의 보고서 목록으로 배치합니다.
+export const AnalysisReportList = styled.div`
+  display: grid;
+`;
+
+// 각 AI 분석 항목을 구분선과 함께 표시합니다.
+export const AnalysisReportItem = styled.section`
+  padding: 12px 0;
+  border-bottom: 1px solid #333333;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+`;
+
+// AI 분석 항목의 제목입니다.
+export const AnalysisReportItemTitle = styled.h4`
+  margin: 0 0 8px;
+  color: #222222;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// AI 분석 항목별 서버 원문을 표시합니다.
+export const AnalysisReportItemText = styled.p`
+  margin: 0;
+  color: #333333;
+  font-size: var(--font-xs);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+`;
+
 // 분석 로딩 또는 결과 없음 상태를 표시합니다.
 export const AnalysisStatusMessage = styled.p`
   margin: 0;
@@ -614,6 +627,47 @@ export const AnalysisRetryButton = styled.button`
   color: #333333;
   font-size: var(--font-xs);
   cursor: pointer;
+`;
+
+// 상세 설명 탭의 등록자 설명과 AI 종합 평가를 세로로 배치합니다.
+export const DetailDescriptionContent = styled.section`
+  display: grid;
+  gap: 28px;
+  padding: 20px;
+  color: #222222;
+`;
+
+// 상세 설명 탭의 제목과 본문 상자를 하나의 영역으로 묶습니다.
+export const DetailDescriptionSection = styled.section`
+  display: grid;
+  gap: 12px;
+`;
+
+// 등록자 설명과 AI 종합 평가의 영역 제목입니다.
+export const DetailDescriptionTitle = styled.h3`
+  margin: 0;
+  color: #222222;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// 등록자 설명 또는 AI 종합 평가를 표시하는 본문 상자입니다.
+export const DetailDescriptionBox = styled.div`
+  min-height: 220px;
+  padding: 16px;
+  border: 1px solid #dcc7aa;
+  border-radius: 6px;
+  background: #fffdfb;
+`;
+
+// 등록자 설명과 AI 종합 평가의 줄바꿈을 유지해 표시합니다.
+export const DetailDescriptionText = styled.p`
+  margin: 0;
+  color: #4b5563;
+  font-size: var(--font-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 `;
 
 // 스크롤과 분리되어 패널 하단에 유지되는 버튼 영역입니다.

@@ -375,6 +375,8 @@ export const AnalysisItem = styled.div`
   &::after {
     width: ${({ $score }) => `${$score || 0}%`};
     background: #d6b326;
+    /* 분석 데이터가 반영될 때 점수 바가 현재 비율까지 자연스럽게 늘어납니다. */
+    transition: width 800ms ease;
   }
 
   strong {
