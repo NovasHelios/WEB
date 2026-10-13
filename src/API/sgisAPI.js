@@ -1,6 +1,11 @@
 const SERVICE_ID = import.meta.env.VITE_SGIS_SERVICE_ID;
 const SECURITY_KEY = import.meta.env.VITE_SGIS_SECURITY_KEY;
 
+// 로컬은 Vite 프록시를 사용하고 배포 환경은 SGIS 공식 서버를 직접 호출합니다.
+const SGIS_BASE_URL = import.meta.env.DEV
+  ? "/sgis"
+  : "https://sgisapi.mods.go.kr";
+
 let cachedAccessToken = null;
 
 // SGIS 지역 목록을 상위 지역 코드별로 저장합니다.
@@ -22,9 +27,9 @@ export const getSgisAccessToken = async () => {
     consumer_secret: SECURITY_KEY,
   });
 
-  // 개발 환경에서는 Vite 프록시를 통해 SGIS 인증 API를 호출합니다.
+  // 현재 실행 환경에 맞는 SGIS 주소로 인증 API를 호출합니다.
   const response = await fetch(
-    `/sgis/OpenAPI3/auth/authentication.json?${params}`
+    `${SGIS_BASE_URL}/OpenAPI3/auth/authentication.json?${params}`
   );
 
   // SGIS 인증 응답을 JSON으로 변환합니다.
@@ -78,8 +83,10 @@ export const getRegions = async (code = null) => {
       params.append("cd", code);
     }
 
-    // 개발 환경에서는 Vite 프록시를 통해 SGIS 단계별 주소 API를 호출합니다.
-    const response = await fetch(`/sgis/OpenAPI3/addr/stage.json?${params}`);
+    // 현재 실행 환경에 맞는 SGIS 주소로 단계별 주소 API를 호출합니다.
+    const response = await fetch(
+      `${SGIS_BASE_URL}/OpenAPI3/addr/stage.json?${params}`
+    );
 
     // SGIS 지역 조회 응답을 JSON으로 변환합니다.
     const data = await response.json();

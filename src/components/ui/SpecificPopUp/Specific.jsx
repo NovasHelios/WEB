@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // 상세보기 팝업에서 사용할 아이콘입니다.
 import {
   Bot,
@@ -11,8 +11,12 @@ import {
 import {
   AiOpinion,
   AnalysisCard,
+  AnalysisCardBody,
   AnalysisGrid,
   AnalysisItem,
+  AnalysisLoadingOverlay,
+  AnalysisLoadingSpinner,
+  AnalysisLoadingText,
   CloseButton,
   DetailGrid,
   DocumentCard,
@@ -56,19 +60,51 @@ import {
   formatTransactionType,
 } from "./specificFormatters";
 import { formatOfficialLandPrice } from "@/utils/landFormatters";
+// 선택한 토지의 태양광 개발 적합도 분석 결과를 조회합니다.
+import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
 // 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
 
 // 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
 
-// 태양광 적합도 분석에서 임시로 표시할 항목 점수입니다.
-const solarAnalysisItems = [
-  { label: "일사량", score: 89 },
-  { label: "경사도", score: 78 },
-  { label: "전력 인입 용이성", score: 85 },
-  { label: "도로 접근성", score: 90 },
-  { label: "인허가 가능성", score: 92 },
+// 태양광 적합도 API 필드와 항목별 실제 만점을 연결합니다.
+const SOLAR_ANALYSIS_ITEMS = [
+  { key: "sunlightScore", label: "일사량", maxScore: 25 },
+  { key: "slopeScore", label: "경사도", maxScore: 20 },
+  { key: "areaScore", label: "개발 가능 면적", maxScore: 10 },
+  { key: "roadScore", label: "도로 접근성", maxScore: 10 },
+  { key: "regulationScore", label: "토지이용규제", maxScore: 20 },
+  { key: "zoneScore", label: "용도지역·용도지구", maxScore: 15 },
 ];
+
+// 서버 점수를 숫자로 변환하고 각 항목의 유효한 점수 범위로 제한합니다.
+const normalizeScore = (score, maxScore) => {
+  // 숫자로 변환할 수 없는 값은 0점으로 처리합니다.
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return 0;
+
+  // 막대와 표시 점수가 최소 0점, 최대 만점을 벗어나지 않게 합니다.
+  return Math.min(Math.max(numericScore, 0), maxScore);
+};
+
+// 항목별 점수를 기존 막대가 사용하는 백분율 값으로 변환합니다.
+const calculateScorePercent = (score, maxScore) => {
+  // 만점이 유효하지 않으면 빈 막대를 표시합니다.
+  if (!maxScore) return 0;
+
+  // 실제 점수와 만점의 비율을 0~100 범위로 반환합니다.
+  return (normalizeScore(score, maxScore) / maxScore) * 100;
+};
+
+// 종합 적합도 점수에 따라 Preview 게이지와 동일한 색상을 반환합니다.
+const getTotalScoreColor = (score) => {
+  // 33점 이하는 낮은 적합도를 나타내는 빨간색을 사용합니다.
+  if (score <= 33) return "#ff5757";
+  // 66점 이하는 보통 적합도를 나타내는 노란색을 사용합니다.
+  if (score <= 66) return "#ffd33d";
+  // 67점 이상은 높은 적합도를 나타내는 초록색을 사용합니다.
+  return "#5dde88";
+};
 
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
@@ -77,10 +113,68 @@ function Specific({ land, onClose }) {
 }
 
 function SpecificContent({ land, onClose }) {
+  // 상세보기 분석 API에 사용할 토지 ID를 정리합니다.
+  const analysisLandId = land?.id ?? land?.landId;
   // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
   const [isHeroImageFailed, setIsHeroImageFailed] = useState(false);
   // 현재 대표 이미지로 보여줄 이미지 번호입니다.
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  // 현재 토지의 태양광 개발 적합도 분석 결과입니다.
+  const [developmentAnalysis, setDevelopmentAnalysis] = useState(null);
+  // 적합도 분석 조회 실패 시 기존 카드 안에 표시할 오류 문구입니다.
+  const [developmentAnalysisError, setDevelopmentAnalysisError] = useState("");
+  // 유효한 토지 ID가 있으면 분석 결과를 받을 때까지 로딩 화면을 표시합니다.
+  const [isDevelopmentAnalysisLoading, setIsDevelopmentAnalysisLoading] =
+    useState(
+      () =>
+        analysisLandId !== undefined &&
+        analysisLandId !== null &&
+        analysisLandId !== ""
+    );
+
+  // 상세보기 대상 토지가 바뀔 때 해당 토지의 적합도 분석 결과를 조회합니다.
+  useEffect(() => {
+    // 상세보기 데이터에서 사용할 수 있는 토지 ID를 선택합니다.
+    // 토지 ID가 없으면 분석 API를 호출하지 않습니다.
+    if (
+      analysisLandId === undefined ||
+      analysisLandId === null ||
+      analysisLandId === ""
+    ) {
+      return undefined;
+    }
+
+    // 팝업이 닫히거나 토지가 바뀌면 진행 중인 요청을 취소합니다.
+    const controller = new AbortController();
+
+    // 선택한 토지의 개발 적합도 분석 결과를 요청합니다.
+    fetchLandDevelopmentAnalysis(analysisLandId, { signal: controller.signal })
+      .then((analysis) => {
+        // 취소되지 않은 요청의 결과만 현재 상세보기에 반영합니다.
+        if (!controller.signal.aborted) {
+          setDevelopmentAnalysis(analysis);
+        }
+      })
+      .catch((error) => {
+        // 요청 취소는 화면 오류로 표시하지 않습니다.
+        if (controller.signal.aborted || error?.name === "AbortError") return;
+
+        // 실제 조회 실패는 콘솔과 기존 AI 의견 영역에 표시합니다.
+        console.error("상세보기 태양광 적합도 분석 조회 실패:", error);
+        setDevelopmentAnalysisError(
+          error?.message || "태양광 적합도 분석을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        // 취소되지 않은 요청이 끝나면 성공·실패와 관계없이 로딩 화면을 종료합니다.
+        if (!controller.signal.aborted) {
+          setIsDevelopmentAnalysisLoading(false);
+        }
+      });
+
+    // 컴포넌트 정리 시 진행 중인 분석 요청을 취소합니다.
+    return () => controller.abort();
+  }, [analysisLandId]);
 
 
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
@@ -100,6 +194,9 @@ function SpecificContent({ land, onClose }) {
 
   // 현재 선택된 대표 이미지 URL입니다.
   const selectedImage = images[selectedImageIndex] || images[0];
+
+  // 종합 점수는 API의 100점 만점 값을 사용합니다.
+  const totalScore = normalizeScore(developmentAnalysis?.totalScore, 100);
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
@@ -307,24 +404,69 @@ function SpecificContent({ land, onClose }) {
             </InfoColumn>
 
             <AnalysisCard>
-              <SectionTitle>
-                <Bot size={18} strokeWidth={2} />
-                태양광 적합도 분석 (임시 데이터입니다.)
-                <ScoreBadge>86점 / 100점</ScoreBadge>
-              </SectionTitle>
+              {/* 로딩 중에는 기존 분석 결과 UI를 유지한 채 흐리게 표시합니다. */}
+              <AnalysisCardBody
+                $loading={isDevelopmentAnalysisLoading}
+                aria-hidden={isDevelopmentAnalysisLoading}
+              >
+                <SectionTitle>
+                  <Bot size={18} strokeWidth={2} />
+                  태양광 적합도 분석
+                  <ScoreBadge>
+                    {isDevelopmentAnalysisLoading
+                      ? "분석 중"
+                      : developmentAnalysisError
+                        ? "분석 실패"
+                        : developmentAnalysis
+                          ? `${totalScore}점 / 100점`
+                          : "분석 결과 없음"}
+                  </ScoreBadge>
+                </SectionTitle>
 
-              <AnalysisGrid>
-                <AnalysisItem $score={86}>
-                  <span>종합 적합도</span>
-                  <strong>86점 / 100점</strong>
-                </AnalysisItem>
-                {solarAnalysisItems.map((item) => (
-                  <AnalysisItem key={item.label} $score={item.score}>
-                    <span>{item.label}</span>
-                    <strong>{item.score}점</strong>
+                <AnalysisGrid>
+                  <AnalysisItem
+                    $score={totalScore}
+                    $barColor={getTotalScoreColor(totalScore)}
+                  >
+                    <span>종합 적합도</span>
+                    <strong>
+                      {developmentAnalysis ? `${totalScore}점 / 100점` : "-점 / 100점"}
+                    </strong>
                   </AnalysisItem>
-                ))}
-              </AnalysisGrid>
+                  {SOLAR_ANALYSIS_ITEMS.map((item) => {
+                    // 각 API 점수를 항목별 만점 안에서 표시합니다.
+                    const itemScore = normalizeScore(
+                      developmentAnalysis?.[item.key],
+                      item.maxScore
+                    );
+
+                    return (
+                      <AnalysisItem
+                        key={item.key}
+                        $score={calculateScorePercent(itemScore, item.maxScore)}
+                      >
+                        <span>{item.label}</span>
+                        <strong>
+                          {developmentAnalysis
+                            ? `${itemScore}점 / ${item.maxScore}점`
+                            : `-점 / ${item.maxScore}점`}
+                        </strong>
+                      </AnalysisItem>
+                    );
+                  })}
+                </AnalysisGrid>
+              </AnalysisCardBody>
+
+              {/* 분석 결과를 불러오는 동안 카드 중앙에 로딩 상태를 표시합니다. */}
+              {isDevelopmentAnalysisLoading && (
+                <AnalysisLoadingOverlay
+                  role="status"
+                  aria-label="태양광 적합도 로딩 중"
+                >
+                  <AnalysisLoadingSpinner aria-hidden="true" />
+                  <AnalysisLoadingText>로딩 중</AnalysisLoadingText>
+                </AnalysisLoadingOverlay>
+              )}
             </AnalysisCard>
           </InfoGrid>
 
@@ -334,10 +476,14 @@ function SpecificContent({ land, onClose }) {
             <p>{land.description || "등록된 상세 설명이 없습니다."}</p>
           </AiOpinion>
 
-          {/* AI 의견은 추후 기능 개발 전까지 준비 중 문구를 표시합니다. */}
+          {/* 적합도 분석 API가 반환한 종합 판단 근거를 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
-            <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
+            <p>
+              {developmentAnalysis?.rationale ||
+                developmentAnalysisError ||
+                "AI 의견을 불러오는 중입니다."}
+            </p>
           </AiOpinion>
         </MainContent>
       </Panel>

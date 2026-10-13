@@ -8,20 +8,24 @@ const Gate = styled.section`
   isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 1rem;
+  border-radius: ${({ $compact }) => ($compact ? "6px" : "1rem")};
   background: var(--color-surface);
   display: grid;
-  min-height: 30rem;
+  min-height: ${({ $compact }) => ($compact ? "260px" : "30rem")};
   text-align: center;
   word-break: keep-all;
   overflow-wrap: anywhere;
   .preview {
     grid-area: 1 / 1; min-width: 0;
     display: grid; align-content: start; gap: 1.5rem;
-    padding: 2rem; text-align: left;
+    padding: ${({ $compact }) => ($compact ? "1rem" : "2rem")}; text-align: left;
     filter: blur(7px); pointer-events: none; user-select: none;
   }
-  .preview-heading { font-size: var(--font-xl); font-weight: var(--font-bold); }
+  .preview-heading {
+    display: ${({ $compact }) => ($compact ? "none" : "block")};
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+  }
   .preview-section { display: grid; gap: 0.75rem; }
   .preview-label { font-weight: var(--font-semibold); color: #63583f; }
   .preview-line { display: block; height: 0.6rem; border-radius: 0.25rem; background: #a69d8b; }
@@ -31,7 +35,8 @@ const Gate = styled.section`
   .overlay {
     grid-area: 1 / 1; z-index: 1; min-width: 0;
     display: grid; place-items: center;
-    padding: 2rem 1rem; background: rgba(255, 253, 248, 0.4);
+    padding: ${({ $compact }) => ($compact ? "1.25rem 1rem" : "2rem 1rem")};
+    background: rgba(255, 253, 248, 0.4);
   }
   .content {
     max-width: 26rem;
@@ -55,29 +60,58 @@ const Gate = styled.section`
 `;
 
 // 비로그인과 무료 플랜의 다음 행동을 서로 다른 문구와 링크로 안내합니다.
-export default function ReportAccessGate({ requiresLogin }) {
-  return <Gate aria-label="AI 분석 보고서 이용 안내">
-    {/* 공개용 모형이며 실제 분석 결과나 점수를 포함하지 않습니다. */}
-    <div className="preview" aria-hidden="true">
-      <div className="preview-heading">AI 분석 보고서</div>
-      {["주요 판단 근거", "긍정적인 조건", "주의가 필요한 조건", "추가 확인사항"].map((label, index) => (
-        <div className={`preview-section${index === 0 ? " preview-summary" : ""}`} key={label}>
-          <div className="preview-label">{label}</div>
-          {Array.from({ length: 3 }, (_, i) => <span className="preview-line" key={i} />)}
+export default function ReportAccessGate({ requiresLogin, compact = false }) {
+  return (
+    <Gate $compact={compact} aria-label="AI 분석 보고서 이용 안내">
+      {/* 공개용 모형이며 실제 분석 결과나 점수를 포함하지 않습니다. */}
+      <div className="preview" aria-hidden="true">
+        <div className="preview-heading">AI 분석 보고서</div>
+        {[
+          "주요 판단 근거",
+          "긍정적인 조건",
+          "주의가 필요한 조건",
+          "추가 확인사항",
+        ].map((label, index) => (
+          <div
+            className={`preview-section${
+              index === 0 ? " preview-summary" : ""
+            }`}
+            key={label}
+          >
+            <div className="preview-label">{label}</div>
+            {Array.from({ length: 3 }, (_, i) => (
+              <span className="preview-line" key={i} />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="overlay">
+        <div className="content">
+          <div className="lock">
+            <LockKeyhole size={26} aria-hidden="true" />
+          </div>
+          <h3>
+            {requiresLogin
+              ? "로그인 후 확인할 수 있어요"
+              : "AI 보고서는 유료 플랜에서 제공돼요"}
+          </h3>
+          <p>
+            {requiresLogin ? (
+              "토지의 AI 분석 보고서를 확인하려면 로그인해 주세요. 로그인 후 이용 중인 플랜을 확인합니다."
+            ) : (
+              <>
+                무료 플랜에서는 AI 분석 보고서를 열람할 수 없어요.
+                <br />
+                프로·비즈니스 플랜의 제공 기능을 확인해 보세요.
+              </>
+            )}
+          </p>
+          <Link to={requiresLogin ? "/login" : "/plans"}>
+            {requiresLogin ? "로그인하기" : "플랜 확인하기"}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
         </div>
-      ))}
-    </div>
-    <div className="overlay">
-    <div className="content">
-      <div className="lock"><LockKeyhole size={26} aria-hidden="true" /></div>
-      <h3>{requiresLogin ? "로그인 후 확인할 수 있어요" : "AI 보고서는 유료 플랜에서 제공돼요"}</h3>
-      <p>{requiresLogin
-        ? "토지의 AI 분석 보고서를 확인하려면 로그인해 주세요. 로그인 후 이용 중인 플랜을 확인합니다."
-        : "무료 플랜에서는 AI 분석 보고서를 열람할 수 없어요. 프로·비즈니스 플랜의 제공 기능을 확인해 보세요."}</p>
-      <Link to={requiresLogin ? "/login" : "/plans"}>
-        {requiresLogin ? "로그인하기" : "플랜 확인하기"}<ArrowRight size={16} aria-hidden="true" />
-      </Link>
-    </div>
-    </div>
-  </Gate>;
+      </div>
+    </Gate>
+  );
 }

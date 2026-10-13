@@ -1,5 +1,5 @@
-// styled-components를 사용해 새 미리보기 패널의 기본 틀을 정의합니다.
-import styled from "styled-components";
+// styled-components와 로딩 회전 효과를 정의할 keyframes를 가져옵니다.
+import styled, { keyframes } from "styled-components";
 
 // 지도 오른쪽에 표시되는 새 미리보기 패널입니다.
 export const Panel = styled.aside`
@@ -245,81 +245,6 @@ export const TransactionBadge = styled.span`
   font-size: var(--font-xs);
 `;
 
-// 첨부 서류 영역입니다.
-export const AttachmentSection = styled.section`
-  margin-top: 14px;
-`;
-
-// 첨부 서류 제목입니다.
-export const AttachmentTitle = styled.h4`
-  margin: 0 0 12px;
-  color: #333333;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
-`;
-
-// 첨부 서류 목록입니다.
-export const AttachmentList = styled.div`
-  display: grid;
-  gap: 8px;
-`;
-
-// 첨부 서류 한 항목입니다.
-export const AttachmentItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: 8px 12px;
-  border: 1px solid #e8e3dc;
-  border-radius: 10px;
-  background: #ffffff;
-`;
-
-// 파일 종류와 파일명을 배치하는 영역입니다.
-export const AttachmentInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  > span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid #fecdd3;
-    border-radius: 8px;
-    color: #fb7185;
-    font-size: 10px;
-  }
-
-  small {
-    display: block;
-    margin-top: 2px;
-    color: #a3a3a3;
-    font-size: 10px;
-  }
-`;
-
-// 첨부 파일명입니다.
-export const AttachmentName = styled.strong`
-  display: block;
-  color: #444444;
-  font-size: var(--font-xs);
-  font-weight: var(--font-normal);
-`;
-
-// 첨부 파일 다운로드 링크입니다.
-export const AttachmentDownload = styled.a`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  color: #a3a3a3;
-`;
-
 // 세 정보 화면을 감싸는 탭 영역입니다.
 export const TabSection = styled.section`
   margin-top: 8px;
@@ -373,6 +298,376 @@ export const TabPreparingMessage = styled.p`
   color: #dc2626;
   font-size: var(--font-sm);
   text-align: center;
+`;
+
+// 태양광 적합도 탭의 점수 카드와 보고서를 세로로 배치합니다.
+export const AnalysisContent = styled.section`
+  position: relative;
+  padding: 20px;
+  color: #1f2937;
+`;
+
+// 로딩 중 기존 분석 화면을 유지하면서 흐리게 표시합니다.
+export const AnalysisBlurLayer = styled.div`
+  display: grid;
+  gap: 28px;
+  filter: ${({ $loading }) => ($loading ? "blur(4px)" : "none")};
+  opacity: ${({ $loading }) => ($loading ? 0.55 : 1)};
+  pointer-events: ${({ $loading }) => ($loading ? "none" : "auto")};
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+`;
+
+// 점 형태 로더를 시계 방향으로 회전시킵니다.
+const analysisLoadingSpin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// 흐려진 분석 화면 중앙에 로딩 상태를 배치합니다.
+export const AnalysisLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 20px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #555555;
+`;
+
+// 여러 점이 이어진 원형 로더를 회전시켜 분석 진행 상태를 표현합니다.
+export const AnalysisLoadingSpinner = styled.span`
+  width: 44px;
+  height: 44px;
+  border: 6px dotted #777777;
+  border-radius: 50%;
+  animation: ${analysisLoadingSpin} 1.1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+// 원형 로더 아래에 표시하는 로딩 안내 문구입니다.
+export const AnalysisLoadingText = styled.strong`
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// 인허가 적합도 점수를 표시하는 카드입니다.
+export const AnalysisCard = styled.section`
+  padding: 24px;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+`;
+
+// 인허가 적합도 분석 카드의 제목입니다.
+export const AnalysisCardTitle = styled.h3`
+  margin: 0 0 20px;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: var(--font-bold);
+`;
+
+// 종합 적합도 이름과 반원형 점수 게이지를 양쪽에 배치합니다.
+export const TotalScoreRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+`;
+
+// 종합 적합도 항목명입니다.
+export const TotalScoreLabel = styled.span`
+  color: #273043;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// 종합 적합도를 100점 기준의 반원형 게이지로 표시합니다.
+export const ScoreGauge = styled.div`
+  position: relative;
+  width: 120px;
+  height: 64px;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* 회색 기본 바와 실제 점수 바의 공통 모양입니다. */
+  .gauge-track,
+  .gauge-progress {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+  }
+
+  /* 데이터 로딩 전부터 보이는 종합 적합도 게이지의 회색 기본 바입니다. */
+  .gauge-track {
+    stroke: #dedede;
+  }
+
+  /* 점수 구간별 색상으로 실제 점수만큼 채워지는 게이지 바입니다. */
+  .gauge-progress {
+    stroke: ${({ $score }) => {
+      if ($score <= 33) return "#ff5757";
+      if ($score <= 66) return "#ffd33d";
+      return "#5dde88";
+    }};
+    stroke-dasharray: ${({ $score, $loaded }) =>
+      `${$loaded ? $score : 0} 100`};
+    transition:
+      stroke-dasharray 800ms cubic-bezier(0.22, 1, 0.36, 1),
+      stroke 200ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gauge-progress {
+      transition: none;
+    }
+  }
+`;
+
+// 반원형 게이지 중앙에 종합 점수를 표시합니다.
+export const ScoreGaugeValue = styled.strong`
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  color: #111111;
+  font-size: 24px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+  text-align: center;
+
+  small {
+    margin-left: 2px;
+    font-size: 10px;
+    font-weight: var(--font-normal);
+  }
+`;
+
+// 분석 등급 또는 인허가 결격 상태를 표시합니다.
+export const AnalysisStatus = styled.p`
+  margin: 8px 0 0;
+  color: ${({ $disqualified }) => ($disqualified ? "#dc2626" : "#777777")};
+  font-size: var(--font-xs);
+  text-align: right;
+`;
+
+// 종합 점수와 항목별 점수 사이를 구분합니다.
+export const ScoreDivider = styled.hr`
+  margin: 18px 0;
+  border: 0;
+  border-top: 1px solid #eeeeee;
+`;
+
+// 여섯 개 적합도 평가 항목을 일정한 간격으로 배치합니다.
+export const ScoreList = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+// 평가 항목명, 점수, 진행 막대를 묶습니다.
+export const ScoreItem = styled.div`
+  display: grid;
+  gap: 7px;
+`;
+
+// 평가 항목명과 획득 점수를 양쪽에 배치합니다.
+export const ScoreItemHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #747b8a;
+  font-size: var(--font-xs);
+
+  strong {
+    color: #273043;
+    font-weight: var(--font-medium);
+  }
+`;
+
+// 항목별 최대 점수를 나타내는 진행 막대 배경입니다.
+export const ScoreTrack = styled.div`
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eeeeee;
+`;
+
+// 항목별 획득 점수의 비율을 진행 막대에 표시합니다.
+export const ScoreFill = styled.span`
+  display: block;
+  width: ${({ $percent, $loaded }) => ($loaded ? `${$percent}%` : "0")};
+  height: 100%;
+  border-radius: inherit;
+  background: #d7b34a;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+// AI 분석 보고서 제목과 본문을 묶는 영역입니다.
+export const AnalysisReportSection = styled.section`
+  display: grid;
+  gap: 12px;
+`;
+
+// AI 분석 보고서의 제목입니다.
+export const AnalysisReportTitle = styled.h3`
+  margin: 0;
+  color: #222222;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// 서버 분석 근거를 표시하는 보고서 상자입니다.
+export const AnalysisReportBox = styled.div`
+  min-height: 180px;
+  padding: 16px;
+  border: 1px solid #dcc7aa;
+  border-radius: 6px;
+  background: #fffdfb;
+`;
+
+// 서버에서 받은 분석 근거의 줄바꿈을 유지해 표시합니다.
+export const AnalysisReportText = styled.p`
+  margin: 0;
+  color: #333333;
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+`;
+
+// 파싱된 AI 분석 항목을 하나의 보고서 목록으로 배치합니다.
+export const AnalysisReportList = styled.div`
+  display: grid;
+`;
+
+// 각 AI 분석 항목을 구분선과 함께 표시합니다.
+export const AnalysisReportItem = styled.section`
+  padding: 12px 0;
+  border-bottom: 1px solid #333333;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+`;
+
+// AI 분석 항목의 제목입니다.
+export const AnalysisReportItemTitle = styled.h4`
+  margin: 0 0 8px;
+  color: #222222;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// AI 분석 항목별 서버 원문을 표시합니다.
+export const AnalysisReportItemText = styled.p`
+  margin: 0;
+  color: #333333;
+  font-size: var(--font-xs);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+`;
+
+// 분석 로딩 또는 결과 없음 상태를 표시합니다.
+export const AnalysisStatusMessage = styled.p`
+  margin: 0;
+  padding: ${({ $compact }) => ($compact ? "28px 8px" : "40px 16px")};
+  color: #777777;
+  font-size: var(--font-sm);
+  text-align: center;
+`;
+
+// 분석 조회 오류와 재시도 동작을 함께 표시합니다.
+export const AnalysisError = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 40px 16px;
+  color: #dc2626;
+  font-size: var(--font-sm);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+`;
+
+// 실패한 분석 API를 다시 요청하는 버튼입니다.
+export const AnalysisRetryButton = styled.button`
+  min-width: 96px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #dcc7aa;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  font-size: var(--font-xs);
+  cursor: pointer;
+`;
+
+// 상세 설명 탭의 등록자 설명과 AI 종합 평가를 세로로 배치합니다.
+export const DetailDescriptionContent = styled.section`
+  display: grid;
+  gap: 28px;
+  padding: 20px;
+  color: #222222;
+`;
+
+// 상세 설명 탭의 제목과 본문 상자를 하나의 영역으로 묶습니다.
+export const DetailDescriptionSection = styled.section`
+  display: grid;
+  gap: 12px;
+`;
+
+// 등록자 설명과 AI 종합 평가의 영역 제목입니다.
+export const DetailDescriptionTitle = styled.h3`
+  margin: 0;
+  color: #222222;
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+`;
+
+// 등록자 설명 또는 AI 종합 평가를 표시하는 본문 상자입니다.
+export const DetailDescriptionBox = styled.div`
+  min-height: 220px;
+  padding: 16px;
+  border: 1px solid #dcc7aa;
+  border-radius: 6px;
+  background: #fffdfb;
+`;
+
+// 등록자 설명과 AI 종합 평가의 줄바꿈을 유지해 표시합니다.
+export const DetailDescriptionText = styled.p`
+  margin: 0;
+  color: #4b5563;
+  font-size: var(--font-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 `;
 
 // 스크롤과 분리되어 패널 하단에 유지되는 버튼 영역입니다.
