@@ -5,12 +5,15 @@ import { useNavigate } from "react-router-dom";
 // 대표 이미지 위 관심 버튼에 사용할 아이콘입니다.
 import { Heart } from "lucide-react";
 import { Api } from "@/contents/apiEndpoints";
+// 미리보기 채팅 기능을 플랜에 따라 제한하기 위한 계정 정보입니다.
+import { useAccount } from "@/contexts/AccountContext";
 import { removeClosedChatRoomMatch } from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 
 // 컴포넌트 호출
 import BasicInfo from "./components/BasicInfo";
+import DetailDescription from "./components/DetailDescription";
 import SolarSuitability from "./components/SolarSuitability";
 
 // 새 미리보기 이미지 영역에 필요한 styled 컴포넌트입니다.
@@ -29,7 +32,6 @@ import {
   TabButton,
   TabContent,
   TabList,
-  TabPreparingMessage,
   TabSection,
   ThumbButton,
   ThumbnailGrid,
@@ -116,6 +118,11 @@ const isExistingChatRoomMessage = (message) => {
 // 마커 클릭 시 오른쪽에 뜨는 미리보기 패널입니다.
 function Preview({ land }) {
   const navigate = useNavigate();
+  // 현재 사용자의 플랜과 계정 정보 로딩 상태를 가져옵니다.
+  const { user, isAccountLoading } = useAccount();
+  // 관심 등록과 채팅 기능은 계정 확인이 끝난 BUSINESS 플랜에만 허용합니다.
+  const canUseBusinessActions =
+    !isAccountLoading && user?.plan === "BUSINESS";
 
   // 서버 응답마다 id 필드명이 다를 수 있어 토지 ID를 한 번 정리합니다.
   const landId = land?.id ?? land?.landId;
@@ -149,8 +156,8 @@ function Preview({ land }) {
     let ignore = false;
 
     const syncWishStatus = async () => {
-      // 로그인 전이거나 토지 ID가 없으면 찜 상태를 확인하지 않습니다.
-      if (!landId || !getValidAccessToken()) {
+      // BUSINESS가 아니거나 토지 ID·인증 정보가 없으면 찜 상태를 확인하지 않습니다.
+      if (!canUseBusinessActions || !landId || !getValidAccessToken()) {
         setIsWished(false);
         setIsWishStatusLoading(false);
         return;
@@ -183,9 +190,12 @@ function Preview({ land }) {
     return () => {
       ignore = true;
     };
-  }, [landId]);
+  }, [canUseBusinessActions, landId]);
 
   const handleToggleWish = async () => {
+    // 무료·프로·비로그인 사용자의 관심 등록 요청을 차단합니다.
+    if (!canUseBusinessActions) return;
+
     // 비로그인 사용자는 로그인 페이지로 이동시킵니다.
     if (!getValidAccessToken()) {
       navigate("/login");
@@ -220,6 +230,9 @@ function Preview({ land }) {
   };
 
   const handleCreateChatRoom = async () => {
+    // 무료·프로·비로그인 사용자의 채팅방 생성 요청을 차단합니다.
+    if (!canUseBusinessActions) return;
+
     // 비로그인 사용자는 채팅 요청 전에 로그인하도록 보냅니다.
     if (!getValidAccessToken()) {
       navigate("/login");
@@ -373,20 +386,22 @@ function Preview({ land }) {
               />
             )}
 
-            {/* 대표 이미지 우측 상단의 관심 등록 버튼입니다. */}
-            <SaveIconButton
-              type="button"
-              aria-label={isWished ? "관심 해제" : "관심 등록"}
-              onClick={handleToggleWish}
-              disabled={isWishLoading || isWishStatusLoading}
-              $active={isWished}
-            >
-              <Heart
-                size={20}
-                fill="currentColor"
-                strokeWidth={isWished ? 0 : 1.8}
-              />
-            </SaveIconButton>
+            {/* BUSINESS 플랜에만 대표 이미지의 관심 등록 버튼을 표시합니다. */}
+            {canUseBusinessActions && (
+              <SaveIconButton
+                type="button"
+                aria-label={isWished ? "관심 해제" : "관심 등록"}
+                onClick={handleToggleWish}
+                disabled={isWishLoading || isWishStatusLoading}
+                $active={isWished}
+              >
+                <Heart
+                  size={20}
+                  fill="currentColor"
+                  strokeWidth={isWished ? 0 : 1.8}
+                />
+              </SaveIconButton>
+            )}
 
             {/* 현재 이미지 번호와 전체 이미지 개수를 표시합니다. */}
             <ImageCounter>
@@ -465,52 +480,55 @@ function Preview({ land }) {
                 formattedPrice={formatPrice(land.desiredPrice)}
               />
             )}
-            {/* 태양광 적합도 탭을 선택하면 현재 토지의 AI 보고서를 조회합니다. */}
+            {/* 태양광 적합도 탭을 선택하면 현재 토지의 개발 적합도를 조회합니다. */}
             {activeTab === "solar" && <SolarSuitability landId={landId} />}
 
-            {/* 아직 만들지 않은 상세 설명 탭에는 지원 예정 문구를 표시합니다. */}
+            {/* 상세 설명 탭에는 등록자 설명과 AI 종합 평가를 표시합니다. */}
             {activeTab === "description" && (
-              <TabPreparingMessage>
-                아직 지원하지 않는 기능입니다
-              </TabPreparingMessage>
+              <DetailDescription
+                landId={landId}
+                description={land?.description}
+              />
             )}
           </TabContent>
         </TabSection>
       </PanelBody>
 
-      {/* 스크롤과 분리되어 패널 하단에 고정되는 버튼 영역입니다. */}
-      <ActionBar>
-        {/* 관심 등록 또는 채팅 요청 결과를 표시합니다. */}
-        {feedback?.text && (
-          <ActionMessage $error={feedback.type === "error"}>
-            {feedback.text}
-          </ActionMessage>
-        )}
+      {/* BUSINESS 플랜에만 패널 하단의 관심 등록과 채팅 영역을 표시합니다. */}
+      {canUseBusinessActions && (
+        <ActionBar>
+          {/* 관심 등록 또는 채팅 요청 결과를 표시합니다. */}
+          {feedback?.text && (
+            <ActionMessage $error={feedback.type === "error"}>
+              {feedback.text}
+            </ActionMessage>
+          )}
 
-        {/* 기존 관심 등록 기능을 실행합니다. */}
-        <WishButton
-          type="button"
-          onClick={handleToggleWish}
-          disabled={isWishLoading || isWishStatusLoading}
-          $active={isWished}
-        >
-          <Heart
-            size={20}
-            fill={isWished ? "currentColor" : "none"}
-            strokeWidth={1.6}
-          />
-          {isWished ? "관심 해제" : "관심 등록"}
-        </WishButton>
+          {/* 기존 관심 등록 기능을 실행합니다. */}
+          <WishButton
+            type="button"
+            onClick={handleToggleWish}
+            disabled={isWishLoading || isWishStatusLoading}
+            $active={isWished}
+          >
+            <Heart
+              size={20}
+              fill={isWished ? "currentColor" : "none"}
+              strokeWidth={1.6}
+            />
+            {isWished ? "관심 해제" : "관심 등록"}
+          </WishButton>
 
-        {/* 기존 채팅방 생성 기능을 실행합니다. */}
-        <ActionButton
-          type="button"
-          onClick={handleCreateChatRoom}
-          disabled={isChatLoading}
-        >
-          {isChatLoading ? "요청 중..." : "채팅 하기"}
-        </ActionButton>
-      </ActionBar>
+          {/* 기존 채팅방 생성 기능을 실행합니다. */}
+          <ActionButton
+            type="button"
+            onClick={handleCreateChatRoom}
+            disabled={isChatLoading}
+          >
+            {isChatLoading ? "요청 중..." : "채팅 하기"}
+          </ActionButton>
+        </ActionBar>
+      )}
     </Panel>
   );
 }

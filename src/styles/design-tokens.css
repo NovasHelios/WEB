@@ -10,6 +10,16 @@
   --font-xl: 24px;
   --font-2xl: 32px;
   --font-3xl: 40px;
+  --font-page-title: clamp(2.25rem, 3.25vw, 3.25rem);
+  --font-page-description: clamp(0.9375rem, 1.4vw, 1.125rem);
+
+  /* 지도 외 본문 페이지의 공통 좌우 여백입니다. */
+  --page-inline-padding: clamp(1rem, 2.9vw, 3.5rem);
+  /* 내 공간·관심 토지·사업 연결 페이지의 compact 좌우 여백입니다. */
+  --page-inline-padding-compact: calc(var(--page-inline-padding) / 2);
+  /* 기존 80% 화면 배율을 유지하면서 모바일 주소창 높이 변화도 반영합니다. */
+  --app-viewport-height: 125vh;
+  --navbar-height: 4.5rem;
 
   /* 나르샤 폰트 굵기 */
   --font-regular: 400;
@@ -27,10 +37,21 @@
   --color-brand-strong: #d49f00;
   --color-brand-dark: #8a6800;
   --color-page-bg: #faf6ee;
+  /* 내 공간·관심 토지·사업 연결에 공통으로 사용하는 목록 배경입니다. */
+  --color-list-page-bg: #f8f7f3;
   --color-surface: #fffdf8;
   --color-surface-soft: #fbfaf7;
   --color-text: #1f1c17;
   --color-text-muted: #5d5445;
   --color-border: #d8c5a2;
   --color-danger: #b42318;
+}
+
+@supports (height: 100dvh) {
+  :root { --app-viewport-height: 125dvh; }
+}
+
+/* 작은 화면에서는 검색과 메뉴를 두 줄로 나눠 모든 기능을 유지합니다. */
+@media (max-width: 64rem) {
+  :root { --navbar-height: 8rem; }
 }

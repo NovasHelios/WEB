@@ -155,7 +155,7 @@ export const LandRegisterIconButton = styled.button`
 export const LandRegisterContainer = styled.div`
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 40px 48px 40px 48px;
+  padding: 40px var(--page-inline-padding);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 270px;
   gap: 24px;

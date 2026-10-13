@@ -1,18 +1,11 @@
-// 기본 정보에 사용할 위치 및 다운로드 아이콘입니다.
-import { Download, MapPin } from "lucide-react";
+// 기본 정보에 사용할 위치 아이콘입니다.
+import { MapPin } from "lucide-react";
 
 // 기본 정보 스타일은 Preview 공통 스타일 파일에서 가져옵니다.
 import {
   AddressBox,
   AddressLabel,
   AddressText,
-  AttachmentDownload,
-  AttachmentInfo,
-  AttachmentItem,
-  AttachmentList,
-  AttachmentName,
-  AttachmentSection,
-  AttachmentTitle,
   BasicInfoContent,
   BasicInfoHeader,
   BasicInfoList,
@@ -24,6 +17,7 @@ import {
   TransactionBadge,
   UnsupportedValue,
 } from "../Preview.styeld";
+import { formatOfficialLandPrice } from "@/utils/landFormatters";
 
 // 아직 서버에서 전달받지 못한 정보에 표시할 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -57,42 +51,6 @@ const formatTransactionType = (value) => {
   return transactionLabels[value] || value || UNSUPPORTED_TEXT;
 };
 
-// 첨부 파일 경로를 다운로드 가능한 주소로 변경합니다.
-const resolveDocumentUrl = (path) => {
-  // 첨부 파일 경로가 없으면 빈 값을 반환합니다.
-  if (!path) return "";
-
-  // 이미 완성된 URL이면 그대로 사용합니다.
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-
-  // 환경변수가 없으면 현재 백엔드 주소를 사용합니다.
-  const baseUrl = (
-    import.meta.env.VITE_API_BASE_URL || "https://api.helioss.site"
-  ).replace(/\/$/, "");
-
-  // 상대경로 앞의 중복 슬래시를 제거한 뒤 서버 주소와 연결합니다.
-  return `${baseUrl}/${path.replace(/^\/+/, "")}`;
-};
-
-// 첨부 파일 경로에서 실제 파일명을 가져옵니다.
-const getDocumentName = (path) => {
-  // 경로의 마지막 부분을 파일명으로 사용합니다.
-  const fileName = String(path).split("/").pop();
-
-  // 파일명이 없으면 기본 문구를 반환합니다.
-  if (!fileName) return "첨부 서류";
-
-  try {
-    // 정상적으로 URL 인코딩된 한글 파일명을 복원합니다.
-    return decodeURIComponent(fileName);
-  } catch {
-    // 잘못된 퍼센트 인코딩이 포함된 파일명은 원본 그대로 표시합니다.
-    return fileName;
-  }
-};
-
 // 토지의 기본 정보를 표시하는 탭 콘텐츠입니다.
 function BasicInfo({
   land,
@@ -104,11 +62,6 @@ function BasicInfo({
 }) {
   // 기준일과 등록일에 사용할 서버 날짜입니다.
   const referenceDate = formatDate(land?.lastUpdtDt);
-
-  // 단일 또는 배열 형태의 첨부 파일 경로를 배열로 정규화합니다.
-  const documentPaths = (
-    Array.isArray(land?.documentPath) ? land.documentPath : [land?.documentPath]
-  ).filter((path) => typeof path === "string" && path.trim());
 
   return (
     // 기본 정보 탭의 전체 콘텐츠입니다.
@@ -155,6 +108,11 @@ function BasicInfo({
         </BasicInfoRow>
 
         <BasicInfoRow>
+          <InfoLabel>공시지가</InfoLabel>
+          <InfoValue>{formatOfficialLandPrice(land?.officialLandPrice || land?.publicLandPrice || land?.pblntfPclnd)}</InfoValue>
+        </BasicInfoRow>
+
+        <BasicInfoRow>
           <InfoLabel>거래 형태</InfoLabel>
           <TransactionBadge>
             {formatTransactionType(transactionType)}
@@ -181,37 +139,6 @@ function BasicInfo({
         </BasicInfoRow>
       </BasicInfoList>
 
-      {/* 서버에서 받은 첨부 서류 목록입니다. */}
-      <AttachmentSection>
-        <AttachmentTitle>첨부 서류</AttachmentTitle>
-
-        {documentPaths.length > 0 ? (
-          <AttachmentList>
-            {documentPaths.map((path, index) => (
-              <AttachmentItem key={`${path}-${index}`}>
-                <AttachmentInfo>
-                  <span>PDF</span>
-
-                  <div>
-                    <AttachmentName>{getDocumentName(path)}</AttachmentName>
-                    <small>첨부 파일</small>
-                  </div>
-                </AttachmentInfo>
-
-                <AttachmentDownload
-                  href={resolveDocumentUrl(path)}
-                  download
-                  aria-label={`${getDocumentName(path)} 다운로드`}
-                >
-                  <Download size={16} strokeWidth={1.8} />
-                </AttachmentDownload>
-              </AttachmentItem>
-            ))}
-          </AttachmentList>
-        ) : (
-          <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
-        )}
-      </AttachmentSection>
     </BasicInfoContent>
   );
 }

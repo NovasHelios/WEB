@@ -169,7 +169,7 @@ export const ConditionTopShell = styled.section`
   width: 100%;
   max-width: 1500px;
   margin: 0 auto;
-  padding: 42px 48px 22px;
+  padding: 42px var(--page-inline-padding) 22px;
   box-sizing: border-box;
 
   @media (max-width: 1180px) {
@@ -297,7 +297,7 @@ export const ConditionFieldValue = styled.input`
   background: transparent;
   font-size: var(--font-lg);
   line-height: 1.4;
-  color: #7a7a7a;
+  color: #111111;
   padding: 0;
   min-width: 0;
 

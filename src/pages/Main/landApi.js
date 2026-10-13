@@ -3,6 +3,7 @@ import { authFetch } from "@/lib/auth";
 
 // 백엔드 API endpoint 목록을 가져옵니다.
 import { Api } from "@/contents/apiEndpoints";
+import { readApiResponse } from "@/utils/apiResponse";
 
 // 검색 결과에서 사용할 전체 등록 토지 목록을 가져옵니다.
 export const fetchAllLandList = async () => {
@@ -84,30 +85,25 @@ export const fetchFilteredLandList = async (requestBody) => {
   };
 };
 
-// 선택한 토지의 AI 분석 보고서를 조회합니다.
-export const fetchAiReport = async (landId) => {
-  // 토지 ID가 없으면 AI 보고서를 요청하지 않습니다.
+// 선택한 토지의 개발 적합도 분석 결과를 조회합니다.
+export const fetchLandDevelopmentAnalysis = async (landId, { signal } = {}) => {
+  // 토지 ID가 없으면 개발 적합도 분석을 요청하지 않습니다.
   if (landId === undefined || landId === null || landId === "") {
     return null;
   }
 
-  // 인증 헤더와 landId 쿼리를 포함해 AI 보고서 API를 호출합니다.
-  const response = await authFetch(Api.AiReport(landId), {
+  // 인증 헤더와 토지 ID를 포함해 개발 적합도 분석 API를 호출합니다.
+  const response = await authFetch(Api.LandDevelopmentAnalysis(landId), {
     method: "GET",
+    signal,
   });
 
   // 서버 응답을 JSON으로 변환합니다.
-  const result = await response.json();
+  const result = await readApiResponse(
+    response,
+    "태양광 적합도 분석을 불러오지 못했습니다."
+  );
 
-  // 실패 응답이면 컴포넌트에서 처리할 수 있도록 에러를 발생시킵니다.
-  if (!response.ok) {
-    throw new Error(
-      result?.data?.message ||
-        result?.message ||
-        "AI 분석 보고서를 불러오지 못했습니다."
-    );
-  }
-
-  // SolarSuitability 컴포넌트에서 사용할 data 객체만 반환합니다.
-  return result?.data || null;
+  // 포장 응답과 분석 객체 직접 응답을 모두 같은 형태로 반환합니다.
+  return result?.data ?? result ?? null;
 };

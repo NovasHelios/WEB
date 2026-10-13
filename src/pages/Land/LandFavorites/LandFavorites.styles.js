@@ -1,38 +1,29 @@
 import styled from "styled-components";
+import { listPageShell, listPageTitle, listPageDescription } from "@/styles/listPage";
 
 export const FavoritesPage = styled.div`
-  min-height: 100vh;
-  background: var(--color-page-bg);
+  min-height: var(--app-viewport-height);
+  background: var(--color-list-page-bg);
   color: #232323;
 `;
 
 export const FavoritesShell = styled.main`
-  width: min(100%, 1500px);
-  margin: 0 auto;
-  padding: 16px;
-  box-sizing: border-box;
+  ${listPageShell}
 `;
 
 export const FavoritesHeader = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   margin-bottom: 16px;
 `;
 
 export const FavoritesTitle = styled.h1`
-  margin: 0;
-  font-size: var(--font-2xl);
-  line-height: var(--line-tight);
-  font-weight: var(--font-bold);
-  letter-spacing: -0.05em;
+  ${listPageTitle}
 `;
 
 export const FavoritesDescription = styled.p`
-  margin: 0;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: #6a6a6a;
+  ${listPageDescription}
 `;
 
 export const FavoritesToolbar = styled.div`
@@ -184,8 +175,9 @@ export const FavoritesAddress = styled.h2`
 `;
 
 export const FavoritesMetaGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 내 공간과 동일하게 정보 칸을 왼쪽부터 배치합니다. */
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px 16px;
 
   @media (max-width: 980px) {
@@ -194,6 +186,8 @@ export const FavoritesMetaGrid = styled.div`
 `;
 
 export const FavoritesMetaItem = styled.div`
+  min-width: min(100%, 13rem);
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;

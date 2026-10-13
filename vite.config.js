@@ -32,6 +32,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      // 로컬 OAuth와 채팅도 같은 개발 프록시를 사용합니다.
+      "/oauth2": {
+        target: "https://api.helioss.site",
+        changeOrigin: true,
+        secure: true,
+      },
+      "/ws": {
+        target: "wss://api.helioss.site",
+        changeOrigin: true,
+        secure: true,
+        ws: true,
+      },
       // SGIS API는 브라우저 직접 호출 대신 개발 서버 프록시를 통해 호출합니다.
       "/sgis": {
         target: "https://sgisapi.kostat.go.kr",

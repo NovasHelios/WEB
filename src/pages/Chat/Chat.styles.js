@@ -2,7 +2,8 @@ import styled from "styled-components";
 
 // 채팅 페이지 전체 레이아웃입니다.
 export const ChatPage = styled.div`
-  min-height: 100vh;
+  /* 전역 화면 배율에서도 채팅 영역이 세로로 잘리지 않도록 보정합니다. */
+  min-height: var(--app-viewport-height);
   background: var(--color-page-bg);
   color: #1f1f1f;
 `;
@@ -10,18 +11,34 @@ export const ChatPage = styled.div`
 // 채팅 본문 3단 영역입니다.
 export const ChatShell = styled.main`
   display: flex;
-  height: calc(100vh - 72px);
-  min-height: 620px;
+  /* 네비게이션 아래 채팅 3단 영역이 화면 끝까지 이어지게 합니다. */
+  height: calc(var(--app-viewport-height) - var(--navbar-height));
+  min-height: 0;
   overflow: hidden;
+  /* 좁은 화면에서는 패널을 숨기지 않고 세로로 배치합니다. */
+  @media (max-width: 60rem) {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
 `;
 
 // 채팅방 목록 패널입니다.
 export const ChatSidebar = styled.aside`
-  width: 402px;
+  width: clamp(14rem, 22vw, 25rem);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   flex-shrink: 0;
   border-right: 1px solid #e4d9c7;
   background: var(--color-surface-soft);
   overflow: hidden;
+  @media (max-width: 60rem) {
+    width: 100%;
+    max-height: 22rem;
+    border-right: 0;
+    border-bottom: 1px solid #e4d9c7;
+  }
 `;
 
 // 채팅방 목록 상단입니다.
@@ -30,9 +47,11 @@ export const ChatListHeader = styled.div`
 
   h1 {
     margin: 0 0 16px;
-    font-size: var(--font-2xl);
+    /* 채팅 패널 제목은 전체 페이지 제목보다 작은 전용 규격을 사용합니다. */
+    font-size: var(--font-xl);
     font-weight: var(--font-bold);
-    letter-spacing: -0.04em;
+    line-height: 1.3;
+    letter-spacing: normal;
   }
 `;
 
@@ -60,7 +79,8 @@ export const ChatSearch = styled.div`
 export const ChatRoomList = styled.div`
   display: flex;
   flex-direction: column;
-  height: calc(100% - 146px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 `;
 
@@ -117,6 +137,10 @@ export const ChatMain = styled.section`
   min-width: 0;
   flex-direction: column;
   background: var(--color-page-bg);
+  @media (max-width: 60rem) {
+    flex: none;
+    height: calc(var(--app-viewport-height) - var(--navbar-height));
+  }
 `;
 
 // 선택된 채팅방 상단 정보입니다.
@@ -216,6 +240,7 @@ export const ChatComposer = styled.form`
 
 // 메시지 입력 박스입니다.
 export const ChatInputBox = styled.div`
+  min-width: 0;
   display: flex;
   align-items: center;
   flex: 1;
@@ -227,6 +252,7 @@ export const ChatInputBox = styled.div`
   padding: 0 16px;
 
   input {
+    min-width: 0;
     flex: 1;
     border: 0;
     outline: 0;
@@ -270,12 +296,17 @@ export const ChatActionButton = styled.button`
 
 // 우측 토지 정보 패널입니다.
 export const ChatLandPanel = styled.aside`
-  width: 404px;
+  width: clamp(14rem, 22vw, 25rem);
   flex-shrink: 0;
   border-left: 1px solid #e4d9c7;
   background: var(--color-surface-soft);
   padding: 16px;
   overflow-y: auto;
+  @media (max-width: 60rem) {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid #e4d9c7;
+  }
 `;
 
 // 토지 정보 패널 제목입니다.
@@ -289,6 +320,30 @@ export const ChatLandHeader = styled.div`
     margin: 0;
     font-size: var(--font-lg);
     font-weight: var(--font-bold);
+  }
+`;
+
+// 채팅 우측 토지 정보 패널을 닫는 버튼입니다.
+export const ChatLandCloseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #5f5a52;
+  cursor: pointer;
+
+  &:hover {
+    background: #eee7da;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #d6a81b;
+    outline-offset: 2px;
   }
 `;
 

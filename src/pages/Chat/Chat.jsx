@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
-import { ChevronUp, LogOut, Paperclip, Search, Send, Map } from "lucide-react";
+import { LogOut, Paperclip, Search, Send, Map, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
@@ -12,6 +12,10 @@ import {
   isClosedChatRoomId,
 } from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
+import useAuthToken from "@/hooks/useAuthToken";
+import { mergeChatMessages } from "@/utils/chatMessages";
+import { readApiResponse } from "@/utils/apiResponse";
+import { getTransactionLabel } from "@/pages/Land/landUtils";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 import {
   ChatActionButton,
@@ -24,6 +28,7 @@ import {
   ChatLandImage,
   ChatLandInfo,
   ChatLandPanel,
+  ChatLandCloseButton,
   ChatLandRow,
   ChatListHeader,
   ChatMain,
@@ -108,47 +113,30 @@ const normalizeMessage = (payload) => {
   return message;
 };
 
-const mergeMessages = (serverMessages, pendingMessages = []) => {
-  // 서버 저장 확인 전 임시 메시지는 목록 재조회 후에도 잠시 유지합니다.
-  const serverKeys = new Set(
-    serverMessages.map((message) => String(message.messageId || `${message.sentAt}-${message.content}`)),
-  );
-  const unresolvedPendingMessages = pendingMessages.filter((message) => {
-    const hasSameContent = serverMessages.some(
-      (serverMessage) =>
-        serverMessage.content === message.content &&
-        serverMessage.senderEmail === message.senderEmail,
-    );
-    return !serverKeys.has(String(message.messageId)) && !hasSameContent;
-  });
-
-  return [...serverMessages, ...unresolvedPendingMessages];
-};
-
-const clearConfirmTimers = (timerIdsRef) => {
-  // 방 이동/나가기 이후 이전 방 저장 확인 타이머가 실행되지 않게 정리합니다.
-  timerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-  timerIdsRef.current = [];
-};
-
-function Chat() {
+function ChatSession({ token }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const clientRef = useRef(null);
-  const confirmTimersRef = useRef([]);
+  const sendingRef = useRef(false);
+  const [isSending, setIsSending] = useState(false);
   const messageEndRef = useRef(null);
   const selectedRoomIdRef = useRef(null);
+  const roomEpochRef = useRef(0);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
+  const [isLandPanelOpen, setIsLandPanelOpen] = useState(true);
   const [detailLand, setDetailLand] = useState(null);
   const [myEmail, setMyEmail] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMessageLoading, setIsMessageLoading] = useState(false);
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  // 현재 선택한 방과 실제 연결된 방이 같을 때만 전송을 허용합니다.
+  const [connectedRoomId, setConnectedRoomId] = useState(null);
+  const isSocketConnected = selectedRoomId !== null && connectedRoomId === selectedRoomId;
   const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -166,6 +154,7 @@ function Chat() {
     // 서버에 저장된 메시지 목록을 다시 불러와 화면 상태를 맞춥니다.
     if (!roomId) return;
     if (isClosedChatRoomId(roomId)) return [];
+    const epoch = roomEpochRef.current;
 
     const response = await authFetch(Api.ChatMessages(roomId), { method: "GET" });
     const data = await response.json();
@@ -175,9 +164,11 @@ function Chat() {
     }
 
     const serverMessages = extractArray(data);
-    setMessages((prev) => mergeMessages(serverMessages, prev.filter((message) => message.pending)));
+    // 방 이동 또는 계정 변경 뒤 도착한 응답은 화면에 반영하지 않습니다.
+    if (epoch !== roomEpochRef.current || String(roomId) !== String(selectedRoomIdRef.current) || token !== getValidAccessToken()) return [];
+    setMessages((prev) => mergeChatMessages(serverMessages, prev));
     return serverMessages;
-  }, []);
+  }, [token]);
 
   const handleSocketMessage = useCallback((message) => {
     // STOMP로 수신한 메시지를 화면 메시지 목록에 반영합니다.
@@ -187,24 +178,7 @@ function Chat() {
       if (isClosedChatRoomId(incomingMessage.roomId)) return;
       if (incomingMessage.roomId && String(incomingMessage.roomId) !== String(selectedRoomIdRef.current)) return;
 
-      setMessages((prev) => {
-        const duplicated = prev.some(
-          (prevMessage) =>
-            String(prevMessage.messageId) === String(incomingMessage.messageId) ||
-            (prevMessage.pending &&
-              prevMessage.content === incomingMessage.content &&
-              prevMessage.senderEmail === incomingMessage.senderEmail),
-        );
-        return duplicated
-          ? prev.map((prevMessage) =>
-              prevMessage.pending &&
-              prevMessage.content === incomingMessage.content &&
-              prevMessage.senderEmail === incomingMessage.senderEmail
-                ? incomingMessage
-                : prevMessage,
-            )
-          : [...prev, incomingMessage];
-      });
+      setMessages((prev) => mergeChatMessages(prev, [incomingMessage]));
     } catch {
       setError("메시지 응답을 해석하지 못했습니다.");
     }
@@ -292,6 +266,7 @@ function Chat() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchRoomDetail = async () => {
       // 선택된 채팅방이 없으면 빈 상태를 표시합니다.
       if (!selectedRoom) {
@@ -308,6 +283,9 @@ function Chat() {
       }
 
       setIsMessageLoading(true);
+      setMessages([]);
+      setSelectedLand(null);
+      setStatusMessage("");
       setError("");
 
       try {
@@ -315,10 +293,12 @@ function Chat() {
           ? await authFetch(Api.Land(selectedRoom.landId), { method: "GET" })
           : null;
         const landData = landResponse ? await landResponse.json() : null;
-
+        if (cancelled) return;
         await refreshMessages(selectedRoom.roomId);
+        if (cancelled) return;
         setSelectedLand(landResponse?.ok ? landData?.data : null);
       } catch (err) {
+        if (cancelled) return;
         if (err.message?.includes("로그인") || err.message?.includes("인증")) {
           navigate("/login", { replace: true });
           return;
@@ -326,17 +306,20 @@ function Chat() {
 
         setError(err.message || "채팅방 정보를 불러오지 못했습니다.");
       } finally {
-        setIsMessageLoading(false);
+        if (!cancelled) setIsMessageLoading(false);
       }
     };
 
     // 선택한 채팅방의 메시지와 토지 정보를 조회합니다.
     void fetchRoomDetail();
+    return () => {
+      cancelled = true;
+      roomEpochRef.current += 1;
+    };
   }, [navigate, refreshMessages, selectedRoom]);
   useEffect(() => {
     // 선택된 채팅방 기준으로 STOMP WebSocket을 연결합니다.
     if (!selectedRoom) {
-      setIsSocketConnected(false);
       return undefined;
     }
 
@@ -347,8 +330,6 @@ function Chat() {
     }
 
     let isClosedByCleanup = false;
-
-    setIsSocketConnected(false);
 
     const client = new Client({
       brokerURL: Api.ChatSocket,
@@ -361,22 +342,27 @@ function Chat() {
       onConnect: () => {
         // 연결 후 현재 채팅방 topic을 구독합니다.
         setError("");
-        setIsSocketConnected(true);
-        client.subscribe(Api.ChatSubscribeRoom(selectedRoom.roomId), handleSocketMessage);
-        client.subscribe(Api.ChatSubscribeMessages(selectedRoom.roomId), handleSocketMessage);
+        if (isClosedByCleanup) return;
+        setConnectedRoomId(selectedRoom.roomId);
+        const receive = (message) => {
+          if (!isClosedByCleanup && token === getValidAccessToken()) handleSocketMessage(message);
+        };
+        client.subscribe(Api.ChatSubscribeRoom(selectedRoom.roomId), receive);
+        client.subscribe(Api.ChatSubscribeMessages(selectedRoom.roomId), receive);
       },
       onStompError: (frame) => {
-        setIsSocketConnected(false);
+        if (isClosedByCleanup) return;
+        setConnectedRoomId(null);
         setError(frame.body || frame.headers?.message || "채팅 서버 연결 중 오류가 발생했습니다.");
       },
       onWebSocketClose: () => {
         if (isClosedByCleanup) return;
-        setIsSocketConnected(false);
+        setConnectedRoomId(null);
         setError("채팅 서버에 연결하지 못했습니다.");
       },
       onWebSocketError: () => {
         if (isClosedByCleanup) return;
-        setIsSocketConnected(false);
+        setConnectedRoomId(null);
       },
     });
 
@@ -396,94 +382,47 @@ function Chat() {
     messageEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
-  useEffect(() => {
-    return () => {
-      // 페이지 이탈 시 저장 확인 타이머를 정리합니다.
-      confirmTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
-      confirmTimersRef.current = [];
-    };
-  }, []);
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // 텍스트 메시지는 서버 STOMP destination으로 전송합니다.
+    // 저장된 메시지 ID를 반환하는 HTTP API로 전송 결과를 확정합니다.
     const content = messageInput.trim();
-    const client = clientRef.current;
-    const token = getValidAccessToken();
-
-    if (!content || !selectedRoom) return;
-    if (!token) {
+    const sendingToken = getValidAccessToken();
+    if (!content || !selectedRoom || sendingRef.current) return;
+    if (!sendingToken) {
       navigate("/login", { replace: true });
       return;
     }
-    if (!isSocketConnected || !client?.connected) {
-      setError("채팅 서버 연결 후 다시 전송해주세요.");
+    if (content.length > 2000) {
+      setError("메시지는 2,000자 이하로 입력해주세요.");
       return;
     }
-
-    const pendingMessageId = `pending-${Date.now()}`;
-    try {
-      client.publish({
-        destination: Api.ChatSendMessage(selectedRoom.roomId),
-        headers: {
-          // Spring 메시지 컨버터가 JSON 본문으로 인식하도록 content-type만 명시합니다.
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ roomId: selectedRoom.roomId, content }),
-      });
-    } catch {
-      setError("메시지를 전송하지 못했습니다.");
-      return;
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        messageId: pendingMessageId,
-        roomId: selectedRoom.roomId,
-        senderEmail: myEmail,
-        senderName: "나",
-        content,
-        sentAt: new Date().toISOString(),
-        pending: true,
-      },
-    ]);
-    setMessageInput("");
-    setStatusMessage("메시지 전송 후 서버 저장 상태를 확인하는 중입니다.");
+    const sentEpoch = roomEpochRef.current;
+    sendingRef.current = true;
+    setIsSending(true);
     setError("");
-
-    const confirmSavedMessage = async (retryCount = 0) => {
-      // 서버 저장/브로드캐스트 지연을 감안해 메시지 목록을 여러 번 확인합니다.
-      if (isClosedChatRoomId(selectedRoom.roomId)) return;
-
-      const serverMessages = await refreshMessages(selectedRoom.roomId);
-      const savedMessage = serverMessages.some(
-        (message) =>
-          message.content === content &&
-          (!message.senderEmail || !myEmail || message.senderEmail === myEmail),
-      );
-
-      if (savedMessage) {
-        setStatusMessage("");
-        return;
+    setStatusMessage("메시지를 전송하는 중입니다.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await authFetch(Api.ChatMessages(selectedRoom.roomId), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }), signal: controller.signal,
+      });
+      const data = await readApiResponse(response, "메시지를 전송하지 못했습니다.");
+      if (data?.data?.messageId == null) throw new Error("저장된 메시지 ID를 확인할 수 없습니다.");
+      if (sentEpoch !== roomEpochRef.current || sendingToken !== getValidAccessToken()) return;
+      setMessages((prev) => mergeChatMessages(prev, [data.data]));
+      setMessageInput("");
+    } catch (error) {
+      if (sentEpoch === roomEpochRef.current && sendingToken === getValidAccessToken()) {
+        setError(`${error.message || "전송 결과를 확인하지 못했습니다."} 중복 전송을 피하려면 대화 내역을 먼저 확인해주세요.`);
       }
-
-      if (retryCount < 2) {
-        const timerId = window.setTimeout(() => {
-          void confirmSavedMessage(retryCount + 1);
-        }, 1000);
-        confirmTimersRef.current.push(timerId);
-        return;
-      }
-
-      setStatusMessage("");
-      setError("");
-    };
-
-    const timerId = window.setTimeout(() => {
-      void confirmSavedMessage();
-    }, 1000);
-    confirmTimersRef.current.push(timerId);
+    } finally {
+      window.clearTimeout(timeout);
+      sendingRef.current = false;
+      setIsSending(false);
+      if (sentEpoch === roomEpochRef.current) setStatusMessage("");
+    }
   };
 
   const handleFileUpload = async (event) => {
@@ -492,6 +431,7 @@ function Chat() {
     event.target.value = "";
 
     if (!file || !selectedRoom) return;
+    const uploadEpoch = roomEpochRef.current;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -505,35 +445,27 @@ function Chat() {
         body: formData,
       });
       const data = await response.json();
+      if (uploadEpoch !== roomEpochRef.current || token !== getValidAccessToken()) return;
 
       if (!response.ok) {
         throw new Error(data?.message || data?.data?.message || "파일을 전송하지 못했습니다.");
       }
 
-      setMessages((prev) => [...prev, data?.data].filter(Boolean));
+      setMessages((prev) => mergeChatMessages(prev, [data?.data]));
       setStatusMessage("파일이 전송되었습니다.");
     } catch (err) {
-      setError(err.message || "파일을 전송하지 못했습니다.");
+      if (uploadEpoch === roomEpochRef.current && token === getValidAccessToken()) setError(err.message || "파일을 전송하지 못했습니다.");
     } finally {
-      setIsMessageLoading(false);
+      if (uploadEpoch === roomEpochRef.current) setIsMessageLoading(false);
     }
   };
 
   const handleLeaveRoom = async () => {
     // 채팅방 삭제 API를 호출하고 목록에서 즉시 제거합니다.
-    if (!selectedRoom) return;
+    if (!selectedRoom || isDeleting) return;
+    if (!(await window.confirm("채팅방과 모든 메시지를 삭제할까요? 삭제 후에는 복구할 수 없습니다."))) return;
     const leavingRoom = selectedRoom;
-
-    clearConfirmTimers(confirmTimersRef);
-    addClosedChatRoomId(leavingRoom.roomId, leavingRoom);
-    setRooms((prev) => {
-      const nextRooms = prev.filter((room) => String(room.roomId) !== String(leavingRoom.roomId));
-      setSelectedRoomId(nextRooms[0]?.roomId || null);
-      return nextRooms;
-    });
-    setSelectedLand(null);
-    setMessages([]);
-    setStatusMessage("");
+    setIsDeleting(true);
     setError("");
 
     try {
@@ -542,17 +474,19 @@ function Chat() {
       });
       const contentType = response.headers.get("content-type") || "";
       const data = contentType.includes("application/json") ? await response.json() : null;
+      if (token !== getValidAccessToken()) return;
 
       if (!response.ok) {
-        if ([404, 409, 422].includes(response.status)) {
-          setStatusMessage(data?.data?.message || data?.message || "처리할 수 없는 채팅방이라 목록에서 제거했습니다.");
-          return;
-        }
-
         throw new Error(data?.data?.message || data?.message || "채팅방을 나가지 못했습니다.");
       }
+      // 서버 삭제 성공 후에만 해당 방 ID를 숨깁니다. 같은 토지의 새 방은 숨기지 않습니다.
+      addClosedChatRoomId(leavingRoom.roomId);
+      setRooms((prev) => prev.filter((room) => String(room.roomId) !== String(leavingRoom.roomId)));
+      setSelectedRoomId((prev) => String(prev) === String(leavingRoom.roomId) ? null : prev);
     } catch (err) {
-      setStatusMessage("채팅방을 목록에서 제거했습니다. 서버 상태는 다음 동기화 때 다시 확인됩니다.");
+      if (token === getValidAccessToken()) setError(err.message || "삭제하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -589,7 +523,10 @@ function Chat() {
                 key={room.roomId}
                 type="button"
                 $active={String(room.roomId) === String(selectedRoomId)}
-                onClick={() => setSelectedRoomId(room.roomId)}
+                onClick={() => {
+                  setSelectedRoomId(room.roomId);
+                  setIsLandPanelOpen(true);
+                }}
               >
                 <strong>{room.counterpartName || room.counterpartEmail || "상대방"}</strong>
                 <span>{room.counterpartEmail || "담당자 정보 없음"}</span>
@@ -620,6 +557,12 @@ function Chat() {
                   <Map size={15} />
                   토지 상세 보기
                 </ChatActionButton>
+                {!isLandPanelOpen && selectedLand ? (
+                  <ChatActionButton type="button" $variant="outline" onClick={() => setIsLandPanelOpen(true)}>
+                    <Map size={15} />
+                    토지 정보
+                  </ChatActionButton>
+                ) : null}
               </ChatRoomHeader>
 
               {error ? <ChatStatusText $error>{error}</ChatStatusText> : null}
@@ -660,11 +603,13 @@ function Chat() {
                   </button>
                   <input
                     value={messageInput}
+                    disabled={isSending}
+                    maxLength={2000}
                     onChange={(event) => setMessageInput(event.target.value)}
                     placeholder="메시지를 입력하세요..."
                   />
                 </ChatInputBox>
-                <ChatActionButton type="submit" disabled={!messageInput.trim() || !isSocketConnected}>
+                <ChatActionButton type="submit" disabled={!messageInput.trim() || isSending || !isSocketConnected}>
                   <Send size={15} />
                   전송
                 </ChatActionButton>
@@ -679,10 +624,16 @@ function Chat() {
           )}
         </ChatMain>
 
-        <ChatLandPanel>
+        {isLandPanelOpen ? <ChatLandPanel>
           <ChatLandHeader>
             <h2>토지 정보</h2>
-            <ChevronUp size={18} strokeWidth={2} />
+            <ChatLandCloseButton
+              type="button"
+              onClick={() => setIsLandPanelOpen(false)}
+              aria-label="토지 정보 닫기"
+            >
+              <X size={18} strokeWidth={2} />
+            </ChatLandCloseButton>
           </ChatLandHeader>
 
           {selectedLand ? (
@@ -696,14 +647,15 @@ function Chat() {
                 </ChatLandRow>
                 <ChatLandRow>
                   <span>거래 방식</span>
-                  <strong>{selectedLand.transactionType === "LEASE" ? "임대" : "매매"}</strong>
+                  {/* 사업 희망과 미분류도 다른 토지 화면과 같은 기준으로 표시합니다. */}
+                  <strong>{getTransactionLabel(selectedLand.transactionType)}</strong>
                 </ChatLandRow>
                 <ChatLandRow>
                   <span>희망 가격</span>
                   <strong>{formatPrice(selectedLand.desiredPrice)}</strong>
                 </ChatLandRow>
               </ChatLandInfo>
-              <ChatLeaveButton type="button" onClick={handleLeaveRoom}>
+              <ChatLeaveButton type="button" onClick={handleLeaveRoom} disabled={isDeleting}>
                 <LogOut size={15} />
                 채팅방 삭제
               </ChatLeaveButton>
@@ -711,11 +663,15 @@ function Chat() {
           ) : (
             <ChatEmpty>찾을 수 없습니다</ChatEmpty>
           )}
-        </ChatLandPanel>
+        </ChatLandPanel> : null}
       </ChatShell>
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
     </ChatPage>
   );
 }
 
-export default Chat;
+// 계정이 바뀌면 이전 계정의 대화 상태와 연결을 모두 폐기합니다.
+export default function Chat() {
+  const token = useAuthToken();
+  return <ChatSession key={token || "anonymous"} token={token} />;
+}

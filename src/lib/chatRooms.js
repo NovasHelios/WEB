@@ -5,10 +5,27 @@ export const CHAT_ROOMS_CHANGED_EVENT = "helios:chat-rooms-changed";
 const normalizeRoomId = (roomId) => String(roomId || "").trim();
 const normalizeValue = (value) => String(value || "").trim().toLowerCase();
 
+// 숨김 정보는 JWT의 계정 식별자로 구분하며 기존 공용 기록은 사용하지 않습니다.
+const scopedKey = (key) => {
+  try {
+    const part = localStorage.getItem("accessToken")?.split(".")[1];
+    const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")));
+    return payload.sub ? `${key}:${encodeURIComponent(payload.sub)}` : null;
+  } catch { return null; }
+};
+
+const writeJsonArray = (key, value) => {
+  const scoped = scopedKey(key);
+  if (!scoped) return;
+  try { localStorage.setItem(scoped, JSON.stringify(value)); } catch { /* 저장 제한 시 서버 목록을 사용합니다. */ }
+};
+
 const readJsonArray = (key) => {
   // localStorage 값이 깨져도 채팅 목록이 멈추지 않게 빈 배열로 복구합니다.
   try {
-    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    const scoped = scopedKey(key);
+    const value = JSON.parse((scoped && localStorage.getItem(scoped)) || "[]");
     return Array.isArray(value) ? value : [];
   } catch {
     return [];
@@ -62,8 +79,8 @@ export const addClosedChatRoomId = (roomId, room = null) => {
     nextMatch,
   ];
 
-  localStorage.setItem(CLOSED_CHAT_ROOM_IDS_KEY, JSON.stringify(nextIds));
-  localStorage.setItem(CLOSED_CHAT_ROOM_MATCHES_KEY, JSON.stringify(nextMatches));
+  writeJsonArray(CLOSED_CHAT_ROOM_IDS_KEY, nextIds);
+  writeJsonArray(CLOSED_CHAT_ROOM_MATCHES_KEY, nextMatches);
   window.dispatchEvent(new CustomEvent(CHAT_ROOMS_CHANGED_EVENT));
 };
 
@@ -94,8 +111,8 @@ export const removeClosedChatRoomMatch = (room = {}) => {
     (roomId) => !shouldClearLegacyIds && roomId !== target.roomId && !removedRoomIds.has(roomId),
   );
 
-  localStorage.setItem(CLOSED_CHAT_ROOM_IDS_KEY, JSON.stringify(nextIds));
-  localStorage.setItem(CLOSED_CHAT_ROOM_MATCHES_KEY, JSON.stringify(nextMatches));
+  writeJsonArray(CLOSED_CHAT_ROOM_IDS_KEY, nextIds);
+  writeJsonArray(CLOSED_CHAT_ROOM_MATCHES_KEY, nextMatches);
   window.dispatchEvent(new CustomEvent(CHAT_ROOMS_CHANGED_EVENT));
 };
 
