@@ -11,8 +11,12 @@ import {
 import {
   AiOpinion,
   AnalysisCard,
+  AnalysisCardBody,
   AnalysisGrid,
   AnalysisItem,
+  AnalysisLoadingOverlay,
+  AnalysisLoadingSpinner,
+  AnalysisLoadingText,
   CloseButton,
   DetailGrid,
   DocumentCard,
@@ -92,6 +96,16 @@ const calculateScorePercent = (score, maxScore) => {
   return (normalizeScore(score, maxScore) / maxScore) * 100;
 };
 
+// 종합 적합도 점수에 따라 Preview 게이지와 동일한 색상을 반환합니다.
+const getTotalScoreColor = (score) => {
+  // 33점 이하는 낮은 적합도를 나타내는 빨간색을 사용합니다.
+  if (score <= 33) return "#ff5757";
+  // 66점 이하는 보통 적합도를 나타내는 노란색을 사용합니다.
+  if (score <= 66) return "#ffd33d";
+  // 67점 이상은 높은 적합도를 나타내는 초록색을 사용합니다.
+  return "#5dde88";
+};
+
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
   // 토지가 바뀌면 이미지 선택·실패 상태를 함께 새로 만듭니다.
@@ -99,6 +113,8 @@ function Specific({ land, onClose }) {
 }
 
 function SpecificContent({ land, onClose }) {
+  // 상세보기 분석 API에 사용할 토지 ID를 정리합니다.
+  const analysisLandId = land?.id ?? land?.landId;
   // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
   const [isHeroImageFailed, setIsHeroImageFailed] = useState(false);
   // 현재 대표 이미지로 보여줄 이미지 번호입니다.
@@ -107,14 +123,24 @@ function SpecificContent({ land, onClose }) {
   const [developmentAnalysis, setDevelopmentAnalysis] = useState(null);
   // 적합도 분석 조회 실패 시 기존 카드 안에 표시할 오류 문구입니다.
   const [developmentAnalysisError, setDevelopmentAnalysisError] = useState("");
+  // 유효한 토지 ID가 있으면 분석 결과를 받을 때까지 로딩 화면을 표시합니다.
+  const [isDevelopmentAnalysisLoading, setIsDevelopmentAnalysisLoading] =
+    useState(
+      () =>
+        analysisLandId !== undefined &&
+        analysisLandId !== null &&
+        analysisLandId !== ""
+    );
 
   // 상세보기 대상 토지가 바뀔 때 해당 토지의 적합도 분석 결과를 조회합니다.
   useEffect(() => {
     // 상세보기 데이터에서 사용할 수 있는 토지 ID를 선택합니다.
-    const landId = land?.id ?? land?.landId;
-
     // 토지 ID가 없으면 분석 API를 호출하지 않습니다.
-    if (landId === undefined || landId === null || landId === "") {
+    if (
+      analysisLandId === undefined ||
+      analysisLandId === null ||
+      analysisLandId === ""
+    ) {
       return undefined;
     }
 
@@ -122,7 +148,7 @@ function SpecificContent({ land, onClose }) {
     const controller = new AbortController();
 
     // 선택한 토지의 개발 적합도 분석 결과를 요청합니다.
-    fetchLandDevelopmentAnalysis(landId, { signal: controller.signal })
+    fetchLandDevelopmentAnalysis(analysisLandId, { signal: controller.signal })
       .then((analysis) => {
         // 취소되지 않은 요청의 결과만 현재 상세보기에 반영합니다.
         if (!controller.signal.aborted) {
@@ -138,11 +164,17 @@ function SpecificContent({ land, onClose }) {
         setDevelopmentAnalysisError(
           error?.message || "태양광 적합도 분석을 불러오지 못했습니다."
         );
+      })
+      .finally(() => {
+        // 취소되지 않은 요청이 끝나면 성공·실패와 관계없이 로딩 화면을 종료합니다.
+        if (!controller.signal.aborted) {
+          setIsDevelopmentAnalysisLoading(false);
+        }
       });
 
     // 컴포넌트 정리 시 진행 중인 분석 요청을 취소합니다.
     return () => controller.abort();
-  }, [land?.id, land?.landId]);
+  }, [analysisLandId]);
 
 
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
@@ -372,43 +404,69 @@ function SpecificContent({ land, onClose }) {
             </InfoColumn>
 
             <AnalysisCard>
-              <SectionTitle>
-                <Bot size={18} strokeWidth={2} />
-                태양광 적합도 분석
-                <ScoreBadge>
-                  {developmentAnalysis ? `${totalScore}점 / 100점` : "분석 중"}
-                </ScoreBadge>
-              </SectionTitle>
+              {/* 로딩 중에는 기존 분석 결과 UI를 유지한 채 흐리게 표시합니다. */}
+              <AnalysisCardBody
+                $loading={isDevelopmentAnalysisLoading}
+                aria-hidden={isDevelopmentAnalysisLoading}
+              >
+                <SectionTitle>
+                  <Bot size={18} strokeWidth={2} />
+                  태양광 적합도 분석
+                  <ScoreBadge>
+                    {isDevelopmentAnalysisLoading
+                      ? "분석 중"
+                      : developmentAnalysisError
+                        ? "분석 실패"
+                        : developmentAnalysis
+                          ? `${totalScore}점 / 100점`
+                          : "분석 결과 없음"}
+                  </ScoreBadge>
+                </SectionTitle>
 
-              <AnalysisGrid>
-                <AnalysisItem $score={totalScore}>
-                  <span>종합 적합도</span>
-                  <strong>
-                    {developmentAnalysis ? `${totalScore}점 / 100점` : "-점 / 100점"}
-                  </strong>
-                </AnalysisItem>
-                {SOLAR_ANALYSIS_ITEMS.map((item) => {
-                  // 각 API 점수를 항목별 만점 안에서 표시합니다.
-                  const itemScore = normalizeScore(
-                    developmentAnalysis?.[item.key],
-                    item.maxScore
-                  );
+                <AnalysisGrid>
+                  <AnalysisItem
+                    $score={totalScore}
+                    $barColor={getTotalScoreColor(totalScore)}
+                  >
+                    <span>종합 적합도</span>
+                    <strong>
+                      {developmentAnalysis ? `${totalScore}점 / 100점` : "-점 / 100점"}
+                    </strong>
+                  </AnalysisItem>
+                  {SOLAR_ANALYSIS_ITEMS.map((item) => {
+                    // 각 API 점수를 항목별 만점 안에서 표시합니다.
+                    const itemScore = normalizeScore(
+                      developmentAnalysis?.[item.key],
+                      item.maxScore
+                    );
 
-                  return (
-                    <AnalysisItem
-                      key={item.key}
-                      $score={calculateScorePercent(itemScore, item.maxScore)}
-                    >
-                      <span>{item.label}</span>
-                      <strong>
-                        {developmentAnalysis
-                          ? `${itemScore}점 / ${item.maxScore}점`
-                          : `-점 / ${item.maxScore}점`}
-                      </strong>
-                    </AnalysisItem>
-                  );
-                })}
-              </AnalysisGrid>
+                    return (
+                      <AnalysisItem
+                        key={item.key}
+                        $score={calculateScorePercent(itemScore, item.maxScore)}
+                      >
+                        <span>{item.label}</span>
+                        <strong>
+                          {developmentAnalysis
+                            ? `${itemScore}점 / ${item.maxScore}점`
+                            : `-점 / ${item.maxScore}점`}
+                        </strong>
+                      </AnalysisItem>
+                    );
+                  })}
+                </AnalysisGrid>
+              </AnalysisCardBody>
+
+              {/* 분석 결과를 불러오는 동안 카드 중앙에 로딩 상태를 표시합니다. */}
+              {isDevelopmentAnalysisLoading && (
+                <AnalysisLoadingOverlay
+                  role="status"
+                  aria-label="태양광 적합도 로딩 중"
+                >
+                  <AnalysisLoadingSpinner aria-hidden="true" />
+                  <AnalysisLoadingText>로딩 중</AnalysisLoadingText>
+                </AnalysisLoadingOverlay>
+              )}
             </AnalysisCard>
           </InfoGrid>
 

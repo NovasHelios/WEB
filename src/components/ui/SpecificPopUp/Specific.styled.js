@@ -1,5 +1,5 @@
-// styled-components로 상세보기 팝업 스타일을 정의합니다.
-import styled from "styled-components";
+// styled-components와 로딩 회전 효과를 정의할 keyframes를 가져옵니다.
+import styled, { keyframes } from "styled-components";
 
 // 팝업 뒤 전체 화면을 덮고 배경을 블러 처리하는 영역입니다.
 export const SpecificBackdrop = styled.div`
@@ -322,10 +322,61 @@ export const InfoList = styled.div`
 
 // 분석 카드입니다.
 export const AnalysisCard = styled.section`
+  position: relative;
+  overflow: hidden;
   padding: 16px;
   border: 1px solid #eeeeee;
   border-radius: 10px;
   background: #ffffff;
+`;
+
+// 로딩 중 상세보기의 분석 결과를 유지하면서 흐리게 표시합니다.
+export const AnalysisCardBody = styled.div`
+  filter: ${({ $loading }) => ($loading ? "blur(4px)" : "none")};
+  opacity: ${({ $loading }) => ($loading ? 0.55 : 1)};
+  pointer-events: ${({ $loading }) => ($loading ? "none" : "auto")};
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+`;
+
+// 상세보기 분석 로더를 시계 방향으로 회전시킵니다.
+const analysisLoadingSpin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// 흐려진 상세보기 분석 카드 중앙에 로딩 상태를 배치합니다.
+export const AnalysisLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #555555;
+`;
+
+// 여러 점이 이어진 원형 로더를 회전시켜 분석 진행 상태를 표현합니다.
+export const AnalysisLoadingSpinner = styled.span`
+  width: 44px;
+  height: 44px;
+  border: 6px dotted #777777;
+  border-radius: 50%;
+  animation: ${analysisLoadingSpin} 1.1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+// 상세보기 분석 카드의 로딩 안내 문구입니다.
+export const AnalysisLoadingText = styled.strong`
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
 `;
 
 // 종합 점수 배지입니다.
@@ -374,7 +425,8 @@ export const AnalysisItem = styled.div`
 
   &::after {
     width: ${({ $score }) => `${$score || 0}%`};
-    background: #d6b326;
+    /* 종합 점수는 점수 구간 색상을, 세부 항목은 기존 금색을 사용합니다. */
+    background: ${({ $barColor }) => $barColor || "#d6b326"};
     /* 분석 데이터가 반영될 때 점수 바가 현재 비율까지 자연스럽게 늘어납니다. */
     transition: width 800ms ease;
   }
