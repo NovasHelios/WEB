@@ -4,7 +4,7 @@ import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import BusinessTimePicker from "./BusinessTimePicker";
 import {
   BusinessBasicGrid,
@@ -62,6 +62,7 @@ function BusinessProfile() {
 }
 
 function BusinessProfileForm() {
+  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [nationwideActive, setNationwideActive] = useState(false);
@@ -203,7 +204,8 @@ function BusinessProfileForm() {
         }),
       });
       if (!response.ok) throw new Error("사업자 프로필 저장에 실패했습니다. 플랜과 입력값을 확인해주세요.");
-      setSaveMessage("사업자 프로필이 서버에 저장되었습니다.");
+      // 서버 저장이 성공한 경우에만 지도 화면으로 이동합니다.
+      navigate("/", { replace: true });
     } catch (error) {
       setSaveMessage(error.message);
     } finally {
@@ -352,7 +354,8 @@ function BusinessProfileForm() {
               <BusinessProfileSectionTitle><span>3</span>활동 지역 및 상담 가능 여부</BusinessProfileSectionTitle>
             </BusinessProfileSectionHeader>
             <BusinessOptionPanel>
-              <BusinessOptionLabel>활동 가능 권역 선택 <label><input type="checkbox" checked={nationwideActive} onChange={(event) => setNationwideActive(event.target.checked)} /> 전국 협의 가능</label></BusinessOptionLabel>
+              {/* 활동 지역은 아래 지역 추가 입력으로 관리합니다. */}
+              <BusinessOptionLabel>활동 가능 지역</BusinessOptionLabel>
               {/* 저장된 지역은 유지하고 새 지역은 직접 입력하여 추가합니다. */}
               <BusinessTags>
                 {selectedRegions.map((region) => <BusinessTag key={region} type="button" aria-label={`${region} 삭제`} onClick={() => {
