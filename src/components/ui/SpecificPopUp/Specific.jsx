@@ -62,7 +62,6 @@ import {
 import { formatOfficialLandPrice } from "@/utils/landFormatters";
 // 선택한 토지의 태양광 개발 적합도 분석 결과를 조회합니다.
 import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
-// 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
 
 // 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";

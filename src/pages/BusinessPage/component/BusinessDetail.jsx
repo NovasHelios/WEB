@@ -2,6 +2,7 @@ import { ArrowLeft, BadgeCheck, BriefcaseBusiness, Building2, Clock3, MapPin, Sh
 import { useState } from "react";
 import {
   BusinessBackButton,
+  BusinessConsultButton,
   BusinessDetailLayout,
   BusinessDetailSection,
   BusinessDetailToolbar,
@@ -93,6 +94,9 @@ function BusinessDetail({ profile, onBack }) {
             <div><span>활동 지역</span><strong>{profile.nationwideActive ? "전국" : `${regions.length}곳`}</strong></div>
             <div><span>인증 상태</span><strong>{profile.businessVerified ? "완료" : "확인 중"}</strong></div>
           </BusinessSummaryFacts>
+
+          {/* 채팅 API 연결 전까지 화면 동작 없이 상담 연결 명령만 표시합니다. */}
+          <BusinessConsultButton type="button">상담 연결</BusinessConsultButton>
         </BusinessSummaryCard>
 
         {/* 상세 API가 제공하는 소개·활동·상담·인증 정보를 표시합니다. */}

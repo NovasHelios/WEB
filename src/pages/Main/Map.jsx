@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
-import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Filter from "@/components/ui/Filter/Filter";
 // 검색한 지역 안의 등록 토지 목록을 표시하는 패널입니다.
@@ -926,9 +925,6 @@ function Map() {
           </MapAlertDialog>
         </MapAlertOverlay>
       ) : null}
-
-      {/* AI 채팅은 미리보기보다 뒤, 지도보다 앞에 표시합니다. */}
-      <AiChat />
     </MapPage>
   );
 }
