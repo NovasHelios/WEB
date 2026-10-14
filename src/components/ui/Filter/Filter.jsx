@@ -84,6 +84,9 @@ const getTransactionFilterLabel = (filters) => {
   const transactionLabels = {
     SALE: "매매",
     LEASE: "임대",
+    // 현재 서버와 기존 프론트에서 사용하는 두 사업희망 값을 같은 문구로 표시합니다.
+    BusinessHope: "사업희망",
+    BUSINESS_HOPE: "사업희망",
   };
 
   // 거래 유형이 배열이면 여러 값을 쉼표로 이어 표시합니다.

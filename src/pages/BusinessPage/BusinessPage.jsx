@@ -87,6 +87,9 @@ function BusinessList({ token }) {
             specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
             regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
             isAvailable: profile.consultationAvailable,
+            // 카드의 상담 가능 배지에 실제 시작·종료 시간을 전달합니다.
+            consultationStartTime: profile.consultationStartTime,
+            consultationEndTime: profile.consultationEndTime,
           }}
           isLoading={detailId === profile.id}
           onViewDetail={() => openDetail(profile.id)}

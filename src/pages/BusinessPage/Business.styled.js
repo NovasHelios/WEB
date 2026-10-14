@@ -150,8 +150,4 @@ export const BusinessAvailability = styled.span`
   background: ${({ $available }) => ($available ? "#ffe69a" : "#eeeeee")};
   color: ${({ $available }) => ($available ? "#413100" : "#777777")};
   font-size: 16px;
-
-  svg {
-    color: ${({ $available }) => ($available ? "#18b52a" : "#999999")};
-  }
 `;

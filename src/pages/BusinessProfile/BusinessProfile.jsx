@@ -386,10 +386,23 @@ function BusinessProfileForm() {
                 <BusinessSettingRow>
                   <div><strong>상담 가능 시간대</strong></div>
                   <div>
-                    {/* 상담 가능한 시작·종료 시간을 직접 입력합니다. */}
-                    <BusinessTimePicker value={startTime} onChange={setStartTime} label="상담 시작 시간" disabled={!isReady || isSaving} />
+                    {/* 시작 시간은 종료 시간보다 앞선 시간만 선택할 수 있습니다. */}
+                    <BusinessTimePicker
+                      value={startTime}
+                      onChange={setStartTime}
+                      label="상담 시작 시간"
+                      disabled={!isReady || isSaving}
+                      maxExclusive={endTime}
+                    />
                     <span>~</span>
-                    <BusinessTimePicker value={endTime} onChange={setEndTime} label="상담 종료 시간" disabled={!isReady || isSaving} />
+                    {/* 종료 시간은 시작 시간보다 늦은 시간만 선택할 수 있습니다. */}
+                    <BusinessTimePicker
+                      value={endTime}
+                      onChange={setEndTime}
+                      label="상담 종료 시간"
+                      disabled={!isReady || isSaving}
+                      minExclusive={startTime}
+                    />
                   </div>
                 </BusinessSettingRow>
               </BusinessSettingCard>
