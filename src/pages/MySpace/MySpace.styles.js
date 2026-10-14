@@ -400,6 +400,24 @@ export const SpaceModalInput = styled.input`
   color: #1f1c17;
   font-size: var(--font-md);
   outline: none;
+
+  /* 읽기 전용 주소 입력을 수정 가능한 입력과 시각적으로 구분합니다. */
+  &:read-only {
+    padding: 0 8px;
+    border-bottom-color: #c8c1b6;
+    border-radius: 4px;
+    background: #f3f1ed;
+    color: #777168;
+    cursor: not-allowed;
+  }
+`;
+
+// 읽기 전용 주소의 수정 제한 안내 문구를 표시합니다.
+export const SpaceModalReadonlyNote = styled.p`
+  margin: 0;
+  color: #8a8175;
+  font-size: var(--font-xs);
+  font-weight: var(--font-regular);
 `;
 
 export const SpaceModalSelect = styled.select`

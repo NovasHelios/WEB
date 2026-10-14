@@ -41,6 +41,7 @@ import {
   SpaceModalHeader,
   SpaceModalImage,
   SpaceModalInput,
+  SpaceModalReadonlyNote,
   SpaceModalFileButton,
   SpaceModalFileInput,
   SpaceModalOverlay,
@@ -461,14 +462,18 @@ function MySpace() {
     event.preventDefault();
 
     if (!editingLand?.id || savingId) return;
+    // 수정 화면에서 주소값이 변경되더라도 서버에는 기존 등록 주소만 전달합니다.
+    const originalAddress = String(
+      editingLand.raw?.address || editingLand.title || "",
+    ).trim();
     // 주소 조회·이미지 업로드 사이에 계정이 바뀌면 후속 저장을 중단합니다.
     const savingToken = getValidAccessToken();
     if (!savingToken) {
       setEditError("로그인 후 다시 시도해주세요.");
       return;
     }
-    if (!editForm.address.trim()) {
-      setEditError("주소를 입력해주세요.");
+    if (!originalAddress) {
+      setEditError("기존 주소 정보를 확인할 수 없습니다.");
       return;
     }
 
@@ -478,13 +483,14 @@ function MySpace() {
 
     try {
       // 내 토지 수정 요청을 서버에 보냅니다.
-      if (!(await validateLandAddress(editForm.address))) {
+      if (!(await validateLandAddress(originalAddress))) {
         setEditError("시·군·구가 아닌 상세 지번 또는 도로명 주소를 검색 가능한 상태에서 입력해주세요.");
         return;
       }
       if (savingToken !== getValidAccessToken()) return;
       const payload = {
-        address: editForm.address.trim(),
+        // 주소는 수정할 수 없으므로 기존 등록 주소를 그대로 유지합니다.
+        address: originalAddress,
         desiredPrice: editForm.transactionType === "BUSINESS_HOPE"
           ? null
           : editForm.desiredPrice
@@ -816,11 +822,17 @@ function MySpace() {
 
             <SpaceModalField>
               주소
+              {/* 등록된 도로명 주소는 확인과 복사만 가능하도록 읽기 전용으로 표시합니다. */}
               <SpaceModalInput
                 value={editForm.address}
-                onChange={handleEditChange("address")}
-                placeholder="주소를 입력해주세요"
+                readOnly
+                aria-readonly="true"
+                aria-describedby="readonly-address-note"
               />
+              {/* 사용자가 주소를 수정할 수 없는 이유를 입력란 바로 아래에 안내합니다. */}
+              <SpaceModalReadonlyNote id="readonly-address-note">
+                도로명 주소는 토지 등록 후 수정할 수 없습니다.
+              </SpaceModalReadonlyNote>
             </SpaceModalField>
 
             <SpaceModalField>
