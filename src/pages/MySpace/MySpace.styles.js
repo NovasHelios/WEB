@@ -316,6 +316,51 @@ export const SpaceModalOverlay = styled.div`
   box-sizing: border-box;
 `;
 
+// 토지 삭제 확인을 브라우저 기본 confirm 대신 서비스 모달로 표시합니다.
+export const SpaceDeleteOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(31, 28, 23, 0.48);
+  box-sizing: border-box;
+`;
+
+export const SpaceDeleteDialog = styled.section`
+  width: min(100%, 26rem);
+  padding: clamp(1.5rem, 5vw, 2rem);
+  border: 1px solid #e6dcc8;
+  border-radius: 1.125rem;
+  background: #fffdf8;
+  color: #2c2925;
+  box-shadow: 0 24px 70px rgba(37, 29, 14, 0.24);
+  text-align: center;
+
+  h2 { margin: 0; font-size: var(--font-xl); font-weight: var(--font-bold); }
+  p { margin: 0.75rem 0 0; color: #756d61; font-size: var(--font-sm); line-height: 1.65; }
+`;
+
+export const SpaceDeleteIcon = styled.div`
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: #f7efdc;
+  color: #9a7200;
+`;
+
+export const SpaceDeleteActions = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  > button { min-width: 7rem; }
+`;
+
 export const SpaceModal = styled.form`
   width: min(100%, 520px);
   border: 1px solid #d9aa1f;

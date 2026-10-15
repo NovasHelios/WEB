@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
-import { LogOut, Paperclip, Search, Send, Map, X } from "lucide-react";
+import { AlertTriangle, LogOut, Paperclip, Search, Send, Map, Trash2, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
@@ -44,6 +44,10 @@ import {
   ChatStatusText,
   ChatTime,
   ChatLeaveButton,
+  ChatConfirmOverlay,
+  ChatConfirmDialog,
+  ChatConfirmIcon,
+  ChatConfirmActions,
 } from "./Chat.styles";
 
 const normalizeBaseUrl = (value) => {
@@ -123,6 +127,7 @@ function ChatSession({ token }) {
   const selectedRoomIdRef = useRef(null);
   const roomEpochRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -144,6 +149,16 @@ function ChatSession({ token }) {
     () => rooms.find((room) => String(room.roomId) === String(selectedRoomId)) || null,
     [rooms, selectedRoomId],
   );
+
+  useEffect(() => {
+    if (!isLeaveConfirmOpen) return undefined;
+    // 채팅방 삭제 확인은 Escape로 닫을 수 있습니다.
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !isDeleting) setIsLeaveConfirmOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isLeaveConfirmOpen, isDeleting]);
 
   useEffect(() => {
     // 비동기 수신 콜백에서 현재 선택된 방을 정확히 확인합니다.
@@ -463,7 +478,6 @@ function ChatSession({ token }) {
   const handleLeaveRoom = async () => {
     // 채팅방 삭제 API를 호출하고 목록에서 즉시 제거합니다.
     if (!selectedRoom || isDeleting) return;
-    if (!(await window.confirm("채팅방과 모든 메시지를 삭제할까요? 삭제 후에는 복구할 수 없습니다."))) return;
     const leavingRoom = selectedRoom;
     setIsDeleting(true);
     setError("");
@@ -483,6 +497,7 @@ function ChatSession({ token }) {
       addClosedChatRoomId(leavingRoom.roomId);
       setRooms((prev) => prev.filter((room) => String(room.roomId) !== String(leavingRoom.roomId)));
       setSelectedRoomId((prev) => String(prev) === String(leavingRoom.roomId) ? null : prev);
+      setIsLeaveConfirmOpen(false);
     } catch (err) {
       if (token === getValidAccessToken()) setError(err.message || "삭제하지 못했습니다. 다시 시도해주세요.");
     } finally {
@@ -655,7 +670,7 @@ function ChatSession({ token }) {
                   <strong>{formatPrice(selectedLand.desiredPrice)}</strong>
                 </ChatLandRow>
               </ChatLandInfo>
-              <ChatLeaveButton type="button" onClick={handleLeaveRoom} disabled={isDeleting}>
+              <ChatLeaveButton type="button" onClick={() => setIsLeaveConfirmOpen(true)} disabled={isDeleting}>
                 <LogOut size={15} />
                 채팅방 삭제
               </ChatLeaveButton>
@@ -665,6 +680,21 @@ function ChatSession({ token }) {
           )}
         </ChatLandPanel> : null}
       </ChatShell>
+      {isLeaveConfirmOpen && selectedRoom ? <ChatConfirmOverlay onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isDeleting) setIsLeaveConfirmOpen(false);
+      }}>
+        <ChatConfirmDialog role="alertdialog" aria-modal="true" aria-labelledby="leave-chat-title" aria-describedby="leave-chat-description">
+          <ChatConfirmIcon><AlertTriangle size={25} aria-hidden="true" /></ChatConfirmIcon>
+          <h2 id="leave-chat-title">채팅방을 삭제하시겠습니까?</h2>
+          <p id="leave-chat-description">채팅방과 모든 메시지를 삭제하면 복구할 수 없습니다. 삭제를 진행하시겠습니까?</p>
+          <ChatConfirmActions>
+            <button type="button" autoFocus disabled={isDeleting} onClick={() => setIsLeaveConfirmOpen(false)}>취소</button>
+            <button type="button" disabled={isDeleting} onClick={handleLeaveRoom}>
+              <Trash2 size={15} aria-hidden="true" /> {isDeleting ? "삭제 중" : "삭제하기"}
+            </button>
+          </ChatConfirmActions>
+        </ChatConfirmDialog>
+      </ChatConfirmOverlay> : null}
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
     </ChatPage>
   );

@@ -1,4 +1,4 @@
-import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
@@ -45,6 +45,10 @@ import {
   SpaceModalFileButton,
   SpaceModalFileInput,
   SpaceModalOverlay,
+  SpaceDeleteOverlay,
+  SpaceDeleteDialog,
+  SpaceDeleteIcon,
+  SpaceDeleteActions,
   SpaceModalSelect,
   SpaceModalTextarea,
   SpacePage,
@@ -308,8 +312,19 @@ function MySpace() {
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [landPendingDelete, setLandPendingDelete] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
+
+  useEffect(() => {
+    if (!landPendingDelete) return undefined;
+    // 삭제 확인창은 Escape로도 닫을 수 있습니다.
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !deletingId) setLandPendingDelete(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [landPendingDelete, deletingId]);
 
   const fetchMyLands = useCallback(async (signal) => {
     // 로그인하지 않은 사용자는 내 공간을 볼 수 없으므로 로그인으로 보냅니다.
@@ -568,11 +583,14 @@ function MySpace() {
     }
   };
 
-  const handleDeleteLand = async (land) => {
+  const handleDeleteLand = (land) => {
     if (!land?.id || deletingId) return;
-    const confirmed = window.confirm("이 토지를 삭제하시겠습니까?");
-    if (!confirmed) return;
+    setLandPendingDelete(land);
+  };
 
+  const confirmDeleteLand = async () => {
+    const land = landPendingDelete;
+    if (!land?.id || deletingId) return;
     setDeletingId(land.id);
     setError("");
 
@@ -590,6 +608,7 @@ function MySpace() {
       }
 
       setLands((prev) => prev.filter((item) => item.id !== land.id));
+      setLandPendingDelete(null);
     } catch (err) {
       setError(err.message || "토지를 삭제하지 못했습니다.");
     } finally {
@@ -887,6 +906,29 @@ function MySpace() {
       ) : null}
 
       <Specific land={selectedLand} onClose={() => setSelectedLand(null)} />
+
+      {landPendingDelete ? (
+        <SpaceDeleteOverlay onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !deletingId) setLandPendingDelete(null);
+        }}>
+          <SpaceDeleteDialog role="alertdialog" aria-modal="true" aria-labelledby="delete-land-title" aria-describedby="delete-land-description">
+            <SpaceDeleteIcon><AlertTriangle size={25} aria-hidden="true" /></SpaceDeleteIcon>
+            <h2 id="delete-land-title">토지를 삭제하시겠습니까?</h2>
+            <p id="delete-land-description">
+              {landPendingDelete.address || landPendingDelete.title || "선택한 토지"}를 삭제하면 목록에서 사라집니다. 삭제를 진행하시겠습니까?
+            </p>
+            <SpaceDeleteActions>
+              <SpaceActionButton type="button" $secondary autoFocus disabled={Boolean(deletingId)} onClick={() => setLandPendingDelete(null)}>
+                취소
+              </SpaceActionButton>
+              <SpaceActionButton type="button" $danger disabled={Boolean(deletingId)} onClick={confirmDeleteLand}>
+                <Trash2 size={15} aria-hidden="true" />
+                {deletingId ? "삭제 중" : "삭제하기"}
+              </SpaceActionButton>
+            </SpaceDeleteActions>
+          </SpaceDeleteDialog>
+        </SpaceDeleteOverlay>
+      ) : null}
     </SpaceWrapper>
   );
 }
