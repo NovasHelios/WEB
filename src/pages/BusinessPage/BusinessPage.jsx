@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
@@ -61,32 +62,34 @@ function BusinessList({ token }) {
         <BusinessDescription>태양광 사업자의 전문 분야와 활동 지역을 확인해 보세요.</BusinessDescription>
         <BusinessDivider />
       </BusinessHeader>
-      {detail ? (
-        // 선택한 사업자의 상세 정보만 표시하고 목록은 잠시 숨깁니다.
-        <BusinessDetail profile={detail} onBack={() => setDetail(null)} />
-      ) : (
-        <BusinessGrid>
-          {!token ? <p>사업자 정보를 보려면 <Link to="/login">로그인</Link>해 주세요.</p> : null}
-          {loading ? <p role="status">사업자 목록을 불러오는 중입니다.</p> : null}
-          {error ? <p role="alert">{error}</p> : null}
-          {token && !loading && !error && visibleProfiles.length === 0 ? <p>검색 조건에 맞는 사업자가 없습니다.</p> : null}
-          {/* 원래 카드 외형에 실제 API 데이터를 연결하며 사진이 없으면 기본 아이콘을 사용합니다. */}
-          {visibleProfiles.map((profile) => <BusinessCard key={profile.id}
-            business={{
-              company: profile.companyName,
-              department: profile.department,
-              specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
-              regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
-              isAvailable: profile.consultationAvailable,
-              // 카드의 상담 가능 배지에 실제 시작·종료 시간을 전달합니다.
-              consultationStartTime: profile.consultationStartTime,
-              consultationEndTime: profile.consultationEndTime,
-            }}
-            isLoading={detailId === profile.id}
-            onViewDetail={() => openDetail(profile)}
-          />)}
-        </BusinessGrid>
-      )}
+      {/* 목록 또는 상세 정보를 요청하는 동안 기존 영역 위에 공통 로더를 표시합니다. */}
+      <PageLoading isLoading={loading || detailId !== null}>
+        {detail ? (
+          // 선택한 사업자의 상세 정보만 표시하고 목록은 잠시 숨깁니다.
+          <BusinessDetail profile={detail} onBack={() => setDetail(null)} />
+        ) : (
+          <BusinessGrid>
+            {!token ? <p>사업자 정보를 보려면 <Link to="/login">로그인</Link>해 주세요.</p> : null}
+            {error ? <p role="alert">{error}</p> : null}
+            {token && !loading && !error && visibleProfiles.length === 0 ? <p>검색 조건에 맞는 사업자가 없습니다.</p> : null}
+            {/* 원래 카드 외형에 실제 API 데이터를 연결하며 사진이 없으면 기본 아이콘을 사용합니다. */}
+            {visibleProfiles.map((profile) => <BusinessCard key={profile.id}
+              business={{
+                company: profile.companyName,
+                department: profile.department,
+                specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
+                regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
+                isAvailable: profile.consultationAvailable,
+                // 카드의 상담 가능 배지에 실제 시작·종료 시간을 전달합니다.
+                consultationStartTime: profile.consultationStartTime,
+                consultationEndTime: profile.consultationEndTime,
+              }}
+              isLoading={detailId === profile.id}
+              onViewDetail={() => openDetail(profile)}
+            />)}
+          </BusinessGrid>
+        )}
+      </PageLoading>
     </BusinessMain>
   </BusinessPageRoot>;
 }

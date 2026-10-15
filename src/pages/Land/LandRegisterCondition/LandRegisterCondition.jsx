@@ -8,6 +8,8 @@ import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
+// 주소 검증 이후 추가 등록된 토지와 서버 중복 오류를 최종 제출에서도 확인합니다.
+import { assertLandNotRegistered, DUPLICATE_LAND_MESSAGE, isDuplicateLandError } from "../landDuplicate";
 import {
   ConditionButton,
   ConditionButtonRow,
@@ -228,6 +230,9 @@ function LandRegisterCondition() {
     setError("");
 
     try {
+      // 입력 단계 이후 동일 사용자가 다른 창에서 등록한 토지도 제출 전에 차단합니다.
+      await assertLandNotRegistered(registerData);
+
       const params = new URLSearchParams({
         address: registerData.address.trim(),
         transactionType: toServerTransactionType(selected),
@@ -258,7 +263,10 @@ function LandRegisterCondition() {
         if (response.status === 413) {
           throw new Error("업로드 용량이 너무 큽니다. 사진이나 서류 용량을 줄인 뒤 다시 시도해주세요.");
         }
-        throw new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+        // 중복 사유와 HTTP 충돌 상태를 주소 단계에서 처리할 수 있도록 유지합니다.
+        const error = new Error(data?.message || data?.data?.message || "토지 등록에 실패했습니다.");
+        error.status = response.status;
+        throw error;
       }
 
       // 백엔드에 등록일 필드가 추가되기 전까지 신규 등록 시각을 임시 보관합니다.
@@ -286,6 +294,19 @@ function LandRegisterCondition() {
 
       navigate("/land/register/complete");
     } catch (err) {
+      // 서버 또는 사전 확인에서 중복을 발견하면 주소 안내 영역으로 오류를 전달합니다.
+      if (isDuplicateLandError(err)) {
+        // 업로드 파일과 입력값은 보존하고 주소 검증만 무효화합니다.
+        setRegisterData((prev) => ({
+          ...prev,
+          isAddressValid: false,
+          addressError: DUPLICATE_LAND_MESSAGE,
+        }));
+        // 주소 단계에서 붉은 오류 문구를 표시하며 다음 단계 진행을 차단합니다.
+        navigate("/land/register", { replace: true });
+        return;
+      }
+
       setError(err.message || "토지 등록에 실패했습니다.");
     } finally {
       setIsLoading(false);

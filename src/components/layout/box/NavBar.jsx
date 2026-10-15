@@ -80,12 +80,15 @@ const NavBar = ({
   // 현재 페이지와 연결되는 상단 메뉴 목록입니다.
   const menuItems = [
     { label: "지도 검색", icon: Map, url: "/", activePaths: ["/", "/land"] },
-    {
-      label: "내 공간",
-      icon: Mountain,
-      url: "/space",
-      activePaths: ["/space", "/land/register"],
-    },
+    // BUSINESS 플랜에서는 내 공간 메뉴를 만들지 않습니다.
+    ...(isBusinessAccount
+      ? []
+      : [{
+          label: "내 공간",
+          icon: Mountain,
+          url: "/space",
+          activePaths: ["/space", "/land/register"],
+        }]),
     ...(isBusinessAccount
       ? [{ label: "관심 토지", icon: Heart, url: "/land/favorites", activePaths: ["/land/favorites"] }]
       : []),

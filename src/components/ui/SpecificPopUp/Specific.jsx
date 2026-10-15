@@ -59,10 +59,11 @@ import {
   formatRegisteredDate,
   formatTransactionType,
 } from "./specificFormatters";
-import { formatOfficialLandPrice } from "@/utils/landFormatters";
 // 선택한 토지의 태양광 개발 적합도 분석 결과를 조회합니다.
-import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
-// 상세보기 팝업의 블러 영역 안에서 AI 채팅을 사용합니다.
+import {
+  fetchLandDevelopmentAnalysis,
+  fetchSolarSummaryReport,
+} from "@/pages/Main/landApi";
 
 // 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -106,6 +107,17 @@ const getTotalScoreColor = (score) => {
   return "#5dde88";
 };
 
+// 상세 API의 평균 경사도를 도 단위 문구로 변환합니다.
+const formatAverageSlope = (value) => {
+  // 0도는 유효하게 표시하고 값이 없거나 숫자가 아니면 대체 문구를 반환합니다.
+  if (value === null || value === undefined || value === "") return "-";
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "-";
+
+  // 긴 소수는 둘째 자리까지만 표시합니다.
+  return `${numericValue.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}°`;
+};
+
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
   // 토지가 바뀌면 이미지 선택·실패 상태를 함께 새로 만듭니다.
@@ -123,6 +135,12 @@ function SpecificContent({ land, onClose }) {
   const [developmentAnalysis, setDevelopmentAnalysis] = useState(null);
   // 적합도 분석 조회 실패 시 기존 카드 안에 표시할 오류 문구입니다.
   const [developmentAnalysisError, setDevelopmentAnalysisError] = useState("");
+  // 새 AI 종합 보고서 API에서 받은 상세보기 보고서입니다.
+  const [solarSummaryReport, setSolarSummaryReport] = useState("");
+  // AI 종합 보고서 조회 실패 문구입니다.
+  const [solarSummaryError, setSolarSummaryError] = useState("");
+  // AI 종합 보고서를 불러오는 중인지 나타냅니다.
+  const [isSolarSummaryLoading, setIsSolarSummaryLoading] = useState(true);
   // 유효한 토지 ID가 있으면 분석 결과를 받을 때까지 로딩 화면을 표시합니다.
   const [isDevelopmentAnalysisLoading, setIsDevelopmentAnalysisLoading] =
     useState(
@@ -173,6 +191,41 @@ function SpecificContent({ land, onClose }) {
       });
 
     // 컴포넌트 정리 시 진행 중인 분석 요청을 취소합니다.
+    return () => controller.abort();
+  }, [analysisLandId]);
+
+  // 상세보기 대상 토지가 바뀌면 새 AI 종합 보고서를 조회합니다.
+  useEffect(() => {
+    // 유효한 토지 ID가 없으면 보고서를 요청하지 않습니다.
+    if (analysisLandId === undefined || analysisLandId === null || analysisLandId === "") {
+      return undefined;
+    }
+
+    // 팝업이 닫힐 때 진행 중인 보고서 요청을 취소합니다.
+    const controller = new AbortController();
+
+    // 비동기 함수 안에서 상태를 초기화하고 새 AI 종합 보고서를 요청합니다.
+    const loadSolarSummary = async () => {
+      setSolarSummaryReport("");
+      setSolarSummaryError("");
+      setIsSolarSummaryLoading(true);
+
+      try {
+        const summary = await fetchSolarSummaryReport(analysisLandId, { signal: controller.signal });
+        if (!controller.signal.aborted) setSolarSummaryReport(typeof summary?.report === "string" ? summary.report : "");
+      } catch (error) {
+        if (!controller.signal.aborted && error?.name !== "AbortError") {
+          setSolarSummaryError(error?.message || "AI 종합 보고서를 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsSolarSummaryLoading(false);
+      }
+    };
+
+    // 현재 토지의 보고서 조회를 시작합니다.
+    void loadSolarSummary();
+
+    // 컴포넌트 정리 시 진행 중인 보고서 요청을 취소합니다.
     return () => controller.abort();
   }, [analysisLandId]);
 
@@ -256,23 +309,24 @@ function SpecificContent({ land, onClose }) {
 
               {/* 썸네일 영역입니다. */}
               <ThumbRow>
-                {(images.length ? images : ["", "", ""])
-                  .slice(0, 4)
-                  .map((src, index) => (
+                {(images.length ? images : ["", "", "", ""]).map(
+                  (src, imageIndex) => (
                     <ThumbButton
-                      key={`${src || "empty"}-${index}`}
+                      key={`${src || "empty"}-${imageIndex}`}
                       type="button"
-                      $active={index === selectedImageIndex}
+                      $active={imageIndex === selectedImageIndex}
                       onClick={() => {
                         // 클릭한 썸네일 이미지를 대표 이미지로 변경합니다.
-                        setSelectedImageIndex(index);
+                        setSelectedImageIndex(imageIndex);
+                        // 새 대표 이미지를 불러올 때 이전 이미지의 실패 상태를 초기화합니다.
+                        setIsHeroImageFailed(false);
                       }}
                     >
                       {src ? (
                         // 실제 이미지 썸네일입니다.
                         <ThumbImage
                           src={src}
-                          alt={`토지 썸네일 ${index + 1}`}
+                          alt={`토지 썸네일 ${imageIndex + 1}`}
                           onError={(event) => {
                             // 썸네일도 실패하면 깨진 이미지 아이콘을 숨깁니다.
                             event.currentTarget.style.display = "none";
@@ -283,7 +337,8 @@ function SpecificContent({ land, onClose }) {
                         <ImageIcon size={20} strokeWidth={1.4} />
                       )}
                     </ThumbButton>
-                  ))}
+                  )
+                )}
               </ThumbRow>
             </PhotoColumn>
 
@@ -300,10 +355,6 @@ function SpecificContent({ land, onClose }) {
               <InfoRow>
                 <span>면적</span>
                 <strong>{formatArea(land.area)}</strong>
-              </InfoRow>
-              <InfoRow>
-                <span>공시지가</span>
-                <strong>{formatOfficialLandPrice(land.officialLandPrice || land.publicLandPrice || land.pblntfPclnd)}</strong>
               </InfoRow>
               <InfoRow>
                 <span>지목</span>
@@ -375,6 +426,11 @@ function SpecificContent({ land, onClose }) {
                   <InfoRow>
                     <span>도로 접면</span>
                     <strong>{land.regstrSeCodeNm || "-"}</strong>
+                  </InfoRow>
+                  {/* 토지 상세 API에서 받은 평균 경사도를 표시합니다. */}
+                  <InfoRow>
+                    <span>경사도 (DEM)</span>
+                    <strong>{formatAverageSlope(land.averageSlope)}</strong>
                   </InfoRow>
                   <InfoRow>
                     <span>공유 인원</span>
@@ -476,13 +532,13 @@ function SpecificContent({ land, onClose }) {
             <p>{land.description || "등록된 상세 설명이 없습니다."}</p>
           </AiOpinion>
 
-          {/* 적합도 분석 API가 반환한 종합 판단 근거를 표시합니다. */}
+          {/* 새 AI 종합 보고서 API가 반환한 내용을 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
             <p>
-              {developmentAnalysis?.rationale ||
-                developmentAnalysisError ||
-                "AI 의견을 불러오는 중입니다."}
+              {isSolarSummaryLoading
+                ? "AI 종합 보고서를 불러오는 중입니다."
+                : solarSummaryReport || solarSummaryError || "등록된 AI 종합 보고서가 없습니다."}
             </p>
           </AiOpinion>
         </MainContent>

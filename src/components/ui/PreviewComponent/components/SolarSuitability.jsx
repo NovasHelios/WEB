@@ -131,6 +131,7 @@ function ReportContent({ landId, isReportLocked = false }) {
 
         // 서버가 반환한 개발 적합도 분석 객체를 화면 상태에 저장합니다.
         setAnalysis(data);
+
       } catch (error) {
         // 현재 요청이 유효할 때만 오류 메시지를 저장합니다.
         if (!ignore) {

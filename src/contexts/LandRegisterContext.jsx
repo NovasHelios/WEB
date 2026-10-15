@@ -6,6 +6,8 @@ import useAuthToken from "@/hooks/useAuthToken";
 
 const defaultRegisterData = {
   address: "",
+  // 최종 제출에서 발견한 중복 오류를 주소 입력 단계로 전달합니다.
+  addressError: "",
   isAddressValid: false,
   confirmedAddress: "",
   confirmedRoadAddress: "",
@@ -14,7 +16,6 @@ const defaultRegisterData = {
   longitude: "",
   pnu: "",
   area: "",
-  officialLandPrice: "",
   desiredArea: "",
   landCategory: "",
   altitude: "",

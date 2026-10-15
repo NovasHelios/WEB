@@ -245,21 +245,40 @@ export const BusinessSummaryDepartment = styled.p`
   font-size: var(--font-sm);
 `;
 
-// API에서 계산 가능한 세 가지 요약값을 구분선 형태로 표시합니다.
+// API에서 계산 가능한 세 가지 요약값을 원본 디자인의 정보 박스로 표시합니다.
 export const BusinessSummaryFacts = styled.div`
   display: grid;
   width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 28px;
   padding: 18px 0;
-  border-top: 1px solid #e9e2d8;
-  border-bottom: 1px solid #e9e2d8;
+  border: 1px solid #e8dfd2;
+  border-radius: 12px;
+  background: #faf8f4;
 
   div { min-width: 0; padding: 0 8px; }
   div + div { border-left: 1px solid #e9e2d8; }
   span, strong { display: block; overflow-wrap: anywhere; }
   span { color: #898177; font-size: 0.75rem; }
   strong { margin-top: 6px; color: #b68400; font-size: var(--font-sm); }
+`;
+
+// 향후 채팅 연결 기능을 연결할 상담 명령 버튼입니다.
+export const BusinessConsultButton = styled.button`
+  min-width: 148px;
+  min-height: 48px;
+  margin-top: 24px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: #d8aa17;
+  color: #ffffff;
+  font: inherit;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+
+  &:hover { background: #c79b0d; }
+  &:focus-visible { outline: 2px solid #8c6800; outline-offset: 3px; }
 `;
 
 // 상세 소개 항목을 담는 오른쪽 정보 카드입니다.

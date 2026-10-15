@@ -148,9 +148,14 @@ export const ImageCounter = styled.span`
 // 썸네일 목록입니다.
 export const ThumbRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 24px) / 4);
   gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin-top: 10px;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
 `;
 
 // 썸네일 버튼입니다.
@@ -165,6 +170,7 @@ export const ThumbButton = styled.button`
   background: #eadfce;
   color: #8a8174;
   cursor: pointer;
+  scroll-snap-align: start;
 `;
 
 // 썸네일 이미지입니다.

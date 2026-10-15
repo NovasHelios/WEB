@@ -1,7 +1,8 @@
-import { AlertTriangle, ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
@@ -31,6 +32,17 @@ import {
   SpaceFilterButton,
   SpaceHeader,
   SpaceInfoRow,
+  SpaceImageManagerActions,
+  SpaceImageManagerButton,
+  SpaceImageManagerClose,
+  SpaceImageManagerDescription,
+  SpaceImageManagerDialog,
+  SpaceImageManagerEmpty,
+  SpaceImageManagerHeader,
+  SpaceImageManagerList,
+  SpaceImageManagerOverlay,
+  SpaceImageManagerThumbnail,
+  SpaceImageManagerUpload,
   SpaceInner,
   SpaceMain,
   SpaceModal,
@@ -86,8 +98,15 @@ const resolveImageUrl = (path, revision) => {
   return revision ? `${url}${url.includes("?") ? "&" : "?"}v=${revision}` : url;
 };
 
-const getFirstImagePath = (land) => {
-  // 서버 이미지 응답이 배열/단일 경로 어느 형태로 와도 첫 이미지를 꺼냅니다.
+// 서버 이미지 항목에서 실제 경로 문자열을 꺼냅니다.
+const getImagePath = (item) => (
+  typeof item === "string"
+    ? item
+    : item?.url || item?.path || item?.filePath || item?.imageUrl || ""
+);
+
+// 서버 이미지 응답이 배열 또는 단일 경로 어느 형태로 와도 전체 경로를 수집합니다.
+const getAllImagePaths = (land = {}) => {
   const imageCandidates = [
     land.landImagePaths,
     land.imagePaths,
@@ -96,18 +115,25 @@ const getFirstImagePath = (land) => {
     land.landImages,
     land.files,
   ];
+  // 단일 경로 필드도 이미지 목록 뒤에 포함해 누락을 방지합니다.
+  const scalarCandidates = [
+    land.landImagePath,
+    land.imagePath,
+    land.thumbnailPath,
+    land.thumbnailUrl,
+  ];
+  const paths = imageCandidates
+    .flatMap((candidate) => Array.isArray(candidate) ? candidate : [])
+    .map(getImagePath)
+    .concat(scalarCandidates.map(getImagePath))
+    .filter(Boolean);
 
-  for (const candidate of imageCandidates) {
-    if (!Array.isArray(candidate)) continue;
+  return [...new Set(paths)];
+};
 
-    const firstImage = candidate.find(Boolean);
-    if (!firstImage) continue;
-
-    if (typeof firstImage === "string") return firstImage;
-    return firstImage.url || firstImage.path || firstImage.filePath || firstImage.imageUrl || "";
-  }
-
-  return land.landImagePath || land.imagePath || land.thumbnailPath || land.thumbnailUrl || "";
+// 대표 이미지가 필요한 기존 화면에는 전체 이미지 중 첫 번째 경로를 사용합니다.
+const getFirstImagePath = (land) => {
+  return getAllImagePaths(land)[0] || "";
 };
 
 const toManwonInput = (value) => {
@@ -308,6 +334,8 @@ function MySpace() {
   const [editError, setEditError] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState("");
+  // 수정 모달 위에 표시되는 이미지 관리 팝업의 열림 상태입니다.
+  const [isImageManagerOpen, setIsImageManagerOpen] = useState(false);
   const editImageInputRef = useRef(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
@@ -412,6 +440,14 @@ function MySpace() {
   }, [activeSort, lands, searchKeyword]);
 
   const totalCount = useMemo(() => lands.length, [lands]);
+  // 선택한 토지의 등록 이미지를 이미지 관리 팝업용 URL 목록으로 변환합니다.
+  const editImageUrls = useMemo(() => {
+    if (!editingLand) return [];
+    const revision = editingLand.raw?.imageRevision;
+    const urls = getAllImagePaths(editingLand.raw || editingLand)
+      .map((path) => resolveImageUrl(path, revision));
+    return urls.length > 0 ? urls : editImagePreview ? [editImagePreview] : [];
+  }, [editingLand, editImagePreview]);
 
   const openEditModal = async (land) => {
     // 수정 시 기존 값 유지를 위해 단일 상세 정보를 먼저 조회합니다.
@@ -419,6 +455,8 @@ function MySpace() {
 
     setEditLoadingId(land.id);
     setEditError("");
+    // 새로운 토지 수정 화면을 열 때 이전 이미지 관리 팝업 상태를 초기화합니다.
+    setIsImageManagerOpen(false);
 
     try {
       const response = await authFetch(Api.Land(land.id), {
@@ -682,50 +720,48 @@ function MySpace() {
             </SpaceHeader>
             <ListPageDivider />
 
-            <SpaceToolbar>
-              <SpaceSortBar>
-                <SpaceStatText>
-                  <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
-                </SpaceStatText>
-                {/* 정렬 선택 */}
-                <SpaceFilterButton
-                  type="button"
-                  $active={false}
-                  onClick={() => {
-                    // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
-                    const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
-                    setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
-                  }}
-                >
-                  {activeSort}
-                  <ChevronDown size={16} strokeWidth={2.5} />
-                </SpaceFilterButton>
-              </SpaceSortBar>
-            </SpaceToolbar>
+            {/* 목록·상세·수정 정보를 요청하는 동안 데이터 영역에 공통 로더를 표시합니다. */}
+            <PageLoading
+              isLoading={isLoading || detailLoadingId !== null || editLoadingId !== null}
+            >
+              <SpaceToolbar>
+                <SpaceSortBar>
+                  <SpaceStatText>
+                    <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
+                  </SpaceStatText>
+                  {/* 정렬 선택 */}
+                  <SpaceFilterButton
+                    type="button"
+                    $active={false}
+                    onClick={() => {
+                      // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
+                      const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
+                      setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
+                    }}
+                  >
+                    {activeSort}
+                    <ChevronDown size={16} strokeWidth={2.5} />
+                  </SpaceFilterButton>
+                </SpaceSortBar>
+              </SpaceToolbar>
 
-            {isLoading ? (
-              <div className="py-10 text-center text-sm font-semibold text-[#6f6658]">
-                내 토지 목록을 불러오는 중입니다.
-              </div>
-            ) : null}
-
-            {error ? (
-              <div className="py-2 text-center text-sm font-semibold text-[#b42318]">
-                {error}
-              </div>
-            ) : null}
-
-            <SpaceContainer>
-              {/* 검색 결과가 없을 때 빈 목록만 보이지 않도록 안내합니다. */}
-              {!isLoading && !error && sortedLands.length === 0 ? (
-                <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
+              {error ? (
+                <div className="py-2 text-center text-sm font-semibold text-[#b42318]">
+                  {error}
+                </div>
               ) : null}
-              {sortedLands.map((item) => (
+
+              <SpaceContainer>
+                {/* 검색 결과가 없을 때 빈 목록만 보이지 않도록 안내합니다. */}
+                {!isLoading && !error && sortedLands.length === 0 ? (
+                  <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
+                ) : null}
+                {sortedLands.map((item) => (
                 <SpaceCard key={item.id}>
                   <SpaceCardRow>
                     <SpaceCardImage $accent={item.accent}>
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                        <img src={item.imageUrl} alt={item.title} className="object-cover w-full h-full" />
                       ) : null}
                       <span>{item.type}</span>
                     </SpaceCardImage>
@@ -806,8 +842,9 @@ function MySpace() {
                     </SpaceActionColumn>
                   </SpaceCardRow>
                 </SpaceCard>
-              ))}
-            </SpaceContainer>
+                ))}
+              </SpaceContainer>
+            </PageLoading>
           </SpaceInner>
         </SpacePage>
       </SpaceMain>
@@ -828,8 +865,8 @@ function MySpace() {
             <SpaceModalField>
               대표 이미지
               <SpaceModalImage $image={editImagePreview} />
-              <SpaceModalFileButton type="button" onClick={() => editImageInputRef.current?.click()}>
-                이미지 변경
+              <SpaceModalFileButton type="button" onClick={() => setIsImageManagerOpen(true)}>
+                이미지 수정
               </SpaceModalFileButton>
               <SpaceModalFileInput
                 ref={editImageInputRef}
@@ -903,6 +940,63 @@ function MySpace() {
             </fieldset>
           </SpaceModal>
         </SpaceModalOverlay>
+      ) : null}
+
+      {editingLand && isImageManagerOpen ? (
+        // 토지 수정 폼과 분리된 상위 레이어에서 현재 등록 이미지를 관리합니다.
+        <SpaceImageManagerOverlay>
+          <SpaceImageManagerDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="image-manager-title"
+            aria-describedby="image-manager-description"
+          >
+            <SpaceImageManagerHeader>
+              <div>
+                <h2 id="image-manager-title">이미지 관리</h2>
+                <SpaceImageManagerDescription id="image-manager-description">
+                  현재 등록되어 있는 토지 이미지입니다.
+                </SpaceImageManagerDescription>
+              </div>
+              <SpaceImageManagerClose
+                type="button"
+                aria-label="이미지 관리 닫기"
+                onClick={() => setIsImageManagerOpen(false)}
+              >
+                ×
+              </SpaceImageManagerClose>
+            </SpaceImageManagerHeader>
+
+            {/* 이미지 수가 많아지면 목록 내부에서 가로로 스크롤합니다. */}
+            {editImageUrls.length > 0 ? (
+              <SpaceImageManagerList aria-label="등록 이미지 목록">
+                {editImageUrls.map((imageUrl, index) => (
+                  <SpaceImageManagerThumbnail key={`${imageUrl}-${index}`}>
+                    <img src={imageUrl} alt={`등록 이미지 ${index + 1}`} />
+                  </SpaceImageManagerThumbnail>
+                ))}
+              </SpaceImageManagerList>
+            ) : (
+              <SpaceImageManagerEmpty>현재 등록된 이미지가 없습니다.</SpaceImageManagerEmpty>
+            )}
+
+            {/* 이미지 API 수정 전까지 재업로드 UI는 파일 선택 동작을 연결하지 않습니다. */}
+            <SpaceImageManagerUpload type="button">
+              <Upload size={22} aria-hidden="true" />
+              <span>이미지 재업로드</span>
+            </SpaceImageManagerUpload>
+
+            <SpaceImageManagerActions>
+              <SpaceImageManagerButton type="button" onClick={() => setIsImageManagerOpen(false)}>
+                취소
+              </SpaceImageManagerButton>
+              {/* 저장 API 연결 전까지 팝업만 닫습니다. */}
+              <SpaceImageManagerButton type="button" $primary onClick={() => setIsImageManagerOpen(false)}>
+                저장
+              </SpaceImageManagerButton>
+            </SpaceImageManagerActions>
+          </SpaceImageManagerDialog>
+        </SpaceImageManagerOverlay>
       ) : null}
 
       <Specific land={selectedLand} onClose={() => setSelectedLand(null)} />
