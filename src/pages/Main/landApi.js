@@ -107,3 +107,20 @@ export const fetchLandDevelopmentAnalysis = async (landId, { signal } = {}) => {
   // 포장 응답과 분석 객체 직접 응답을 모두 같은 형태로 반환합니다.
   return result?.data ?? result ?? null;
 };
+
+// 선택한 토지의 AI 종합 보고서를 조회합니다.
+export const fetchSolarSummaryReport = async (landId, { signal } = {}) => {
+  // 토지 ID가 없으면 보고서를 요청하지 않습니다.
+  if (landId === undefined || landId === null || landId === "") return null;
+
+  // 새 API가 요구하는 landId를 쿼리 파라미터로 전달합니다.
+  const params = new URLSearchParams({ landId: String(landId) });
+  const response = await authFetch(`${Api.SolarSummary}?${params.toString()}`, {
+    method: "GET",
+    signal,
+  });
+
+  // 포장 응답의 data를 실제 보고서 객체로 반환합니다.
+  const result = await readApiResponse(response, "AI 종합 보고서를 불러오지 못했습니다.");
+  return result?.data ?? result ?? null;
+};

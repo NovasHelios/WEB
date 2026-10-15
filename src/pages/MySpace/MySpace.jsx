@@ -2,6 +2,7 @@ import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2, Upload } fr
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
@@ -700,45 +701,43 @@ function MySpace() {
             </SpaceHeader>
             <ListPageDivider />
 
-            <SpaceToolbar>
-              <SpaceSortBar>
-                <SpaceStatText>
-                  <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
-                </SpaceStatText>
-                {/* 정렬 선택 */}
-                <SpaceFilterButton
-                  type="button"
-                  $active={false}
-                  onClick={() => {
-                    // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
-                    const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
-                    setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
-                  }}
-                >
-                  {activeSort}
-                  <ChevronDown size={16} strokeWidth={2.5} />
-                </SpaceFilterButton>
-              </SpaceSortBar>
-            </SpaceToolbar>
+            {/* 목록·상세·수정 정보를 요청하는 동안 데이터 영역에 공통 로더를 표시합니다. */}
+            <PageLoading
+              isLoading={isLoading || detailLoadingId !== null || editLoadingId !== null}
+            >
+              <SpaceToolbar>
+                <SpaceSortBar>
+                  <SpaceStatText>
+                    <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
+                  </SpaceStatText>
+                  {/* 정렬 선택 */}
+                  <SpaceFilterButton
+                    type="button"
+                    $active={false}
+                    onClick={() => {
+                      // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
+                      const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
+                      setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
+                    }}
+                  >
+                    {activeSort}
+                    <ChevronDown size={16} strokeWidth={2.5} />
+                  </SpaceFilterButton>
+                </SpaceSortBar>
+              </SpaceToolbar>
 
-            {isLoading ? (
-              <div className="py-10 text-center text-sm font-semibold text-[#6f6658]">
-                내 토지 목록을 불러오는 중입니다.
-              </div>
-            ) : null}
-
-            {error ? (
-              <div className="py-2 text-center text-sm font-semibold text-[#b42318]">
-                {error}
-              </div>
-            ) : null}
-
-            <SpaceContainer>
-              {/* 검색 결과가 없을 때 빈 목록만 보이지 않도록 안내합니다. */}
-              {!isLoading && !error && sortedLands.length === 0 ? (
-                <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
+              {error ? (
+                <div className="py-2 text-center text-sm font-semibold text-[#b42318]">
+                  {error}
+                </div>
               ) : null}
-              {sortedLands.map((item) => (
+
+              <SpaceContainer>
+                {/* 검색 결과가 없을 때 빈 목록만 보이지 않도록 안내합니다. */}
+                {!isLoading && !error && sortedLands.length === 0 ? (
+                  <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
+                ) : null}
+                {sortedLands.map((item) => (
                 <SpaceCard key={item.id}>
                   <SpaceCardRow>
                     <SpaceCardImage $accent={item.accent}>
@@ -824,8 +823,9 @@ function MySpace() {
                     </SpaceActionColumn>
                   </SpaceCardRow>
                 </SpaceCard>
-              ))}
-            </SpaceContainer>
+                ))}
+              </SpaceContainer>
+            </PageLoading>
           </SpaceInner>
         </SpacePage>
       </SpaceMain>

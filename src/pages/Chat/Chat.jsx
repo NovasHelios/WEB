@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
 import { LogOut, Paperclip, Search, Send, Map, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+// 채팅 데이터를 불러올 때 다른 페이지와 동일한 공통 로딩 화면을 사용합니다.
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
 import { Api } from "@/contents/apiEndpoints";
 import {
@@ -501,6 +503,8 @@ function ChatSession({ token }) {
         regionSuggestions={[]}
       />
 
+      {/* 채팅 목록 또는 선택한 대화가 로딩 중이면 전체 채팅 영역을 흐리게 표시합니다. */}
+      <PageLoading isLoading={isLoading || isMessageLoading}>
       <ChatShell>
         <ChatSidebar>
           <ChatListHeader>
@@ -516,7 +520,6 @@ function ChatSession({ token }) {
           </ChatListHeader>
 
           <ChatRoomList>
-            {isLoading ? <ChatEmpty>불러오는 중입니다</ChatEmpty> : null}
             {!isLoading && filteredRooms.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
             {filteredRooms.map((room) => (
               <ChatRoomItem
@@ -569,7 +572,6 @@ function ChatSession({ token }) {
               {statusMessage ? <ChatStatusText>{statusMessage}</ChatStatusText> : null}
 
               <ChatMessageArea>
-                {isMessageLoading ? <ChatEmpty>불러오는 중입니다</ChatEmpty> : null}
                 {!isMessageLoading && messages.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
                 {messages.map((message) => {
                   const mine = message.senderEmail === myEmail;
@@ -665,6 +667,7 @@ function ChatSession({ token }) {
           )}
         </ChatLandPanel> : null}
       </ChatShell>
+      </PageLoading>
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
     </ChatPage>
   );

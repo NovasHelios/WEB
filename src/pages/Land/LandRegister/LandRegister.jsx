@@ -10,6 +10,8 @@ import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
 import { fetchVworldLandInfo } from "@/API/vworldAPI";
 import { findDetailedLandAddress } from "@/utils/validateLandAddress";
+// 주소 존재 여부와 별도로 현재 사용자의 중복 등록 여부를 확인합니다.
+import { assertLandNotRegistered, DUPLICATE_LAND_MESSAGE, isDuplicateLandError } from "../landDuplicate";
 import {
   LandRegisterBottomButton,
   LandRegisterButtonIcon,
@@ -37,6 +39,10 @@ import {
   LandRegisterVisualMapIcon,
 } from "./LandRegister.styled";
 
+// 토지 등록에서 축약 주소가 검색되지 않도록 안내하는 공통 문구입니다.
+const FULL_ROAD_ADDRESS_MESSAGE =
+  "시·도와 시·군·구를 포함한 전체 도로명 주소를 입력해 주세요.";
+
 function LandRegister() {
   const navigate = useNavigate();
   useRequireLogin();
@@ -45,17 +51,28 @@ function LandRegister() {
   const markerRef = useRef(null);
   const { registerData, setRegisterData } = useLandRegister();
   const [isAddressChecking, setIsAddressChecking] = useState(false);
-  const [addressMessage, setAddressMessage] = useState("");
+  // 최종 제출에서 돌아온 중복 오류도 기존 주소 안내 위치에 표시합니다.
+  const [addressMessage, setAddressMessage] = useState(registerData.addressError || "");
   // 주소 안내는 입력창 아래 한 위치에서 표시하며 오류만 빨간색으로 구분합니다.
-  const [hasAddressError, setHasAddressError] = useState(false);
+  const [hasAddressError, setHasAddressError] = useState(Boolean(registerData.addressError));
   const addressValidationIdRef = useRef(0);
   // 화면 이탈 후 늦게 도착한 주소 조회가 새 등록 데이터를 덮어쓰지 않게 합니다.
   useEffect(() => () => { addressValidationIdRef.current += 1; }, []);
   const hasValidLocation = Boolean(registerData.isAddressValid && registerData.latitude && registerData.longitude);
 
   useEffect(() => {
+    // 주소 재검색으로 위치가 무효화되면 제거된 지도 DOM의 객체를 재사용하지 않습니다.
+    if (!hasValidLocation) {
+      // 기존 마커를 지도에서 제거해 이전 주소의 위치 표시를 정리합니다.
+      markerRef.current?.setMap(null);
+      // 다음 검색에서는 새 지도와 마커를 생성하도록 참조를 초기화합니다.
+      markerRef.current = null;
+      mapInstanceRef.current = null;
+      return;
+    }
+
     // 검증된 주소 좌표가 있으면 Kakao 지도를 생성하고 위치를 표시합니다.
-    if (!hasValidLocation || !mapElementRef.current || !window.kakao?.maps) return;
+    if (!mapElementRef.current || !window.kakao?.maps) return;
 
     const lat = Number(registerData.latitude);
     const lng = Number(registerData.longitude);
@@ -93,11 +110,14 @@ function LandRegister() {
   }, [hasValidLocation, registerData.latitude, registerData.longitude]);
 
   const validateAddress = async (value) => {
-    // 등록과 수정에 같은 검증 규칙과 제한 시간을 적용합니다.
-    const matched = await findDetailedLandAddress(value);
+    // 토지 등록은 여러 지역에 같은 도로명이 있어도 혼동하지 않도록 전체 도로명 주소만 허용합니다.
+    const matched = await findDetailedLandAddress(value, {
+      requireFullRoadAddress: true,
+    });
     if (!matched) return null;
     return {
-      address: matched.address_name || value,
+      // 도로명으로 검색해도 표준 지번 주소를 함께 확보해 중복 비교에 사용합니다.
+      address: matched.address?.address_name || matched.address_name || value,
       roadAddress: matched.road_address?.address_name || "",
       x: matched.x || "", y: matched.y || "", isDetailedAddress: true,
     };
@@ -115,6 +135,8 @@ function LandRegister() {
     }
 
     setIsAddressChecking(true);
+    // 재검증 중에는 이전 성공 상태로 다음 단계를 진행할 수 없도록 초기화합니다.
+    setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: "" }));
     setHasAddressError(false);
     setAddressMessage("주소를 확인하는 중입니다.");
     const validationId = addressValidationIdRef.current + 1;
@@ -126,7 +148,7 @@ function LandRegister() {
 
         if (!result || !result.isDetailedAddress) {
           setHasAddressError(true);
-          setAddressMessage("시·군·구가 아닌 상세 지번 또는 도로명 주소를 입력해 주세요.");
+          setAddressMessage(FULL_ROAD_ADDRESS_MESSAGE);
           setRegisterData((prev) => ({
             ...prev,
             isAddressValid: false,
@@ -149,11 +171,25 @@ function LandRegister() {
 
         if (validationId !== addressValidationIdRef.current) return;
 
+        // 내 토지 목록과 입력 주소·표준 주소·PNU를 비교한 뒤에만 검증을 완료합니다.
+        await assertLandNotRegistered({
+          address: trimmed,
+          confirmedAddress: result.address,
+          confirmedRoadAddress: result.roadAddress,
+          refinedAddress: vworldInfo?.confirmedAddress,
+          pnu: vworldInfo?.pnu,
+        });
+
+        // 중복 확인 도중 주소가 바뀌었으면 이전 응답을 새 입력에 반영하지 않습니다.
+        if (validationId !== addressValidationIdRef.current) return;
+
         setHasAddressError(false);
         setAddressMessage("유효한 주소로 확인되었습니다.");
         setRegisterData((prev) => ({
           ...prev,
           address: trimmed,
+          // 정상 주소의 중복 확인이 끝나면 이전 제출 오류를 제거합니다.
+          addressError: "",
           isAddressValid: true,
           confirmedAddress: vworldInfo?.confirmedAddress || result.address,
           confirmedRoadAddress: result.roadAddress,
@@ -162,19 +198,23 @@ function LandRegister() {
           longitude: vworldInfo?.longitude || result.x,
           pnu: vworldInfo?.pnu || "",
           area: vworldInfo?.area || "",
-          officialLandPrice: vworldInfo?.officialLandPrice || "",
           landCategory: vworldInfo?.landCategory || "",
           altitude: vworldInfo?.altitude || "",
           roadAccess: vworldInfo?.roadAccess || "",
           shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
         }));
       })
-      .catch(() => {
+      .catch((error) => {
         // 지난 검색의 오류가 새 입력 안내를 덮어쓰지 않게 합니다.
         if (validationId !== addressValidationIdRef.current) return;
         setHasAddressError(true);
-        setAddressMessage("주소를 확인하지 못했습니다. 잠시 후 다시 검색해주세요.");
-        setRegisterData((prev) => ({ ...prev, isAddressValid: false }));
+        // 중복 오류는 지정 문구로, 조회 실패는 재확인 안내로 표시합니다.
+        const message = isDuplicateLandError(error)
+          ? DUPLICATE_LAND_MESSAGE
+          : error?.message || "주소를 확인하지 못했습니다. 잠시 후 다시 검색해주세요.";
+        setAddressMessage(message);
+        // 검증 실패 상태를 저장해 다음 단계와 최종 제출을 함께 차단합니다.
+        setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: message }));
       })
       .finally(() => {
         if (validationId === addressValidationIdRef.current) {
@@ -192,6 +232,8 @@ function LandRegister() {
     setRegisterData((prev) => ({
       ...prev,
       address: event.target.value,
+      // 다른 주소를 입력하면 이전 중복 오류를 지우고 새 검증을 기다립니다.
+      addressError: "",
       isAddressValid: false,
       confirmedAddress: "",
       confirmedRoadAddress: "",
@@ -200,7 +242,6 @@ function LandRegister() {
       longitude: "",
       pnu: "",
       area: "",
-      officialLandPrice: "",
       landCategory: "",
       altitude: "",
       roadAccess: "",
@@ -244,7 +285,7 @@ function LandRegister() {
                     aria-invalid={hasAddressError}
                     value={registerData.address}
                     onChange={handleAddressChange}
-                    placeholder="주소를 입력해주세요. (예: 경기도 안성시 일죽면 산북리 123)"
+                    placeholder="전체 도로명 주소를 입력해주세요. (예: 서울특별시 강남구 테헤란로 152)"
                   />
                 </LandRegisterAddressField>
 
@@ -255,7 +296,7 @@ function LandRegister() {
               </LandRegisterAddressFieldWrap>
 
               <LandRegisterAddressHelper id="land-address-helper" $error={hasAddressError} aria-live="polite" aria-atomic="true">
-                {addressMessage || "상세 지번 또는 건물번호가 포함된 도로명 주소를 입력해주세요. 시·군·구만으로는 등록할 수 없습니다."}
+                {addressMessage || FULL_ROAD_ADDRESS_MESSAGE}
               </LandRegisterAddressHelper>
 
               <LandRegisterPanelSubtext>
@@ -281,8 +322,13 @@ function LandRegister() {
           <LandRegisterButtonWrap>
             <LandRegisterBottomButton
               type="button"
-              disabled={!registerData.address.trim() || !registerData.isAddressValid || isAddressChecking}
-              onClick={() => navigate("/land/register/confirm")}
+              // 중복 오류나 확인 중 상태에서는 다음 단계 버튼을 비활성화합니다.
+              disabled={!registerData.address.trim() || !registerData.isAddressValid || hasAddressError || isAddressChecking}
+              onClick={() => {
+                // 이벤트 호출에서도 검증 상태를 확인해 다음 단계 이동을 차단합니다.
+                if (!registerData.isAddressValid || hasAddressError || isAddressChecking) return;
+                navigate("/land/register/confirm");
+              }}
             >
               다음 단계로
               <LandRegisterButtonIcon>

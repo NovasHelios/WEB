@@ -17,7 +17,6 @@ import {
   TransactionBadge,
   UnsupportedValue,
 } from "../Preview.styeld";
-import { formatOfficialLandPrice } from "@/utils/landFormatters";
 
 // 아직 서버에서 전달받지 못한 정보에 표시할 문구입니다.
 const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
@@ -51,6 +50,17 @@ const formatTransactionType = (value) => {
   return transactionLabels[value] || value || UNSUPPORTED_TEXT;
 };
 
+// 서버 경사도를 소수점 둘째 자리까지 도 단위로 표시합니다.
+const formatAverageSlope = (value) => {
+  // 값이 없거나 숫자가 아니면 빈 값으로 처리합니다.
+  if (value === null || value === undefined || value === "") return "";
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "";
+
+  // 0도 포함한 유효한 경사도를 화면 문구로 반환합니다.
+  return `${numericValue.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}°`;
+};
+
 // 토지의 기본 정보를 표시하는 탭 콘텐츠입니다.
 function BasicInfo({
   land,
@@ -62,6 +72,8 @@ function BasicInfo({
 }) {
   // 기준일과 등록일에 사용할 서버 날짜입니다.
   const referenceDate = formatDate(land?.lastUpdtDt);
+  // 상세 API에서 받은 평균 경사도를 화면 표시값으로 변환합니다.
+  const averageSlope = formatAverageSlope(land?.averageSlope);
 
   return (
     // 기본 정보 탭의 전체 콘텐츠입니다.
@@ -108,11 +120,6 @@ function BasicInfo({
         </BasicInfoRow>
 
         <BasicInfoRow>
-          <InfoLabel>공시지가</InfoLabel>
-          <InfoValue>{formatOfficialLandPrice(land?.officialLandPrice || land?.publicLandPrice || land?.pblntfPclnd)}</InfoValue>
-        </BasicInfoRow>
-
-        <BasicInfoRow>
           <InfoLabel>거래 형태</InfoLabel>
           <TransactionBadge>
             {formatTransactionType(transactionType)}
@@ -135,7 +142,12 @@ function BasicInfo({
 
         <BasicInfoRow>
           <InfoLabel>경사도 (DEM)</InfoLabel>
-          <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+          {/* 평균 경사도가 없을 때만 기존 미지원 문구를 표시합니다. */}
+          {averageSlope ? (
+            <InfoValue>{averageSlope}</InfoValue>
+          ) : (
+            <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+          )}
         </BasicInfoRow>
       </BasicInfoList>
 

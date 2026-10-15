@@ -4,6 +4,8 @@ import NavBar from "@/components/layout/box/NavBar";
 import AreaValue from "@/components/ui/AreaValue";
 import { ListPageDivider } from "@/styles/listPage";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
+// 목록과 상세 정보 조회에 공통 로딩 화면을 사용합니다.
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
@@ -248,8 +250,10 @@ function LandFavorites() {
           <ListPageDivider />
         </FavoritesHeader>
 
-        {/* 필터와 정렬 */}
-        <FavoritesToolbar>
+        {/* 목록과 상세 정보를 불러오는 동안 관심 토지 영역에 공통 로더를 표시합니다. */}
+        <PageLoading isLoading={isLoading || detailLoadingId !== null}>
+          {/* 필터와 정렬 */}
+          <FavoritesToolbar>
           <FavoritesFilterRow>
             {favoriteFilters.map((filter) => (
               <FavoritesFilterButton
@@ -273,18 +277,15 @@ function LandFavorites() {
               <ChevronDown size={18} strokeWidth={2} />
             </FavoritesSortLabel>
           </FavoritesSort>
-        </FavoritesToolbar>
+          </FavoritesToolbar>
 
-        {isLoading ? (
-          <div style={{ padding: "36px 0", textAlign: "center", color: "#6a6a6a" }}>
-            관심 토지를 불러오는 중입니다.
-          </div>
-        ) : error ? (
-          <div style={{ padding: "36px 0", textAlign: "center", color: "#d92d20", fontWeight: 700 }}>
-            {error}
-          </div>
-        ) : (
-          <>
+          {error ? (
+            // 관심 토지 조회 오류를 목록 영역에 표시합니다.
+            <div style={{ padding: "36px 0", textAlign: "center", color: "#d92d20", fontWeight: 700 }}>
+              {error}
+            </div>
+          ) : (
+            <>
             {/* 관심 토지 카드 목록 */}
             <FavoritesList>
               {paginatedWishes.map((wish) => {
@@ -420,8 +421,9 @@ function LandFavorites() {
                 </FavoritesPageButton>
               </FavoritesPagination>
             ) : null}
-          </>
-        )}
+            </>
+          )}
+        </PageLoading>
       </FavoritesShell>
 
       {/* 관심 토지 상세보기 팝업 */}

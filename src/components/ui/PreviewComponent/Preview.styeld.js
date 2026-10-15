@@ -158,14 +158,17 @@ export const BasicInfoHeader = styled.header`
 // 기본 정보 제목입니다.
 export const BasicInfoTitle = styled.h3`
   margin: 0;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  /* 기본 정보 제목을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* 기본 정보 제목을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 토지 정보의 기준일입니다.
 export const ReferenceDate = styled.span`
   color: #a3a3a3;
-  font-size: var(--font-xs);
+  /* 기준일 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   text-align: right;
 `;
 
@@ -188,14 +191,18 @@ export const AddressLabel = styled.span`
   display: block;
   margin-bottom: 4px;
   color: #b0b0b0;
-  font-size: var(--font-xs);
+  /* 주소 항목명을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
+  /* 주소 항목명을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 실제 주소 값입니다.
 export const AddressText = styled.strong`
   display: block;
   color: #333333;
-  font-size: var(--font-sm);
+  /* 실제 주소 값을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
   font-weight: var(--font-medium);
 `;
 
@@ -216,13 +223,18 @@ export const BasicInfoRow = styled.div`
 // 기본 정보 항목명입니다.
 export const InfoLabel = styled.span`
   color: #777777;
-  font-size: var(--font-sm);
+  /* 각 기본 정보 항목명을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* 각 기본 정보 항목명을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 기본 정보 항목값입니다.
 export const InfoValue = styled.strong`
   color: ${({ $price }) => ($price ? "#222222" : "#333333")};
-  font-size: ${({ $price }) => ($price ? "16px" : "var(--font-sm)")};
+  /* 일반 값과 가격 값을 각각 기존보다 2px 크게 표시합니다. */
+  font-size: ${({ $price }) =>
+    $price ? "18px" : "calc(var(--font-sm) + 2px)"};
   font-weight: var(--font-normal);
   text-align: right;
 `;
@@ -230,7 +242,8 @@ export const InfoValue = styled.strong`
 // 서버에서 아직 제공하지 않는 값을 붉은색으로 표시합니다.
 export const UnsupportedValue = styled.span`
   color: #dc2626;
-  font-size: var(--font-xs);
+  /* 미지원 안내 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   text-align: right;
 `;
 
@@ -242,7 +255,8 @@ export const TransactionBadge = styled.span`
   border-radius: 999px;
   background: #ecfdf5;
   color: #059669;
-  font-size: var(--font-xs);
+  /* 거래 형태 배지의 글자를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
 `;
 
 // 세 정보 화면을 감싸는 탭 영역입니다.
@@ -354,7 +368,8 @@ export const AnalysisLoadingSpinner = styled.span`
 
 // 원형 로더 아래에 표시하는 로딩 안내 문구입니다.
 export const AnalysisLoadingText = styled.strong`
-  font-size: var(--font-sm);
+  /* 분석 로딩 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
   font-weight: var(--font-medium);
 `;
 
@@ -371,7 +386,8 @@ export const AnalysisCard = styled.section`
 export const AnalysisCardTitle = styled.h3`
   margin: 0 0 20px;
   color: #1f2937;
-  font-size: 18px;
+  /* 적합도 분석 카드 제목을 기존보다 2px 크게 표시합니다. */
+  font-size: 20px;
   font-weight: var(--font-bold);
 `;
 
@@ -386,8 +402,10 @@ export const TotalScoreRow = styled.div`
 // 종합 적합도 항목명입니다.
 export const TotalScoreLabel = styled.span`
   color: #273043;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  /* 종합 적합도 항목명을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* 종합 적합도 항목명을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 종합 적합도를 100점 기준의 반원형 게이지로 표시합니다.
@@ -444,14 +462,16 @@ export const ScoreGaugeValue = styled.strong`
   bottom: 0;
   left: 0;
   color: #111111;
-  font-size: 24px;
+  /* 종합 적합도 점수를 기존보다 2px 크게 표시합니다. */
+  font-size: 26px;
   font-weight: var(--font-bold);
   line-height: 1;
   text-align: center;
 
   small {
     margin-left: 2px;
-    font-size: 10px;
+    /* 점수 단위를 기존보다 2px 크게 표시합니다. */
+    font-size: 12px;
     font-weight: var(--font-normal);
   }
 `;
@@ -460,7 +480,8 @@ export const ScoreGaugeValue = styled.strong`
 export const AnalysisStatus = styled.p`
   margin: 8px 0 0;
   color: ${({ $disqualified }) => ($disqualified ? "#dc2626" : "#777777")};
-  font-size: var(--font-xs);
+  /* 분석 상태와 등급을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   text-align: right;
 `;
 
@@ -490,7 +511,13 @@ export const ScoreItemHeader = styled.div`
   justify-content: space-between;
   gap: 12px;
   color: #747b8a;
-  font-size: var(--font-xs);
+  /* 평가 항목명과 획득 점수를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
+
+  span {
+    /* 일사량과 경사도 같은 평가 항목명을 굵게 강조합니다. */
+    font-weight: var(--font-bold);
+  }
 
   strong {
     color: #273043;
@@ -531,8 +558,10 @@ export const AnalysisReportSection = styled.section`
 export const AnalysisReportTitle = styled.h3`
   margin: 0;
   color: #222222;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  /* AI 분석 보고서 제목을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* AI 분석 보고서 제목을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 서버 분석 근거를 표시하는 보고서 상자입니다.
@@ -548,7 +577,8 @@ export const AnalysisReportBox = styled.div`
 export const AnalysisReportText = styled.p`
   margin: 0;
   color: #333333;
-  font-size: var(--font-xs);
+  /* 파싱되지 않은 분석 보고서 본문을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -578,15 +608,18 @@ export const AnalysisReportItem = styled.section`
 export const AnalysisReportItemTitle = styled.h4`
   margin: 0 0 8px;
   color: #222222;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  /* AI 분석 보고서의 항목명을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* AI 분석 보고서의 각 항목명을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // AI 분석 항목별 서버 원문을 표시합니다.
 export const AnalysisReportItemText = styled.p`
   margin: 0;
   color: #333333;
-  font-size: var(--font-xs);
+  /* AI 분석 보고서의 항목별 설명을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -597,7 +630,8 @@ export const AnalysisStatusMessage = styled.p`
   margin: 0;
   padding: ${({ $compact }) => ($compact ? "28px 8px" : "40px 16px")};
   color: #777777;
-  font-size: var(--font-sm);
+  /* 분석 상태 안내 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
   text-align: center;
 `;
 
@@ -608,7 +642,8 @@ export const AnalysisError = styled.div`
   gap: 12px;
   padding: 40px 16px;
   color: #dc2626;
-  font-size: var(--font-sm);
+  /* 분석 오류 안내 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
   text-align: center;
 
   p {
@@ -625,7 +660,8 @@ export const AnalysisRetryButton = styled.button`
   border-radius: 6px;
   background: #ffffff;
   color: #333333;
-  font-size: var(--font-xs);
+  /* 분석 재시도 버튼 문구를 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-xs) + 2px);
   cursor: pointer;
 `;
 
@@ -647,12 +683,15 @@ export const DetailDescriptionSection = styled.section`
 export const DetailDescriptionTitle = styled.h3`
   margin: 0;
   color: #222222;
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  /* 설명글과 AI 종합 평가 제목을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
+  /* 상세 설명의 각 영역 제목을 굵게 강조합니다. */
+  font-weight: var(--font-bold);
 `;
 
 // 등록자 설명 또는 AI 종합 평가를 표시하는 본문 상자입니다.
 export const DetailDescriptionBox = styled.div`
+  position: relative;
   min-height: 220px;
   padding: 16px;
   border: 1px solid #dcc7aa;
@@ -664,7 +703,8 @@ export const DetailDescriptionBox = styled.div`
 export const DetailDescriptionText = styled.p`
   margin: 0;
   color: #4b5563;
-  font-size: var(--font-sm);
+  /* 등록자 설명과 AI 종합 평가 본문을 기존보다 2px 크게 표시합니다. */
+  font-size: calc(var(--font-sm) + 2px);
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -1,10 +1,40 @@
 import { formatCompactKoreanMoneyFromManwon } from "@/utils/priceFormat";
 
-// canvas와 Kakao MarkerImage가 함께 사용할 마커 너비입니다.
-const MARKER_WIDTH = 90;
+// 개별 토지 마커와 내부 요소만 기존 크기보다 20% 확대합니다.
+const LAND_MARKER_SIZE_SCALE = 1.2;
 
-// canvas와 Kakao MarkerImage가 함께 사용할 마커 높이입니다.
-const MARKER_HEIGHT = 56;
+// 개별 토지 마커 디자인의 기준 너비입니다.
+const LAND_MARKER_BASE_WIDTH = 90;
+
+// 개별 토지 마커 디자인의 기준 높이입니다.
+const LAND_MARKER_BASE_HEIGHT = 56;
+
+// canvas와 Kakao MarkerImage가 함께 사용할 확대된 마커 너비입니다.
+const MARKER_WIDTH = LAND_MARKER_BASE_WIDTH * LAND_MARKER_SIZE_SCALE;
+
+// canvas와 Kakao MarkerImage가 함께 사용할 확대된 마커 높이입니다.
+const MARKER_HEIGHT = LAND_MARKER_BASE_HEIGHT * LAND_MARKER_SIZE_SCALE;
+
+// 개별 토지 마커를 표시할 수 있는 최대 지도 레벨입니다.
+const INDIVIDUAL_MARKER_MAX_LEVEL = 8;
+
+// 시·군·구 집계 마커 디자인의 기준 너비입니다.
+const DISTRICT_MARKER_BASE_WIDTH = 142;
+
+// 시·군·구 집계 마커 디자인의 기준 높이입니다.
+const DISTRICT_MARKER_BASE_HEIGHT = 116;
+
+// 시·군·구 집계 마커는 기존 Canvas 너비를 유지합니다.
+const DISTRICT_MARKER_WIDTH = DISTRICT_MARKER_BASE_WIDTH;
+
+// 시·군·구 집계 마커는 기존 Canvas 높이를 유지합니다.
+const DISTRICT_MARKER_HEIGHT = DISTRICT_MARKER_BASE_HEIGHT;
+
+// 시·군·구 집계 마커만 기존 크기의 80%로 표시하기 위한 배율입니다.
+const DISTRICT_MARKER_DISPLAY_SCALE = 0.8;
+
+// 시·군·구 집계 마커에 사용할 요청 색상입니다.
+const DISTRICT_MARKER_TEXT_COLOR = "#D0A926";
 
 // 같은 배경 이미지를 요청할 때 재사용할 로딩 Promise입니다.
 let markerBackgroundPromise = null;
@@ -59,6 +89,224 @@ const toFiniteNumber = (value) => {
   return Number(value);
 };
 
+// 지역 값이 객체 또는 문자열로 전달되어도 화면에 사용할 이름으로 변환합니다.
+const getRegionName = (value) => {
+  // 지역 객체는 name 필드를 우선 사용합니다.
+  if (value && typeof value === "object") return String(value.name || "").trim();
+
+  // 문자열 값은 앞뒤 공백을 제거해 반환합니다.
+  return String(value || "").trim();
+};
+
+// 구조화된 지역 필드가 없을 때 주소에서 시·군·구 이름을 추출합니다.
+const getDistrictFromAddress = (address) => {
+  // 주소가 없으면 지역명을 만들 수 없습니다.
+  if (!address) return "";
+
+  // 첫 번째 시도명을 제외하고 하위 행정구역을 순서대로 확인합니다.
+  const tokens = String(address).trim().split(/\s+/).slice(1);
+  const districtIndex = tokens.findIndex((token) => /(시|군|구)$/.test(token));
+
+  // 시·군·구 형태의 단어가 없으면 빈 값을 반환합니다.
+  if (districtIndex < 0) return "";
+
+  // 일반구가 있는 도시는 시와 구를 함께 표시해 같은 시의 구를 구분합니다.
+  if (
+    /시$/.test(tokens[districtIndex]) &&
+    /구$/.test(tokens[districtIndex + 1] || "")
+  ) {
+    return `${tokens[districtIndex]} ${tokens[districtIndex + 1]}`;
+  }
+
+  // 군 또는 자치구처럼 한 단어로 구분되는 지역명은 그대로 반환합니다.
+  return tokens[districtIndex];
+};
+
+// 토지 데이터에서 시·군·구 집계에 사용할 지역명을 결정합니다.
+const getDistrictName = (land) => {
+  // 서버의 구조화된 시군구 필드를 가장 먼저 사용합니다.
+  const structuredDistrict = getRegionName(
+    land.regionSigungu ?? land.sigungu
+  );
+
+  // 구조화된 값이 있으면 주소 파싱 없이 반환합니다.
+  if (structuredDistrict) return structuredDistrict;
+
+  // 주소에서 추출한 시·군·구를 보조 값으로 사용합니다.
+  const addressDistrict = getDistrictFromAddress(land.address);
+
+  // 세종특별자치시처럼 별도 시군구가 없는 지역은 시도명을 사용합니다.
+  return (
+    addressDistrict ||
+    getRegionName(land.regionSido ?? land.sido)
+  );
+};
+
+// 서버의 거래 유형을 집계 마커의 세 가지 항목으로 정규화합니다.
+const getTransactionCountKey = (transactionType) => {
+  // 대소문자와 구분 문자를 제거해 기존 서버 표기를 함께 처리합니다.
+  const normalized = String(transactionType || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  // 사업 희망 유형은 BUSINESS_HOPE와 BusinessHope를 모두 지원합니다.
+  if (normalized.includes("HOPE")) return "businessHope";
+
+  // 임대와 월세 유형은 임대 항목으로 합산합니다.
+  if (normalized.includes("LEASE") || normalized.includes("RENT")) {
+    return "lease";
+  }
+
+  // 매매 유형은 매매 항목으로 합산합니다.
+  if (normalized.includes("SALE")) return "sale";
+
+  // 알 수 없는 거래 유형은 세부 집계에서 제외합니다.
+  return null;
+};
+
+// 둥근 사각형 집계 마커 배경을 Canvas 경로로 그립니다.
+const drawRoundedRect = (ctx, x, y, width, height, radius) => {
+  // 각 모서리를 직선과 곡선으로 이어 둥근 사각형 경로를 만듭니다.
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(
+    x + width,
+    y + height,
+    x + width - radius,
+    y + height
+  );
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+};
+
+// 시·군·구 이름과 거래 유형별 건수를 표시하는 마커 이미지를 생성합니다.
+const createDistrictMarkerImage = ({ districtName, counts, isSelected = false }) => {
+  // 고해상도 화면에서도 선명하게 표시할 Canvas를 생성합니다.
+  const canvas = document.createElement("canvas");
+  const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+
+  // Canvas 실제 픽셀 크기에 화면 배율을 반영합니다.
+  canvas.width = DISTRICT_MARKER_WIDTH * pixelRatio;
+  canvas.height = DISTRICT_MARKER_HEIGHT * pixelRatio;
+
+  // 집계 마커를 그릴 2D context를 준비합니다.
+  const ctx = canvas.getContext("2d");
+  // 시·군·구 마커는 고해상도 배율만 적용해 기존 표시 크기를 유지합니다.
+  ctx.scale(pixelRatio, pixelRatio);
+
+  // 이미지와 같은 흰색 배경과 짙은 테두리의 둥근 상자를 그립니다.
+  drawRoundedRect(
+    ctx,
+    1,
+    1,
+    DISTRICT_MARKER_BASE_WIDTH - 2,
+    DISTRICT_MARKER_BASE_HEIGHT - 2,
+    16
+  );
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  // 선택한 시군구 마커의 테두리는 요청한 강조색으로 표시합니다.
+  // 선택이 해제된 마커는 요청한 검은색 테두리로 표시합니다.
+  ctx.strokeStyle = isSelected ? "#D0A926" : "#000000";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 지역명과 항목 문구는 검은색으로 표시합니다.
+  ctx.fillStyle = "#111111";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  // 상단에 시·군·구 이름을 굵게 표시합니다.
+  ctx.font = "800 20px sans-serif";
+  ctx.fillText(districtName, 14, 22, DISTRICT_MARKER_BASE_WIDTH - 28);
+
+  // 항목 문구 뒤에 숫자만 강조색으로 표시하는 함수를 정의합니다.
+  const drawCountRow = (label, count, y) => {
+    // 항목 문구를 검은색으로 먼저 그립니다.
+    ctx.fillStyle = "#111111";
+    ctx.fillText(label, 14, y, DISTRICT_MARKER_BASE_WIDTH - 28);
+
+    // 항목 문구의 실제 너비 다음 위치부터 강조색 숫자를 그립니다.
+    const numberX = 14 + ctx.measureText(`${label} `).width;
+    ctx.fillStyle = DISTRICT_MARKER_TEXT_COLOR;
+    ctx.fillText(
+      String(count),
+      numberX,
+      y,
+      DISTRICT_MARKER_BASE_WIDTH - numberX - 8
+    );
+  };
+
+  // 요청한 순서대로 임대, 매매, 사업희망 건수를 표시합니다.
+  ctx.font = "700 17px sans-serif";
+  drawCountRow("임대", counts.lease, 48);
+  drawCountRow("매매", counts.sale, 72);
+  drawCountRow("사업희망", counts.businessHope, 96);
+
+  // Kakao MarkerImage에서 사용할 data URL을 반환합니다.
+  return canvas.toDataURL();
+};
+
+// 표시 가능한 토지를 시·군·구별로 묶고 각 그룹의 중심 좌표와 건수를 계산합니다.
+const createDistrictGroups = (lands) => {
+  // 같은 시군구를 빠르게 찾기 위해 Map을 사용합니다.
+  const groups = new Map();
+
+  // 현재 필터 결과에 포함된 모든 토지를 집계합니다.
+  lands.forEach((land) => {
+    // 토지가 속한 시·군·구 이름을 결정합니다.
+    const districtName = getDistrictName(land);
+
+    // 지역명을 확인할 수 없는 토지는 잘못된 집계 마커 생성을 막기 위해 제외합니다.
+    if (!districtName) return;
+
+    // 같은 이름의 시군구가 다른 시도에 있을 수 있어 시도명을 그룹 키에 포함합니다.
+    const sidoName = getRegionName(land.regionSido ?? land.sido);
+    const groupKey = `${sidoName}|${districtName}`;
+
+    // 처음 발견한 시군구는 빈 집계 정보로 초기화합니다.
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, {
+        districtName,
+        // 같은 이름의 시군구를 구분할 시도명을 사이드바에 전달합니다.
+        sidoName,
+        // 집계 건수와 동일한 토지 목록을 클릭 시 사이드바에 전달합니다.
+        lands: [],
+        latitudeSum: 0,
+        longitudeSum: 0,
+        landCount: 0,
+        counts: {
+          lease: 0,
+          sale: 0,
+          businessHope: 0,
+        },
+      });
+    }
+
+    // 현재 토지 좌표를 그룹 중심 계산에 누적합니다.
+    const group = groups.get(groupKey);
+    group.latitudeSum += land.lat;
+    group.longitudeSum += land.lon;
+    group.landCount += 1;
+
+    // 현재 토지를 해당 시군구 마커의 소속 목록에 보관합니다.
+    group.lands.push(land);
+
+    // 인식 가능한 거래 유형이면 해당 항목의 건수를 증가시킵니다.
+    const countKey = getTransactionCountKey(land.transactionType);
+    if (countKey) group.counts[countKey] += 1;
+  });
+
+  // Map 값을 렌더링 가능한 배열로 변환합니다.
+  return Array.from(groups.values());
+};
+
 // 현재 지도 레벨에 따라 Kakao 마커 표시 상태를 갱신합니다.
 export const updateLandLayerByZoom = ({
   // Kakao 지도 객체를 담은 ref입니다.
@@ -66,24 +314,34 @@ export const updateLandLayerByZoom = ({
 
   // Kakao 마커 배열을 담은 ref입니다.
   markerLayerRef,
+
+  // 시·군·구 집계 마커 배열을 담은 ref입니다.
+  districtMarkerLayerRef,
 }) => {
   // Kakao 지도 객체가 없으면 중단합니다.
   if (!mapRef.current) return;
 
-  // Kakao 마커 배열이 아직 없으면 중단합니다.
-  if (!Array.isArray(markerLayerRef.current)) return;
-
   // 현재 Kakao 지도 레벨을 가져옵니다.
   const level = mapRef.current.getLevel();
 
-  // 너무 멀리 축소된 경우에는 마커를 숨깁니다.
-  const shouldShowMarkers = level <= 8;
+  // 가까운 지도에서는 개별 마커를, 먼 지도에서는 시군구 집계 마커를 표시합니다.
+  const shouldShowIndividualMarkers = level <= INDIVIDUAL_MARKER_MAX_LEVEL;
 
-  // Kakao 마커마다 지도 표시 여부를 갱신합니다.
-  markerLayerRef.current.forEach((marker) => {
-    // 보여줄 때는 현재 지도에 붙이고, 숨길 때는 지도에서 제거합니다.
-    marker.setMap(shouldShowMarkers ? mapRef.current : null);
-  });
+  // 개별 토지 마커의 지도 표시 여부를 갱신합니다.
+  if (Array.isArray(markerLayerRef.current)) {
+    markerLayerRef.current.forEach((marker) => {
+      // 집계 마커가 보이는 동안 기존 토지 마커는 지도에서 제거합니다.
+      marker.setMap(shouldShowIndividualMarkers ? mapRef.current : null);
+    });
+  }
+
+  // 시·군·구 집계 마커의 지도 표시 여부를 갱신합니다.
+  if (Array.isArray(districtMarkerLayerRef?.current)) {
+    districtMarkerLayerRef.current.forEach((marker) => {
+      // 축소 단계에서만 집계 마커를 지도에 표시합니다.
+      marker.setMap(shouldShowIndividualMarkers ? null : mapRef.current);
+    });
+  }
 };
 
 export const formatPrice = (price) => {
@@ -113,11 +371,20 @@ export const createLandMarkerImage = ({
   // canvas에 그릴 2D context를 가져옵니다.
   const ctx = canvas.getContext("2d");
 
-  // 이후 그리는 요소들이 CSS 기준 크기처럼 동작하도록 배율을 적용합니다.
-  ctx.scale(pixelRatio, pixelRatio);
+  // 고해상도 배율과 요청한 20% 확대 비율을 내부 글자와 여백에 함께 적용합니다.
+  ctx.scale(
+    pixelRatio * LAND_MARKER_SIZE_SCALE,
+    pixelRatio * LAND_MARKER_SIZE_SCALE
+  );
 
-  // 로딩이 완료된 markup.png 배경을 canvas 전체에 그립니다.
-  ctx.drawImage(markerBackground, 0, 0, MARKER_WIDTH, MARKER_HEIGHT);
+  // 기준 디자인 크기로 그린 배경을 context 배율을 통해 20% 확대합니다.
+  ctx.drawImage(
+    markerBackground,
+    0,
+    0,
+    LAND_MARKER_BASE_WIDTH,
+    LAND_MARKER_BASE_HEIGHT
+  );
 
   // 가격 텍스트 색상을 흰색으로 설정합니다.
   ctx.fillStyle = "#ffffff";
@@ -132,7 +399,12 @@ export const createLandMarkerImage = ({
   ctx.textBaseline = "middle";
 
   // 가격 텍스트를 상단 영역에 표시합니다.
-  ctx.fillText(priceText, MARKER_WIDTH / 2, 16, MARKER_WIDTH - 12);
+  ctx.fillText(
+    priceText,
+    LAND_MARKER_BASE_WIDTH / 2,
+    16,
+    LAND_MARKER_BASE_WIDTH - 12
+  );
 
   // 가격과 면적 사이의 구분선을 그립니다.
   ctx.strokeStyle = "#ffffff";
@@ -150,7 +422,12 @@ export const createLandMarkerImage = ({
   ctx.font = "900 12px sans-serif";
 
   // 면적 텍스트를 하단 영역에 표시합니다.
-  ctx.fillText(areaText, MARKER_WIDTH / 2, 34, MARKER_WIDTH - 12);
+  ctx.fillText(
+    areaText,
+    LAND_MARKER_BASE_WIDTH / 2,
+    34,
+    LAND_MARKER_BASE_WIDTH - 12
+  );
 
   // Kakao MarkerImage에서 사용할 data URL을 반환합니다.
   return canvas.toDataURL();
@@ -166,6 +443,15 @@ export const renderLandMarkers = async ({
   // 생성된 Kakao 마커 목록을 저장할 ref입니다.
   markerLayerRef,
 
+  // 생성된 시·군·구 집계 마커 목록을 저장할 ref입니다.
+  districtMarkerLayerRef,
+
+  // 마지막으로 선택한 시군구를 마커 재생성 시에도 유지하는 ref입니다.
+  selectedDistrictKeyRef,
+
+  // 사이드바를 닫을 때 현재 마커의 테두리를 복원할 함수를 저장하는 ref입니다.
+  resetDistrictMarkersRef,
+
   // 지오코딩까지 끝난 토지 데이터를 저장할 ref입니다.
   displayDataRef,
 
@@ -180,6 +466,9 @@ export const renderLandMarkers = async ({
 
   // 마커 클릭 시 실행할 함수입니다.
   onMarkerClick,
+
+  // 시군구 마커 클릭 시 소속 토지 목록을 전달하는 함수입니다.
+  onDistrictMarkerClick,
 
   // 렌더링 이후 줌 레벨에 맞춰 표시 상태를 갱신하는 함수입니다.
   onAfterRender,
@@ -225,6 +514,12 @@ export const renderLandMarkers = async ({
         // 지도 이동과 추후 표시용 숫자 좌표입니다.
         lat: point.lat,
         lon: point.lon,
+
+        // 서버 지역 정보가 없으면 Kakao 주소 검색 결과로 시도를 보완합니다.
+        regionSido: land.regionSido || point.sido || null,
+
+        // 서버 지역 정보가 없으면 Kakao 주소 검색 결과로 시군구를 보완합니다.
+        regionSigungu: land.regionSigungu || point.sigungu || null,
       };
     })
   );
@@ -243,8 +538,23 @@ export const renderLandMarkers = async ({
     });
   }
 
+  // 기존 시·군·구 집계 마커도 새 필터 결과로 교체하기 전에 제거합니다.
+  if (Array.isArray(districtMarkerLayerRef?.current)) {
+    districtMarkerLayerRef.current.forEach((marker) => {
+      // 기존 집계 마커를 지도에서 제거합니다.
+      marker.setMap(null);
+    });
+  }
+
   // 새 마커 목록을 저장할 배열을 만듭니다.
   const markers = [];
+
+  // 새 시·군·구 집계 마커 목록을 저장할 배열을 만듭니다.
+  const districtMarkers = [];
+
+  // 현재 지도 단계에 맞춰 마커가 생성 직후 표시될지 결정합니다.
+  const shouldShowIndividualMarkers =
+    mapRef.current.getLevel() <= INDIVIDUAL_MARKER_MAX_LEVEL;
 
   // 좌표 변환이 끝난 토지를 Kakao 마커로 표시합니다.
   displayLands.forEach((land) => {
@@ -288,7 +598,7 @@ export const renderLandMarkers = async ({
     // Kakao 마커를 생성합니다.
     const marker = new window.kakao.maps.Marker({
       // 마커가 표시될 지도입니다.
-      map: mapRef.current,
+      map: shouldShowIndividualMarkers ? mapRef.current : null,
 
       // 마커 위치입니다.
       position: land.position,
@@ -313,8 +623,110 @@ export const renderLandMarkers = async ({
     markers.push(marker);
   });
 
+  // 현재 필터 결과를 시·군·구별 집계 정보로 변환합니다.
+  const districtGroups = createDistrictGroups(displayLands);
+
+  // 클릭 시 기존 선택 마커와 새 선택 마커의 이미지를 함께 갱신합니다.
+  const districtMarkerSelections = [];
+
+  // 각 시·군·구 그룹을 하나의 집계 마커로 생성합니다.
+  districtGroups.forEach((group) => {
+    // 그룹에 포함된 토지 좌표의 평균값으로 집계 마커 중심을 계산합니다.
+    const position = new window.kakao.maps.LatLng(
+      group.latitudeSum / group.landCount,
+      group.longitudeSum / group.landCount
+    );
+
+    // 시도와 시군구를 함께 사용해 이름이 같은 지역의 선택 상태를 구분합니다.
+    const groupKey = `${group.sidoName}|${group.districtName}`;
+
+    // 시·군·구 집계 마커는 기존 80% 표시 크기를 유지합니다.
+    const displayWidth = DISTRICT_MARKER_WIDTH * DISTRICT_MARKER_DISPLAY_SCALE;
+    const displayHeight =
+      DISTRICT_MARKER_HEIGHT * DISTRICT_MARKER_DISPLAY_SCALE;
+
+    // 선택 상태별 마커 이미지를 캐시해 반복 클릭 시 Canvas를 다시 그리지 않습니다.
+    const markerImages = new Map();
+
+    // 같은 크기와 중심점을 유지하면서 선택 상태에 맞는 테두리 이미지를 반환합니다.
+    const getMarkerImage = (isSelected) => {
+      // 이미 생성한 상태의 이미지는 그대로 재사용합니다.
+      if (markerImages.has(isSelected)) return markerImages.get(isSelected);
+
+      // 지역명과 건수는 유지하고 선택 여부에 따라 테두리 색상만 변경합니다.
+      const markerImageUrl = createDistrictMarkerImage({
+        districtName: group.districtName,
+        counts: group.counts,
+        isSelected,
+      });
+
+      // 기존 집계 마커의 표시 크기와 중앙 기준점을 그대로 사용합니다.
+      const markerImage = new window.kakao.maps.MarkerImage(
+        markerImageUrl,
+        new window.kakao.maps.Size(displayWidth, displayHeight),
+        {
+          offset: new window.kakao.maps.Point(displayWidth / 2, displayHeight / 2),
+        }
+      );
+
+      // 생성한 상태별 이미지를 저장하고 클릭 처리에서 재사용합니다.
+      markerImages.set(isSelected, markerImage);
+      return markerImage;
+    };
+
+    // 축소 단계에서만 표시할 Kakao 집계 마커를 생성합니다.
+    const marker = new window.kakao.maps.Marker({
+      map: shouldShowIndividualMarkers ? null : mapRef.current,
+      position,
+      // 지도 재조회로 마커를 다시 생성해도 이전 선택 테두리를 복원합니다.
+      image: getMarkerImage(selectedDistrictKeyRef?.current === groupKey),
+    });
+
+    // 개별 마커보다 위에 표시되도록 집계 마커의 표시 순서를 높입니다.
+    marker.setZIndex(2);
+
+    // 클릭한 집계 마커의 소속 토지를 기존 검색 사이드바에 표시합니다.
+    window.kakao.maps.event.addListener(marker, "click", () => {
+      // 다음 마커 재생성에서도 선택한 시군구를 식별할 수 있도록 저장합니다.
+      if (selectedDistrictKeyRef) selectedDistrictKeyRef.current = groupKey;
+
+      // 클릭한 마커만 강조하고 이전에 선택한 마커는 기본 테두리로 복원합니다.
+      districtMarkerSelections.forEach((entry) => {
+        // 상태별 캐시 이미지를 사용해 클릭 즉시 테두리를 갱신합니다.
+        entry.marker.setImage(entry.getMarkerImage(entry.groupKey === groupKey));
+      });
+
+      // 마커 중심이나 확대 수준을 바꾸지 않고 현재 그룹을 전달합니다.
+      onDistrictMarkerClick?.(group);
+    });
+
+    // 이후 확대 수준 변경과 제거를 위해 배열에 저장합니다.
+    districtMarkers.push(marker);
+
+    // 다른 시군구를 클릭할 때 현재 마커의 선택 테두리를 해제할 수 있도록 저장합니다.
+    districtMarkerSelections.push({ marker, groupKey, getMarkerImage });
+  });
+
   // 생성된 Kakao 마커 목록을 ref에 저장합니다.
   markerLayerRef.current = markers;
+
+  // 생성된 시·군·구 집계 마커 목록을 ref에 저장합니다.
+  districtMarkerLayerRef.current = districtMarkers;
+
+  // 마커 재생성마다 닫기 처리가 최신 마커 목록을 사용하도록 갱신합니다.
+  if (resetDistrictMarkersRef) {
+    // 저장된 선택 지역과 모든 집계 마커의 테두리를 함께 초기화합니다.
+    resetDistrictMarkersRef.current = () => {
+      // 이후 지도 재조회에서도 이전 선택 테두리가 다시 나타나지 않도록 지웁니다.
+      if (selectedDistrictKeyRef) selectedDistrictKeyRef.current = null;
+
+      // 기본 상태의 캐시 이미지를 사용해 현재 마커를 검은색 테두리로 복원합니다.
+      districtMarkerSelections.forEach((entry) => {
+        // 지도 재조회 없이 현재 마커 이미지만 즉시 변경합니다.
+        entry.marker.setImage(entry.getMarkerImage(false));
+      });
+    };
+  }
 
   // 줌 레벨 전환에 사용할 토지 목록을 저장합니다.
   displayDataRef.current = displayLands;
