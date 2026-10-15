@@ -190,10 +190,39 @@ export const ChatAvatar = styled.div`
 
 // 메시지 목록 영역입니다.
 export const ChatMessageArea = styled.div`
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 16px;
+`;
+
+// 채팅 오류를 메시지 영역 가운데에 안내합니다.
+export const ChatErrorNotice = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #f1d0cc;
+  border-radius: 8px;
+  background: rgba(255, 250, 249, 0.96);
+  color: #c2413a;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1.5;
+  text-align: center;
+
+  svg {
+    flex: 0 0 auto;
+  }
 `;
 
 // 메시지 한 줄입니다.

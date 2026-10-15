@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
 import { AlertTriangle, LogOut, Paperclip, Search, Send, Map, Trash2, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
-import { mergeChatMessages } from "@/utils/chatMessages";
+import { mergeChatMessages, parseChatTimestamp } from "@/utils/chatMessages";
 import { readApiResponse } from "@/utils/apiResponse";
 import { getTransactionLabel } from "@/pages/Land/landUtils";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
@@ -25,6 +25,7 @@ import {
   ChatBubble,
   ChatComposer,
   ChatEmpty,
+  ChatErrorNotice,
   ChatInputBox,
   ChatLandHeader,
   ChatLandImage,
@@ -86,9 +87,15 @@ const resolveLandImageUrl = (path) => {
 const formatTime = (value) => {
   // 메시지 시간을 시안처럼 시:분으로 표시합니다.
   if (!value) return "";
-  const date = new Date(value);
+  const timestamp = parseChatTimestamp(value);
+  const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 };
 
 const formatPrice = (value) => {
@@ -121,6 +128,7 @@ const normalizeMessage = (payload) => {
 
 function ChatSession({ token }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef(null);
   const clientRef = useRef(null);
   const sendingRef = useRef(false);
@@ -243,7 +251,11 @@ function ChatSession({ token }) {
         const nextRooms = filterOpenChatRooms(extractArray(roomsData));
         setMyEmail(profileData?.data?.email || "");
         setRooms(nextRooms);
-        setSelectedRoomId(nextRooms[0]?.roomId || null);
+        const requestedRoom = nextRooms.find((room) =>
+          (location.state?.roomId && String(room.roomId) === String(location.state.roomId))
+          || (location.state?.landId && String(room.landId) === String(location.state.landId))
+        );
+        setSelectedRoomId(requestedRoom?.roomId || nextRooms[0]?.roomId || null);
       } catch (err) {
         setError(err.message || "채팅 목록을 불러오지 못했습니다.");
       } finally {
@@ -253,7 +265,7 @@ function ChatSession({ token }) {
 
     // 채팅 페이지 진입 시 내 채팅방 목록을 조회합니다.
     void fetchInitialData();
-  }, [navigate]);
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const handleChatRoomsChanged = () => {
@@ -583,10 +595,15 @@ function ChatSession({ token }) {
                 ) : null}
               </ChatRoomHeader>
 
-              {error ? <ChatStatusText $error>{error}</ChatStatusText> : null}
               {statusMessage ? <ChatStatusText>{statusMessage}</ChatStatusText> : null}
 
               <ChatMessageArea>
+                {error ? (
+                  <ChatErrorNotice role="alert" aria-live="assertive">
+                    <AlertTriangle size={17} aria-hidden="true" />
+                    <span>{error}</span>
+                  </ChatErrorNotice>
+                ) : null}
                 {!isMessageLoading && messages.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
                 {messages.map((message) => {
                   const mine = message.senderEmail === myEmail;
