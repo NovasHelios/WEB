@@ -6,7 +6,6 @@ import useAuthToken from "@/hooks/useAuthToken";
 import { Check } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import {
-  PlanBillingBadge,
   PlanBillingSwitch,
   PlanBillingToggle,
   PlanCard,
@@ -129,7 +128,6 @@ function PlansContent({ token }) {
               <span />
             </PlanBillingToggle>
             <strong>연간 결제</strong>
-            <PlanBillingBadge>2개월 무료</PlanBillingBadge>
           </PlanBillingSwitch>
         </PlanHeader>
 

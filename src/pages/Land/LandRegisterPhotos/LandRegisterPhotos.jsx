@@ -51,6 +51,30 @@ const MIN_IMAGES = 3;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const MAX_UPLOAD_TOTAL_SIZE = 20 * 1024 * 1024;
 
+// 서버에서 허용하는 이미지 MIME 타입만 사진으로 등록합니다.
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+// MIME 타입이 비어 있는 환경에서도 파일 확장자로 허용 형식을 확인합니다.
+const ALLOWED_IMAGE_EXTENSION = /\.(jpe?g|png|webp|gif)$/i;
+
+// 파일의 확장자와 MIME 타입이 모두 허용 범위인지 확인합니다.
+const isAllowedImageFile = (file) => {
+  // 확장자가 허용 목록과 일치하는지 확인합니다.
+  const hasAllowedExtension = ALLOWED_IMAGE_EXTENSION.test(file?.name || "");
+
+  // MIME 타입이 제공되면 서버 허용 목록과 일치해야 합니다.
+  const hasAllowedType = !file?.type || ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase());
+
+  // 확장자와 MIME 타입 조건을 모두 충족한 파일만 허용합니다.
+  return hasAllowedExtension && hasAllowedType;
+};
+
 const formatFileSize = (bytes) => {
   // 업로드 용량 안내를 사람이 읽기 쉬운 MB 단위로 변환합니다.
   return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
@@ -72,6 +96,16 @@ function LandRegisterPhotos() {
   const handleImageSelect = (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+
+    // 허용되지 않은 이미지가 하나라도 포함되면 선택한 파일 전체의 등록을 중단합니다.
+    const invalidImageFile = files.find((file) => !isAllowedImageFile(file));
+
+    // 이미지 형식 오류를 사진 등록 단계에서 즉시 안내합니다.
+    if (invalidImageFile) {
+      setError("허용되지 않는 이미지 형식입니다. (jpg, png, webp, gif만 허용)");
+      event.target.value = "";
+      return;
+    }
 
     const remaining = MAX_IMAGES - images.length;
     const toAdd = files.slice(0, remaining);
@@ -259,10 +293,11 @@ function LandRegisterPhotos() {
             </div>
           </PhotosCardRow>
 
+          {/* 파일 선택기에서도 서버가 허용하는 이미지 형식만 노출합니다. */}
           <input
             ref={imageInputRef}
             type="file"
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
             multiple
             onChange={handleImageSelect}
             style={{ display: "none" }}

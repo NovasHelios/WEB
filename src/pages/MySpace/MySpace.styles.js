@@ -400,6 +400,24 @@ export const SpaceModalInput = styled.input`
   color: #1f1c17;
   font-size: var(--font-md);
   outline: none;
+
+  /* 읽기 전용 주소 입력을 수정 가능한 입력과 시각적으로 구분합니다. */
+  &:read-only {
+    padding: 0 8px;
+    border-bottom-color: #c8c1b6;
+    border-radius: 4px;
+    background: #f3f1ed;
+    color: #777168;
+    cursor: not-allowed;
+  }
+`;
+
+// 읽기 전용 주소의 수정 제한 안내 문구를 표시합니다.
+export const SpaceModalReadonlyNote = styled.p`
+  margin: 0;
+  color: #8a8175;
+  font-size: var(--font-xs);
+  font-weight: var(--font-regular);
 `;
 
 export const SpaceModalSelect = styled.select`
@@ -442,4 +460,164 @@ export const SpaceModalActions = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 16px;
+`;
+
+// 토지 수정 모달보다 위에서 이미지 관리 창을 중앙에 표시합니다.
+export const SpaceImageManagerOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.42);
+  box-sizing: border-box;
+`;
+
+// 등록 이미지 목록과 임시 재업로드 명령을 담는 팝업 본문입니다.
+export const SpaceImageManagerDialog = styled.div`
+  width: min(100%, 800px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid #d8c5a2;
+  border-radius: 14px;
+  background: #fffdf9;
+  box-sizing: border-box;
+  box-shadow: 0 20px 48px rgba(38, 29, 16, 0.28);
+
+  @media (max-width: 600px) {
+    padding: 20px 16px;
+  }
+`;
+
+// 이미지 관리 제목과 닫기 버튼을 한 줄에 배치합니다.
+export const SpaceImageManagerHeader = styled.header`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  h2 {
+    margin: 0;
+    color: #231f1a;
+    font-size: 1.375rem;
+    line-height: 1.3;
+  }
+`;
+
+// 이미지 관리 기능의 현재 동작 범위를 설명합니다.
+export const SpaceImageManagerDescription = styled.p`
+  margin: 6px 0 0;
+  color: #8a8175;
+  font-size: var(--font-xs);
+  font-weight: var(--font-regular);
+`;
+
+// 이미지 관리 팝업을 닫는 기호 버튼입니다.
+export const SpaceImageManagerClose = styled.button`
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #37312a;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid #9d7412; outline-offset: 2px; }
+`;
+
+// 등록 이미지가 많아질 때 가로 스크롤되는 고정 높이 목록입니다.
+export const SpaceImageManagerList = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 0 0 14px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: #bd873e #e8e4dc;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar { height: 7px; }
+  &::-webkit-scrollbar-track { border-radius: 999px; background: #e8e4dc; }
+  &::-webkit-scrollbar-thumb { border-radius: 999px; background: #bd873e; }
+`;
+
+// 각 등록 이미지를 동일한 크기로 잘라 보여주는 썸네일입니다.
+export const SpaceImageManagerThumbnail = styled.figure`
+  width: 148px;
+  height: 142px;
+  flex: 0 0 148px;
+  overflow: hidden;
+  margin: 0;
+  border-radius: 8px;
+  background: #858585;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+// 등록 이미지가 없는 경우 목록 대신 안내 문구를 표시합니다.
+export const SpaceImageManagerEmpty = styled.p`
+  display: grid;
+  min-height: 142px;
+  margin: 20px 0 14px;
+  place-items: center;
+  border-radius: 8px;
+  background: #f2eee7;
+  color: #82796e;
+  font-size: var(--font-sm);
+`;
+
+// API 연결 전까지 시각적으로만 제공하는 이미지 재업로드 영역입니다.
+export const SpaceImageManagerUpload = styled.button`
+  display: flex;
+  width: 100%;
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  border: 1px dashed #d8c5a2;
+  border-radius: 10px;
+  background: #fcfaf6;
+  color: #9a6b21;
+  font: inherit;
+  font-weight: var(--font-bold);
+  cursor: default;
+`;
+
+// 이미지 관리 팝업의 취소와 임시 저장 버튼을 오른쪽에 배치합니다.
+export const SpaceImageManagerActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+`;
+
+// 이미지 관리 팝업의 하단 명령 버튼입니다.
+export const SpaceImageManagerButton = styled.button`
+  min-width: 96px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid ${({ $primary }) => ($primary ? "#bd873e" : "#ded5c8")};
+  border-radius: 7px;
+  background: ${({ $primary }) => ($primary ? "#bd873e" : "#fffdf9")};
+  color: ${({ $primary }) => ($primary ? "#ffffff" : "#403a32")};
+  font: inherit;
+  font-weight: var(--font-medium);
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid #8e641f; outline-offset: 2px; }
 `;

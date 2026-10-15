@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
-import AiChat from "@/components/ui/AiChat/AiChat";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Filter from "@/components/ui/Filter/Filter";
 // 검색한 지역 안의 등록 토지 목록을 표시하는 패널입니다.
@@ -26,6 +25,8 @@ import {
   fetchLandDetail,
 } from "./landApi";
 import { createLandFilterBody } from "./landFilterMapper";
+// 한국 시간 기준 등록 시각 변환과 누락값을 뒤로 보내는 정렬을 재사용합니다.
+import { compareNullableNumbers, landTimestamp } from "@/utils/landList";
 
 function Map() {
   // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
@@ -36,6 +37,15 @@ function Map() {
 
   // 등록된 토지 Kakao 마커 목록을 담는 ref입니다.
   const landMarkerLayerRef = useRef(null);
+
+  // 축소 단계에서 표시할 시·군·구 집계 마커 목록을 담는 ref입니다.
+  const districtMarkerLayerRef = useRef(null);
+
+  // 지도 재조회 후에도 마지막으로 선택한 시군구 마커의 테두리를 유지합니다.
+  const selectedDistrictKeyRef = useRef(null);
+
+  // 사이드바를 닫을 때 현재 시군구 마커의 테두리를 즉시 복원하는 함수를 보관합니다.
+  const resetDistrictMarkersRef = useRef(null);
 
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
@@ -271,6 +281,9 @@ function Map() {
     // 검색어의 마지막 지역명을 비교 기준으로 사용합니다.
     const lastWord = searchKeyword.trim().split(/\s+/).at(-1);
 
+    // 시도 축약명과 정식명을 같은 값으로 비교할 수 있도록 정규화합니다.
+    const normalizedLastWord = normalizeSido(lastWord);
+
     // 읍면동 이름으로 끝나는 검색이면 세 단계 지역을 모두 전달합니다.
     if (point.emd && point.emd.endsWith(lastWord)) {
       return {
@@ -289,10 +302,14 @@ function Map() {
       };
     }
 
-    // 시도 이름으로 끝나는 검색이면 시도만 전달합니다.
-    if (point.sido && point.sido.endsWith(lastWord)) {
+    // 카카오가 반환한 축약 시도명도 정식 명칭으로 변환합니다.
+    const normalizedPointSido = point.sido ? normalizeSido(point.sido) : "";
+
+    // 정규화한 시도 이름이 검색어와 같으면 시도 조건만 전달합니다.
+    if (normalizedPointSido && normalizedPointSido === normalizedLastWord) {
       return {
-        sido: { name: point.sido },
+        // 전체 토지 목록과 비교할 때 사용할 정식 시도명입니다.
+        sido: { name: normalizedPointSido },
         sigungu: null,
         emd: null,
       };
@@ -318,6 +335,22 @@ function Map() {
 
     // 비교할 지역명이 없으면 검색 결과에서 제외합니다.
     if (!targetRegionName) return false;
+
+    // 시도 단위 검색인지 확인해 축약명과 정식명 차이를 별도로 처리합니다.
+    const isSidoSearch = Boolean(
+      searchRegion.sido && !searchRegion.sigungu && !searchRegion.emd
+    );
+
+    // 시도 검색은 서버 지역 필드 또는 주소 첫 단어를 정식 시도명으로 바꿔 비교합니다.
+    if (isSidoSearch) {
+      // 구조화된 지역 필드가 없으면 주소의 첫 행정구역명을 사용합니다.
+      const landSidoName = String(land?.regionSido || address)
+        .trim()
+        .split(/\s+/)[0];
+
+      // 양쪽을 같은 정식 명칭으로 바꿔 시도 전체 검색 누락을 방지합니다.
+      return normalizeSido(landSidoName) === normalizeSido(targetRegionName);
+    }
 
     // 검색 단계에 맞는 서버 지역 필드를 선택합니다.
     const landRegionName = searchRegion.emd
@@ -522,6 +555,70 @@ function Map() {
     });
   };
 
+  // 시군구 집계 마커에 소속된 토지를 최신 등록일순으로 사이드바에 표시합니다.
+  const handleDistrictMarkerClick = (group) => {
+    // 이전 검색과 상세 조회 응답이 새 시군구 목록을 덮어쓰지 않도록 무효화합니다.
+    searchRequestIdRef.current += 1;
+    landDetailRequestIdRef.current += 1;
+
+    // 기존 상세 패널과 지역 추천 목록을 닫고 집계 목록에 집중합니다.
+    setSelectedLand(null);
+    setIsSuggestionOpen(false);
+    setRegionSuggestions([]);
+
+    // 시도를 함께 표시해 이름이 같은 시군구도 구분합니다.
+    const districtKeyword = [group.sidoName, group.districtName]
+      .filter(Boolean)
+      .join(" ");
+
+    // 각 토지의 서버 등록 시각을 한 번만 변환하며 원본 목록은 유지합니다.
+    const sortedLands = group.lands
+      .map((land) => {
+        // 기존 화면에서 사용하는 등록일 필드만 확인하고 수정일은 사용하지 않습니다.
+        const registeredAt = [
+          land.createdAt,
+          land.createdDate,
+          land.registeredAt,
+          land.registerDate,
+          land.registrationDate,
+          land.registeredDate,
+          land.regDate,
+          land.registDate,
+          land.createDate,
+          land.createdOn,
+          land.created_at,
+          land.registered_at,
+          land.registration_date,
+          land.reg_date,
+          land.registDt,
+          land.regDt,
+          land.reg_dt,
+          land.data?.createdAt,
+          land.data?.createdDate,
+          land.data?.registrationDate,
+        ].map(landTimestamp).find((timestamp) => timestamp !== null) ?? null;
+
+        // 정렬용 등록 시각과 카드·지도 이동에 사용할 원본 토지를 함께 보관합니다.
+        return { land, registeredAt };
+      })
+      // 최신 등록일을 먼저 표시하고 등록일이 없거나 잘못된 토지는 마지막에 둡니다.
+      .sort((left, right) =>
+        compareNullableNumbers(left.registeredAt, right.registeredAt, true)
+      )
+      // 정렬용 정보는 제거하고 기존 카드가 사용하는 토지 데이터만 전달합니다.
+      .map(({ land }) => land);
+
+    // 검색창과 기존 사이드바에 클릭한 시군구명과 정렬된 소속 토지를 표시합니다.
+    setKeyword(districtKeyword);
+    setSearchPreviewState({
+      isOpen: true,
+      keyword: districtKeyword,
+      lands: sortedLands,
+      isLoading: false,
+      error: "",
+    });
+  };
+
   // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
   const renderFilteredLands = async (lands, isStale) => {
     // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
@@ -534,6 +631,15 @@ function Map() {
 
       // Kakao 마커 목록을 저장할 ref입니다.
       markerLayerRef: landMarkerLayerRef,
+
+      // 시·군·구 집계 마커 목록을 저장할 ref입니다.
+      districtMarkerLayerRef,
+
+      // 선택한 시군구를 보관해 마커 재생성 후에도 강조 테두리를 유지합니다.
+      selectedDistrictKeyRef,
+
+      // 사이드바 닫기에서 현재 마커의 강조 테두리를 즉시 해제할 수 있도록 연결합니다.
+      resetDistrictMarkersRef,
 
       // 지도에 표시 가능한 토지 데이터를 저장할 ref입니다.
       displayDataRef: landDisplayDataRef,
@@ -550,6 +656,9 @@ function Map() {
       // 마커 클릭도 검색 결과 카드와 같은 상세보기 함수를 사용합니다.
       onMarkerClick: openLandPreview,
 
+      // 시군구 마커 클릭 시 집계된 토지 목록을 기존 검색 사이드바에 표시합니다.
+      onDistrictMarkerClick: handleDistrictMarkerClick,
+
       // 마커 렌더링 후 현재 지도 레벨에 맞춰 표시 상태를 갱신합니다.
       onAfterRender: () =>
         updateLandLayerByZoom({
@@ -558,6 +667,9 @@ function Map() {
 
           // Kakao 마커 목록 ref입니다.
           markerLayerRef: landMarkerLayerRef,
+
+          // 시·군·구 집계 마커 목록 ref입니다.
+          districtMarkerLayerRef,
         }),
     });
   };
@@ -683,6 +795,7 @@ function Map() {
         updateLandLayerByZoom({
           mapRef: mapInstanceRef,
           markerLayerRef: landMarkerLayerRef,
+          districtMarkerLayerRef,
         });
       });
 
@@ -819,6 +932,10 @@ function Map() {
   };
 
   const handleClearSearch = () => {
+    // 선택 상태와 현재 마커의 강조를 지워 재조회 후에도 검은색 테두리를 유지합니다.
+    selectedDistrictKeyRef.current = null;
+    resetDistrictMarkersRef.current?.();
+
     // 검색어와 검색 결과 패널을 함께 초기화합니다.
     searchRequestIdRef.current += 1;
     landDetailRequestIdRef.current += 1;
@@ -926,9 +1043,6 @@ function Map() {
           </MapAlertDialog>
         </MapAlertOverlay>
       ) : null}
-
-      {/* AI 채팅은 미리보기보다 뒤, 지도보다 앞에 표시합니다. */}
-      <AiChat />
     </MapPage>
   );
 }

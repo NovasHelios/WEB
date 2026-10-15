@@ -8,6 +8,8 @@ export const MapPage = styled.div`
   /* 전역 80% 배율을 적용한 뒤에도 실제 화면 높이를 가득 채우도록 보정합니다. */
   height: var(--app-viewport-height);
   overflow: hidden;
+  /* 스크롤은 막되 다른 페이지의 세로 스크롤바가 차지하는 너비를 항상 예약합니다. */
+  scrollbar-gutter: stable;
   background: #ffffff;
 `;
 
