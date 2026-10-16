@@ -437,8 +437,11 @@ export const ScoreGauge = styled.div`
   /* 점수 구간별 색상으로 실제 점수만큼 채워지는 게이지 바입니다. */
   .gauge-progress {
     stroke: ${({ $score }) => {
-      if ($score <= 33) return "#ff5757";
-      if ($score <= 66) return "#ffd33d";
+      /* 60점 미만은 기존 붉은색으로 표시합니다. */
+      if ($score < 60) return "#ff5757";
+      /* 60점 이상 80점 미만은 기존 노란색으로 표시합니다. */
+      if ($score < 80) return "#ffd33d";
+      /* 80점 이상은 기존 초록색으로 표시합니다. */
       return "#5dde88";
     }};
     stroke-dasharray: ${({ $score, $loaded }) =>
@@ -463,7 +466,8 @@ export const ScoreGaugeValue = styled.strong`
   left: 0;
   color: #111111;
   /* 종합 적합도 점수를 기존보다 2px 크게 표시합니다. */
-  font-size: 26px;
+  /* 평가 불가 문구는 반원형 게이지 안에 안정적으로 들어가도록 크기를 조정합니다. */
+  font-size: ${({ $unavailable }) => ($unavailable ? "16px" : "26px")};
   font-weight: var(--font-bold);
   line-height: 1;
   text-align: center;

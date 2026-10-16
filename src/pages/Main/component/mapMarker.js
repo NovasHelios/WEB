@@ -42,6 +42,27 @@ let markerBackgroundPromise = null;
 // 현재 Promise가 불러오는 배경 이미지 URL입니다.
 let markerBackgroundSource = null;
 
+// 반복 렌더링에서 Canvas와 지오코딩 작업을 재사용하되 메모리 증가를 제한합니다.
+const MARKER_CACHE_LIMIT = 500;
+
+// 가격·면적 조합이 같은 개별 마커 이미지를 재사용합니다.
+const landMarkerImageCache = new Map();
+
+// 지역명·거래 건수가 같은 시군구 마커 이미지를 재사용합니다.
+const districtMarkerImageCache = new Map();
+
+// 좌표가 없는 동일 주소를 지도 이동마다 다시 지오코딩하지 않도록 요청 결과를 재사용합니다.
+const geocodePromiseCache = new Map();
+
+// 캐시에 값을 저장하고 오래된 첫 항목을 제거해 최대 크기를 유지합니다.
+const setBoundedCacheValue = (cache, key, value) => {
+  if (cache.size >= MARKER_CACHE_LIMIT && !cache.has(key)) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+  cache.set(key, value);
+};
+
 // 마커 배경 이미지를 한 번만 불러와 이후 렌더링에서 재사용합니다.
 const loadMarkerBackground = (source) => {
   // 이미지 URL이 없으면 마커를 생성할 수 없으므로 실패 처리합니다.
@@ -187,6 +208,18 @@ const drawRoundedRect = (ctx, x, y, width, height, radius) => {
 
 // 시·군·구 이름과 거래 유형별 건수를 표시하는 마커 이미지를 생성합니다.
 const createDistrictMarkerImage = ({ districtName, counts, isSelected = false }) => {
+  // 화면 배율과 표시 내용을 조합해 동일한 집계 마커 Canvas 결과를 찾습니다.
+  const cacheKey = [
+    window.devicePixelRatio || 1,
+    districtName,
+    counts.lease,
+    counts.sale,
+    counts.businessHope,
+    isSelected,
+  ].join("|");
+  const cachedImage = districtMarkerImageCache.get(cacheKey);
+  if (cachedImage) return cachedImage;
+
   // 고해상도 화면에서도 선명하게 표시할 Canvas를 생성합니다.
   const canvas = document.createElement("canvas");
   const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
@@ -249,8 +282,10 @@ const createDistrictMarkerImage = ({ districtName, counts, isSelected = false })
   drawCountRow("매매", counts.sale, 72);
   drawCountRow("사업희망", counts.businessHope, 96);
 
-  // Kakao MarkerImage에서 사용할 data URL을 반환합니다.
-  return canvas.toDataURL();
+  // Kakao MarkerImage에서 사용할 data URL을 저장해 다음 렌더링에서 재사용합니다.
+  const markerImageUrl = canvas.toDataURL();
+  setBoundedCacheValue(districtMarkerImageCache, cacheKey, markerImageUrl);
+  return markerImageUrl;
 };
 
 // 표시 가능한 토지를 시·군·구별로 묶고 각 그룹의 중심 좌표와 건수를 계산합니다.
@@ -358,6 +393,16 @@ export const createLandMarkerImage = ({
   // 로드가 끝난 배경 이미지가 없으면 마커 이미지를 만들지 않습니다.
   if (!markerBackground) return "";
 
+  // 배경·화면 배율·표시 문구가 같으면 이전 Canvas 결과를 그대로 사용합니다.
+  const cacheKey = [
+    markerBackgroundSource,
+    window.devicePixelRatio || 1,
+    priceText,
+    areaText,
+  ].join("|");
+  const cachedImage = landMarkerImageCache.get(cacheKey);
+  if (cachedImage) return cachedImage;
+
   // 마커 이미지를 그릴 canvas를 생성합니다.
   const canvas = document.createElement("canvas");
 
@@ -429,8 +474,36 @@ export const createLandMarkerImage = ({
     LAND_MARKER_BASE_WIDTH - 12
   );
 
-  // Kakao MarkerImage에서 사용할 data URL을 반환합니다.
-  return canvas.toDataURL();
+  // Kakao MarkerImage에서 사용할 data URL을 저장해 반복 Canvas 변환을 줄입니다.
+  const markerImageUrl = canvas.toDataURL();
+  setBoundedCacheValue(landMarkerImageCache, cacheKey, markerImageUrl);
+  return markerImageUrl;
+};
+
+// 동일 주소의 좌표 변환 요청과 결과를 재사용합니다.
+const geocodeAddressWithCache = (address, geocodeAddress) => {
+  // 연속 공백 차이로 같은 주소가 별도 요청되지 않도록 키를 정리합니다.
+  const cacheKey = String(address || "").replace(/\s+/g, " ").trim();
+  if (!cacheKey) return Promise.resolve(null);
+
+  const cachedPromise = geocodePromiseCache.get(cacheKey);
+  if (cachedPromise) return cachedPromise;
+
+  // 진행 중인 요청도 Promise 상태로 저장해 동시에 발생한 중복 호출을 합칩니다.
+  const request = Promise.resolve(geocodeAddress(cacheKey))
+    .then((point) => {
+      // 실패 결과는 다음 렌더링에서 다시 시도할 수 있도록 캐시하지 않습니다.
+      if (!point) geocodePromiseCache.delete(cacheKey);
+      return point;
+    })
+    .catch((error) => {
+      // 일시적인 요청 오류도 다음 시도에서 복구할 수 있도록 제거합니다.
+      geocodePromiseCache.delete(cacheKey);
+      throw error;
+    });
+
+  setBoundedCacheValue(geocodePromiseCache, cacheKey, request);
+  return request;
 };
 
 export const renderLandMarkers = async ({
@@ -491,7 +564,7 @@ export const renderLandMarkers = async ({
         Number.isFinite(serverLon) && Number.isFinite(serverLat)
           ? { lat: serverLat, lon: serverLon }
           : land.address
-            ? await geocodeAddress(land.address)
+            ? await geocodeAddressWithCache(land.address, geocodeAddress)
             : null;
 
       // 좌표 변환에 실패하면 제외합니다.

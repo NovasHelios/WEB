@@ -86,6 +86,13 @@ const normalizeScore = (value, maxScore) => {
   return Math.min(Math.max(numericValue, 0), maxScore);
 };
 
+// 0점은 유효하게 유지하고 비어 있거나 숫자가 아닌 점수만 평가 불가로 구분합니다.
+const hasScoreValue = (value) =>
+  value !== null &&
+  value !== undefined &&
+  String(value).trim() !== "" &&
+  Number.isFinite(Number(value));
+
 // 선택한 토지의 태양광 적합도와 플랜에 맞는 AI 보고서를 표시합니다.
 function ReportContent({ landId, isReportLocked = false }) {
   // 서버에서 받은 개발 적합도 분석 결과입니다.
@@ -163,6 +170,8 @@ function ReportContent({ landId, isReportLocked = false }) {
 
   // 서버의 종합 점수를 100점 범위로 정리합니다.
   const totalScore = normalizeScore(analysis?.totalScore, 100);
+  // 종합 점수가 비어 있으면 0점으로 오해하지 않고 평가 불가로 표시합니다.
+  const isTotalScoreAvailable = Boolean(analysis) && hasScoreValue(analysis?.totalScore);
   // 정상 응답이 준비된 뒤에만 점수 바가 실제 값까지 채워지게 합니다.
   const isAnalysisReady = !isLoading && !errorMessage && Boolean(analysis);
   // 서버의 종합 분석 근거를 보고서 항목 목록으로 변환합니다.
@@ -181,8 +190,8 @@ function ReportContent({ landId, isReportLocked = false }) {
           <TotalScoreLabel>종합 적합도</TotalScoreLabel>
           <ScoreGauge
             $score={totalScore}
-            $loaded={isAnalysisReady}
-            aria-label={`종합 적합도 ${totalScore}점`}
+            $loaded={isAnalysisReady && isTotalScoreAvailable}
+            aria-label={isTotalScoreAvailable ? `종합 적합도 ${totalScore}점` : "종합 적합도 평가 불가"}
           >
             {/* 둥근 양 끝과 점수별 색상을 표현하는 반원형 SVG 게이지입니다. */}
             <svg viewBox="0 0 120 64" aria-hidden="true" focusable="false">
@@ -199,9 +208,9 @@ function ReportContent({ landId, isReportLocked = false }) {
                 pathLength="100"
               />
             </svg>
-            <ScoreGaugeValue>
-              {totalScore}
-              <small>점</small>
+            <ScoreGaugeValue $unavailable={!isTotalScoreAvailable}>
+              {isTotalScoreAvailable ? totalScore : "평가 불가"}
+              {isTotalScoreAvailable && <small>점</small>}
             </ScoreGaugeValue>
           </ScoreGauge>
         </TotalScoreRow>
@@ -221,7 +230,8 @@ function ReportContent({ landId, isReportLocked = false }) {
 
         <ScoreList>
           {SCORE_ITEMS.map(({ key, label, maxScore }) => {
-            // 응답 전에는 0점으로 두고 응답 후 실제 점수 비율을 계산합니다.
+            // 비어 있는 점수는 0점과 구분해 회색 막대와 평가 불가 문구로 표시합니다.
+            const isScoreAvailable = Boolean(analysis) && hasScoreValue(analysis?.[key]);
             const score = normalizeScore(analysis?.[key], maxScore);
             const percent = (score / maxScore) * 100;
 
@@ -230,13 +240,13 @@ function ReportContent({ landId, isReportLocked = false }) {
                 <ScoreItemHeader>
                   <span>{label}</span>
                   <strong>
-                    {score}/{maxScore}점
+                    {isScoreAvailable ? `${score}/${maxScore}점` : "평가 불가"}
                   </strong>
                 </ScoreItemHeader>
                 <ScoreTrack aria-hidden="true">
                   <ScoreFill
                     $percent={percent}
-                    $loaded={isAnalysisReady}
+                    $loaded={isAnalysisReady && isScoreAvailable}
                   />
                 </ScoreTrack>
               </ScoreItem>

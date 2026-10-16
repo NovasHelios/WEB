@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import logo from "@/images/logo.png";
 import { listPageShell } from "@/styles/listPage";
+import { useAccount } from "@/contexts/AccountContext";
 
 // 본문과 같은 좌우 여백을 사용하며, 고정 배치 없이 콘텐츠 다음에 표시합니다.
 const FooterRoot = styled.footer`
@@ -52,6 +53,9 @@ const FooterNote = styled.div`
 // 지도·채팅의 화면 높이와 OAuth 리다이렉트 흐름에는 footer를 추가하지 않습니다.
 export default function Footer() {
   const { pathname } = useLocation();
+  // 비즈니스 사용자에게 제공하지 않는 사업 연결 링크를 숨기기 위해 플랜을 확인합니다.
+  const { isLoggedIn, user } = useAccount();
+  const isBusinessAccount = isLoggedIn && user?.plan === "BUSINESS";
   const path = pathname.replace(/\/+$/, "") || "/";
   if (["/", "/chat", "/oauth2/callback"].includes(path)) return null;
 
@@ -66,7 +70,8 @@ export default function Footer() {
         </div>
         <nav aria-label="하단 메뉴">
           <Link to="/">지도 검색</Link>
-          <Link to="/business-connections">사업 연결</Link>
+          {/* BUSINESS 플랜에서는 하단 사업 연결 항목도 표시하지 않습니다. */}
+          {!isBusinessAccount ? <Link to="/business-connections">사업 연결</Link> : null}
           <Link to="/plans">요금제 플랜</Link>
         </nav>
       </FooterTop>

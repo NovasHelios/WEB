@@ -28,6 +28,23 @@ import { createLandFilterBody } from "./landFilterMapper";
 // 한국 시간 기준 등록 시각 변환과 누락값을 뒤로 보내는 정렬을 재사용합니다.
 import { compareNullableNumbers, landTimestamp } from "@/utils/landList";
 
+// 마커 화면에 영향을 주는 토지 값만 정렬해 동일 응답 여부를 비교합니다.
+const createMarkerRenderSignature = (lands) =>
+  JSON.stringify(
+    lands
+      .map((land) => [
+        land.id ?? land.landId ?? land.pnu ?? land.address ?? "",
+        land.x ?? "",
+        land.y ?? "",
+        land.desiredPrice ?? "",
+        land.area ?? "",
+        land.transactionType ?? "",
+        land.regionSido ?? "",
+        land.regionSigungu ?? "",
+      ])
+      .sort((left, right) => String(left[0]).localeCompare(String(right[0])))
+  );
+
 function Map() {
   // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
   const mapElementRef = useRef(null);
@@ -49,6 +66,9 @@ function Map() {
 
   // 지오코딩까지 끝난 토지 데이터를 저장해두는 ref
   const landDisplayDataRef = useRef([]);
+
+  // 동일한 필터 결과에서 전체 마커를 다시 만드는 작업을 생략하기 위한 서명입니다.
+  const lastMarkerRenderSignatureRef = useRef("");
 
   // 가장 최근에 시작한 필터 요청을 구분하기 위한 번호입니다.
   const filterRequestIdRef = useRef(0);
@@ -621,6 +641,17 @@ function Map() {
 
   // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
   const renderFilteredLands = async (lands, isStale) => {
+    // 지도 이동 후에도 마커 데이터가 같으면 기존 객체와 이벤트를 그대로 재사용합니다.
+    const renderSignature = createMarkerRenderSignature(lands);
+    if (renderSignature === lastMarkerRenderSignatureRef.current) {
+      updateLandLayerByZoom({
+        mapRef: mapInstanceRef,
+        markerLayerRef: landMarkerLayerRef,
+        districtMarkerLayerRef,
+      });
+      return;
+    }
+
     // 백엔드가 필터링한 토지만 지도 마커로 다시 렌더링합니다.
     await renderLandMarkers({
       // Kakao 지도 객체를 사용할 수 있도록 ref를 전달합니다.
@@ -672,6 +703,11 @@ function Map() {
           districtMarkerLayerRef,
         }),
     });
+
+    // 최신 요청으로 렌더링을 마친 경우에만 다음 비교 기준을 갱신합니다.
+    if (!isStale?.()) {
+      lastMarkerRenderSignatureRef.current = renderSignature;
+    }
   };
 
   // 서버에서 등록된 토지 목록을 가져와 지도 마커로 표시
@@ -692,9 +728,6 @@ function Map() {
         mapInstanceRef.current
       );
 
-      // 초기 조회 또는 지도 이동 시 서버로 보내는 요청 body를 확인합니다.
-      console.log("초기/지도 이동 필터 요청 body:", requestBody);
-
       // /api/lands/filter API로 현재 화면에 보여줄 토지 목록을 조회합니다.
       const { ok, result } = await fetchFilteredLandList(requestBody);
 
@@ -706,15 +739,6 @@ function Map() {
 
       // 서버 응답 data가 배열이면 마커 목록으로 사용하고, 아니면 빈 배열을 사용합니다.
       const lands = Array.isArray(result.data) ? result.data : [];
-
-      // 필터 API 원본 응답 전체를 확인합니다.
-      console.log("필터 API 원본 응답:", result);
-
-      // 필터 API 응답 data 배열 길이를 확인합니다.
-      console.log(
-        "필터 API 응답 개수:",
-        Array.isArray(result.data) ? result.data.length : "data가 배열 아님"
-      );
 
       // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
       await renderFilteredLands(lands, isStale);

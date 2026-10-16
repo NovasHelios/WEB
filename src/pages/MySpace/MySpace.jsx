@@ -332,10 +332,15 @@ function MySpace() {
     transactionType: "SALE",
   });
   const [editError, setEditError] = useState("");
-  const [editImageFile, setEditImageFile] = useState(null);
+  // 이미지 재등록 API에 전달할 3~5개의 파일입니다.
+  const [editImageFiles, setEditImageFiles] = useState([]);
+  // 이미지 관리 팝업에서 선택한 파일들의 미리보기 URL입니다.
+  const [editImagePreviews, setEditImagePreviews] = useState([]);
   const [editImagePreview, setEditImagePreview] = useState("");
   // 수정 모달 위에 표시되는 이미지 관리 팝업의 열림 상태입니다.
   const [isImageManagerOpen, setIsImageManagerOpen] = useState(false);
+  // 이미지 재등록 API 요청 중인지 나타냅니다.
+  const [isImageSaving, setIsImageSaving] = useState(false);
   const editImageInputRef = useRef(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
@@ -443,11 +448,13 @@ function MySpace() {
   // 선택한 토지의 등록 이미지를 이미지 관리 팝업용 URL 목록으로 변환합니다.
   const editImageUrls = useMemo(() => {
     if (!editingLand) return [];
+    // 새 이미지를 선택하면 저장 전 미리보기를 우선 표시합니다.
+    if (editImageFiles.length > 0) return editImagePreviews;
     const revision = editingLand.raw?.imageRevision;
     const urls = getAllImagePaths(editingLand.raw || editingLand)
       .map((path) => resolveImageUrl(path, revision));
     return urls.length > 0 ? urls : editImagePreview ? [editImagePreview] : [];
-  }, [editingLand, editImagePreview]);
+  }, [editingLand, editImageFiles, editImagePreview, editImagePreviews]);
 
   const openEditModal = async (land) => {
     // 수정 시 기존 값 유지를 위해 단일 상세 정보를 먼저 조회합니다.
@@ -472,12 +479,14 @@ function MySpace() {
 
       setEditingLand(nextLand);
       setEditForm(getEditFormFromLand(nextLand));
-      setEditImageFile(null);
+      setEditImageFiles([]);
+      setEditImagePreviews([]);
       setEditImagePreview(resolveImageUrl(getFirstImagePath(nextLand.raw || nextLand), nextLand.raw?.imageRevision));
     } catch {
       setEditingLand(land);
       setEditForm(getEditFormFromLand(land));
-      setEditImageFile(null);
+      setEditImageFiles([]);
+      setEditImagePreviews([]);
       setEditImagePreview(resolveImageUrl(getFirstImagePath(land.raw || land), land.raw?.imageRevision));
     } finally {
       setEditLoadingId(null);
@@ -492,23 +501,109 @@ function MySpace() {
   };
 
   const handleEditImageChange = (event) => {
-    // 수정 모달에서 선택한 대표 이미지를 저장 전 미리 보여줍니다.
-    const file = event.target.files?.[0];
+    // 이미지 재등록에 선택한 모든 파일을 배열로 가져옵니다.
+    const files = Array.from(event.target.files || []);
     event.target.value = "";
 
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!files.length) return;
+    // 선택한 파일이 모두 이미지인지 확인합니다.
+    if (files.some((file) => !file.type.startsWith("image/"))) {
       setEditError("이미지 파일만 선택해주세요.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    // 각 이미지가 허용 용량을 넘지 않는지 확인합니다.
+    if (files.some((file) => file.size > 5 * 1024 * 1024)) {
       setEditError("이미지는 5MB 이하로 선택해주세요.");
       return;
     }
 
-    setEditImageFile(file);
-    setEditImagePreview(URL.createObjectURL(file));
+    // 선택한 전체 이미지와 각 미리보기 URL을 저장합니다.
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setEditImageFiles(files);
+    setEditImagePreviews(previews);
+    setEditImagePreview(previews[0]);
     setEditError("");
+  };
+
+  // 이미지 관리 팝업을 취소하면 선택한 파일과 미리보기를 기존 이미지로 되돌립니다.
+  const closeImageManager = () => {
+    if (isImageSaving) return;
+    setEditImageFiles([]);
+    setEditImagePreviews([]);
+    setEditImagePreview(resolveImageUrl(
+      getFirstImagePath(editingLand?.raw || editingLand),
+      editingLand?.raw?.imageRevision,
+    ));
+    setEditError("");
+    setIsImageManagerOpen(false);
+  };
+
+  // 선택한 이미지를 전용 API로 재등록하고 최신 상세 정보로 화면을 갱신합니다.
+  const handleSaveImage = async () => {
+    // 토지가 준비되지 않았거나 저장 중이면 요청하지 않습니다.
+    if (!editingLand?.id || isImageSaving) return;
+
+    // 저장 버튼을 누른 시점에만 이미지 개수 조건을 확인합니다.
+    if (editImageFiles.length < 3 || editImageFiles.length > 5) {
+      setEditError("사진은 최소 3장, 최대 5장까지 등록 가능합니다.");
+      return;
+    }
+
+    // 로그인 토큰이 없으면 이미지 저장을 중단합니다.
+    if (!getValidAccessToken()) {
+      setEditError("로그인 후 다시 시도해주세요.");
+      return;
+    }
+
+    setIsImageSaving(true);
+    setEditError("");
+
+    try {
+      // 서버가 요구하는 images 필드에 선택한 파일들을 각각 추가합니다.
+      const formData = new FormData();
+      editImageFiles.forEach((file) => formData.append("images", file));
+      const response = await authFetch(Api.LandImage(editingLand.id), {
+        method: "PATCH",
+        body: formData,
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      // 실패 응답은 이미지 관리 팝업 안에서 안내합니다.
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "토지 이미지를 수정하지 못했습니다.");
+      }
+
+      // 문자열 응답에는 이미지 경로가 없을 수 있으므로 상세 API에서 최신 경로를 확인합니다.
+      let detailRaw = null;
+      try {
+        const detailResponse = await authFetch(Api.Land(editingLand.id));
+        detailRaw = extractObject(await readApiResponse(detailResponse, "이미지 정보를 확인하지 못했습니다."));
+      } catch {
+        // 재조회 실패 시 업로드 미리보기로 화면을 즉시 갱신합니다.
+        detailRaw = null;
+      }
+
+      // 새 이미지 경로 또는 로컬 미리보기를 현재 토지 목록에 반영합니다.
+      const updatedRaw = mergeLandImages(
+        { ...editingLand.raw, ...(detailRaw || {}) },
+        detailRaw,
+        editImagePreviews[0] || editImagePreview,
+      );
+      updatedRaw.imageRevision = Date.now();
+      const updatedLand = { ...normalizeLand(updatedRaw, 0), accent: editingLand.accent };
+      setLands((prev) => prev.map((land) => land.id === editingLand.id ? updatedLand : land));
+      setEditingLand(updatedLand);
+      setEditImageFiles([]);
+      setEditImagePreviews([]);
+      setEditImagePreview(updatedLand.imageUrl);
+      setIsImageManagerOpen(false);
+    } catch (error) {
+      // 선택 파일은 유지해 사용자가 다시 저장할 수 있게 합니다.
+      setEditError(error?.message || "토지 이미지를 수정하지 못했습니다.");
+    } finally {
+      setIsImageSaving(false);
+    }
   };
 
   const handleUpdateLand = async (event) => {
@@ -575,10 +670,10 @@ function MySpace() {
       setEditingLand(savedLand);
 
       let imageData = null;
-      if (editImageFile) {
-        // 선택한 대표 이미지를 별도 이미지 수정 API로 업로드합니다.
+      if (editImageFiles.length > 0) {
+        // 선택한 이미지 묶음을 별도 이미지 수정 API로 업로드합니다.
         const imageFormData = new FormData();
-        imageFormData.append("image", editImageFile);
+        editImageFiles.forEach((file) => imageFormData.append("images", file));
         const imageResponse = await authFetch(Api.LandImage(editingLand.id), {
           method: "PATCH",
           body: imageFormData,
@@ -593,7 +688,7 @@ function MySpace() {
 
       // 이미지 응답이 경로를 주지 않으면 상세 조회로 실제 저장 경로를 확인합니다.
       let imageUpdate = imageData?.data || imageData;
-      if (editImageFile && !getFirstImagePath(imageUpdate || {})) {
+      if (editImageFiles.length > 0 && !getFirstImagePath(imageUpdate || {})) {
         try {
           imageUpdate = await withRequestTimeout(async (signal) => {
             const response = await authFetch(Api.Land(editingLand.id), { signal });
@@ -605,8 +700,10 @@ function MySpace() {
         }
       }
       if (savingToken !== getValidAccessToken()) return;
-      const updatedRaw = editImageFile ? mergeLandImages(savedRaw, imageUpdate, editImagePreview) : savedRaw;
-      if (editImageFile) updatedRaw.imageRevision = Date.now();
+      const updatedRaw = editImageFiles.length > 0
+        ? mergeLandImages(savedRaw, imageUpdate, editImagePreviews[0] || editImagePreview)
+        : savedRaw;
+      if (editImageFiles.length > 0) updatedRaw.imageRevision = Date.now();
       const updatedLand = normalizeLand(updatedRaw, 0);
       setLands((prev) =>
         prev.map((land) => (land.id === editingLand.id ? { ...updatedLand, accent: land.accent } : land))
@@ -872,6 +969,7 @@ function MySpace() {
                 ref={editImageInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleEditImageChange}
               />
             </SpaceModalField>
@@ -961,7 +1059,8 @@ function MySpace() {
               <SpaceImageManagerClose
                 type="button"
                 aria-label="이미지 관리 닫기"
-                onClick={() => setIsImageManagerOpen(false)}
+                onClick={closeImageManager}
+                disabled={isImageSaving}
               >
                 ×
               </SpaceImageManagerClose>
@@ -980,19 +1079,31 @@ function MySpace() {
               <SpaceImageManagerEmpty>현재 등록된 이미지가 없습니다.</SpaceImageManagerEmpty>
             )}
 
-            {/* 이미지 API 수정 전까지 재업로드 UI는 파일 선택 동작을 연결하지 않습니다. */}
-            <SpaceImageManagerUpload type="button">
+            {/* 재업로드 버튼으로 숨겨진 이미지 파일 선택기를 엽니다. */}
+            <SpaceImageManagerUpload
+              type="button"
+              onClick={() => editImageInputRef.current?.click()}
+              disabled={isImageSaving}
+            >
               <Upload size={22} aria-hidden="true" />
               <span>이미지 재업로드</span>
             </SpaceImageManagerUpload>
 
+            {/* 이미지 선택 또는 저장 오류를 팝업 안에서 안내합니다. */}
+            {editError ? <SpaceModalError>{editError}</SpaceModalError> : null}
+
             <SpaceImageManagerActions>
-              <SpaceImageManagerButton type="button" onClick={() => setIsImageManagerOpen(false)}>
+              <SpaceImageManagerButton type="button" onClick={closeImageManager} disabled={isImageSaving}>
                 취소
               </SpaceImageManagerButton>
-              {/* 저장 API 연결 전까지 팝업만 닫습니다. */}
-              <SpaceImageManagerButton type="button" $primary onClick={() => setIsImageManagerOpen(false)}>
-                저장
+              {/* 선택한 이미지가 있을 때만 전용 이미지 API로 저장합니다. */}
+              <SpaceImageManagerButton
+                type="button"
+                $primary
+                onClick={handleSaveImage}
+                disabled={isImageSaving}
+              >
+                {isImageSaving ? "저장 중" : "저장"}
               </SpaceImageManagerButton>
             </SpaceImageManagerActions>
           </SpaceImageManagerDialog>
