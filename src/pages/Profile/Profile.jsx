@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import useAuthToken from "@/hooks/useAuthToken";
 import NavBar from "@/components/layout/box/NavBar";
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
 import {
   authFetch,
@@ -99,7 +100,8 @@ function ProfileContent() {
     profileImagePath: "",
   });
   const [previewImage, setPreviewImage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // 첫 프로필 응답이 도착하기 전까지 빈 계정 정보 대신 로딩 화면을 표시합니다.
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editProfile, setEditProfile] = useState({ phone: "" });
@@ -289,11 +291,13 @@ function ProfileContent() {
         regionSuggestions={[]}
       />
 
-      <ProfileShell>
-        <ProfileHeader>
-          <h1>프로필</h1>
-          <p>계정 정보와 연락처를 확인하고 수정할 수 있습니다.</p>
-        </ProfileHeader>
+      {/* 프로필 정보를 불러오는 동안 본문 위에 공통 로딩 애니메이션을 표시합니다. */}
+      <PageLoading isLoading={isLoading}>
+        <ProfileShell>
+          <ProfileHeader>
+            <h1>프로필</h1>
+            <p>계정 정보와 연락처를 확인하고 수정할 수 있습니다.</p>
+          </ProfileHeader>
 
         <ProfileCard>
           <ProfileAvatarPanel>
@@ -365,8 +369,9 @@ function ProfileContent() {
               </ProfileButton>
             </ProfileActions>
           </ProfileForm>
-        </ProfileCard>
-      </ProfileShell>
+          </ProfileCard>
+        </ProfileShell>
+      </PageLoading>
 
       {isEditOpen ? (
         <ProfileDialogBackdrop role="presentation" onMouseDown={handleCloseEdit}>

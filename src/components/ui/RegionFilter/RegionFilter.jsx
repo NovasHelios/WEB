@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getRegions } from "@/API/sgisAPI";
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import RegionBreadcrumb from "./RegionBreadcrumb";
 import RegionGrid from "./RegionGrid";
 import {
@@ -122,18 +123,20 @@ const RegionFilter = ({ defaultValue = initialSelectedRegion, onSave }) => {
         />
       </BreadcrumbWrap>
 
-      {loading && <RegionMessage>지역 목록을 불러오는 중입니다.</RegionMessage>}
-      {errorMessage && <RegionMessage $error>{errorMessage}</RegionMessage>}
+      {/* 지역 목록을 불러오는 동안 기존 목록 위에 공통 로딩 애니메이션을 표시합니다. */}
+      <PageLoading isLoading={loading}>
+        {errorMessage && <RegionMessage $error>{errorMessage}</RegionMessage>}
 
-      {!loading && !errorMessage && !selectedRegion.emd && (
-        <RegionGridWrap>
-          <RegionGrid
-            regions={regions}
-            selectedCode={selectedCode}
-            onSelect={handleSelectRegion}
-          />
-        </RegionGridWrap>
-      )}
+        {!errorMessage && !selectedRegion.emd && (
+          <RegionGridWrap>
+            <RegionGrid
+              regions={regions}
+              selectedCode={selectedCode}
+              onSelect={handleSelectRegion}
+            />
+          </RegionGridWrap>
+        )}
+      </PageLoading>
 
       <RegionSaveButton type="button" onClick={handleSave}>
         저장
