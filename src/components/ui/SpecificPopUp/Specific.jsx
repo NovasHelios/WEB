@@ -88,6 +88,13 @@ const normalizeScore = (score, maxScore) => {
   return Math.min(Math.max(numericScore, 0), maxScore);
 };
 
+// 0점은 유효한 결과로 유지하고 비어 있거나 숫자가 아닌 점수만 평가 불가로 구분합니다.
+const hasScoreValue = (value) =>
+  value !== null &&
+  value !== undefined &&
+  String(value).trim() !== "" &&
+  Number.isFinite(Number(value));
+
 // 항목별 점수를 기존 막대가 사용하는 백분율 값으로 변환합니다.
 const calculateScorePercent = (score, maxScore) => {
   // 만점이 유효하지 않으면 빈 막대를 표시합니다.
@@ -99,11 +106,11 @@ const calculateScorePercent = (score, maxScore) => {
 
 // 종합 적합도 점수에 따라 Preview 게이지와 동일한 색상을 반환합니다.
 const getTotalScoreColor = (score) => {
-  // 33점 이하는 낮은 적합도를 나타내는 빨간색을 사용합니다.
-  if (score <= 33) return "#ff5757";
-  // 66점 이하는 보통 적합도를 나타내는 노란색을 사용합니다.
-  if (score <= 66) return "#ffd33d";
-  // 67점 이상은 높은 적합도를 나타내는 초록색을 사용합니다.
+  // 60점 미만은 낮은 적합도를 나타내는 기존 붉은색을 사용합니다.
+  if (score < 60) return "#ff5757";
+  // 60점 이상 80점 미만은 보통 적합도를 나타내는 기존 노란색을 사용합니다.
+  if (score < 80) return "#ffd33d";
+  // 80점 이상은 높은 적합도를 나타내는 기존 초록색을 사용합니다.
   return "#5dde88";
 };
 
@@ -250,6 +257,8 @@ function SpecificContent({ land, onClose }) {
 
   // 종합 점수는 API의 100점 만점 값을 사용합니다.
   const totalScore = normalizeScore(developmentAnalysis?.totalScore, 100);
+  // 종합 점수가 비어 있으면 0점 대신 평가 불가 상태로 표시합니다.
+  const isTotalScoreAvailable = Boolean(developmentAnalysis) && hasScoreValue(developmentAnalysis?.totalScore);
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
@@ -474,23 +483,30 @@ function SpecificContent({ land, onClose }) {
                       : developmentAnalysisError
                         ? "분석 실패"
                         : developmentAnalysis
-                          ? `${totalScore}점 / 100점`
+                          ? isTotalScoreAvailable
+                            ? `${totalScore}점 / 100점`
+                            : "평가 불가"
                           : "분석 결과 없음"}
                   </ScoreBadge>
                 </SectionTitle>
 
                 <AnalysisGrid>
                   <AnalysisItem
-                    $score={totalScore}
-                    $barColor={getTotalScoreColor(totalScore)}
+                    $score={isTotalScoreAvailable ? totalScore : 0}
+                    $barColor={isTotalScoreAvailable ? getTotalScoreColor(totalScore) : undefined}
                   >
                     <span>종합 적합도</span>
                     <strong>
-                      {developmentAnalysis ? `${totalScore}점 / 100점` : "-점 / 100점"}
+                      {developmentAnalysis
+                        ? isTotalScoreAvailable
+                          ? `${totalScore}점 / 100점`
+                          : "평가 불가"
+                        : "-점 / 100점"}
                     </strong>
                   </AnalysisItem>
                   {SOLAR_ANALYSIS_ITEMS.map((item) => {
-                    // 각 API 점수를 항목별 만점 안에서 표시합니다.
+                    // 비어 있는 항목은 점수 계산에서 제외하고 회색 막대와 평가 불가 문구를 표시합니다.
+                    const isItemScoreAvailable = Boolean(developmentAnalysis) && hasScoreValue(developmentAnalysis?.[item.key]);
                     const itemScore = normalizeScore(
                       developmentAnalysis?.[item.key],
                       item.maxScore
@@ -499,12 +515,14 @@ function SpecificContent({ land, onClose }) {
                     return (
                       <AnalysisItem
                         key={item.key}
-                        $score={calculateScorePercent(itemScore, item.maxScore)}
+                        $score={isItemScoreAvailable ? calculateScorePercent(itemScore, item.maxScore) : 0}
                       >
                         <span>{item.label}</span>
                         <strong>
                           {developmentAnalysis
-                            ? `${itemScore}점 / ${item.maxScore}점`
+                            ? isItemScoreAvailable
+                              ? `${itemScore}점 / ${item.maxScore}점`
+                              : "평가 불가"
                             : `-점 / ${item.maxScore}점`}
                         </strong>
                       </AnalysisItem>
