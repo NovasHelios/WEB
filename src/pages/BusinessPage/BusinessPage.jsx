@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
@@ -7,16 +7,19 @@ import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
 import BusinessCard from "./component/BusinessCard";
 import BusinessDetail from "./component/BusinessDetail";
+import LandSelectionModal from "./component/LandSelectionModal";
 import { BusinessDescription, BusinessDivider, BusinessGrid, BusinessHeader,
   BusinessMain, BusinessPageRoot, BusinessTitle } from "./Business.styled";
 
 function BusinessList({ token }) {
+  const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
   const [detail, setDetail] = useState(null);
   const [detailId, setDetailId] = useState(null);
+  const [chatTarget, setChatTarget] = useState(null);
   const requestRef = useRef(0);
 
   // 계정 변경과 페이지 이탈 시 지연된 목록/상세 응답을 폐기합니다.
@@ -66,7 +69,7 @@ function BusinessList({ token }) {
       <PageLoading isLoading={loading || detailId !== null}>
         {detail ? (
           // 선택한 사업자의 상세 정보만 표시하고 목록은 잠시 숨깁니다.
-          <BusinessDetail profile={detail} onBack={() => setDetail(null)} />
+          <BusinessDetail profile={detail} onBack={() => setDetail(null)} onStartChat={() => setChatTarget(detail)} />
         ) : (
           <BusinessGrid>
             {!token ? <p>사업자 정보를 보려면 <Link to="/login">로그인</Link>해 주세요.</p> : null}
@@ -91,6 +94,11 @@ function BusinessList({ token }) {
         )}
       </PageLoading>
     </BusinessMain>
+    {chatTarget ? <LandSelectionModal
+      business={chatTarget}
+      onClose={() => setChatTarget(null)}
+      onCreated={(room) => navigate("/chat", { state: { roomId: room.roomId, landId: room.landId } })}
+    /> : null}
   </BusinessPageRoot>;
 }
 
