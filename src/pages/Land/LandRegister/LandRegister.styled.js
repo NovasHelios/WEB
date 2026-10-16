@@ -252,6 +252,12 @@ export const LandRegisterAddressFieldWrap = styled.form`
   gap: 14px;
 `;
 
+// 주소 입력선과 검색 결과 드롭다운이 동일한 너비를 사용하도록 위치 기준을 제공합니다.
+export const LandRegisterAddressSearchArea = styled.div`
+  position: relative;
+  min-width: 0;
+`;
+
 export const LandRegisterAddressField = styled.label`
   display: flex;
   flex-direction: column;
@@ -291,6 +297,58 @@ export const LandRegisterAddressHelper = styled.p`
   font-size: var(--font-sm);
   line-height: 1.5;
   color: ${({ $error }) => ($error ? "#b42318" : "#8d7852")};
+`;
+
+// 일부 주소 검색으로 찾은 전체 도로명 주소 후보를 스크롤 목록으로 표시합니다.
+export const LandRegisterAddressResults = styled.ul`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  width: 100%;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid #ded6c8;
+  border-radius: 0 0 6px 6px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(57, 47, 31, 0.14);
+  list-style: none;
+
+  li + li {
+    border-top: 1px solid #eee8de;
+  }
+`;
+
+// 주소 후보의 도로명 주소와 보조 지번 주소를 클릭 가능한 한 행으로 배치합니다.
+export const LandRegisterAddressResultButton = styled.button`
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: #ffffff;
+  color: #2c2c2c;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: #fff9e9;
+    outline: none;
+  }
+
+  strong {
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
+  }
+
+  span {
+    color: #777064;
+    font-size: var(--font-xs);
+  }
 `;
 
 export const LandRegisterStepBadge = styled.span`

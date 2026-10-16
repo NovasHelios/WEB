@@ -114,17 +114,6 @@ const getTotalScoreColor = (score) => {
   return "#5dde88";
 };
 
-// 상세 API의 평균 경사도를 도 단위 문구로 변환합니다.
-const formatAverageSlope = (value) => {
-  // 0도는 유효하게 표시하고 값이 없거나 숫자가 아니면 대체 문구를 반환합니다.
-  if (value === null || value === undefined || value === "") return "-";
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) return "-";
-
-  // 긴 소수는 둘째 자리까지만 표시합니다.
-  return `${numericValue.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}°`;
-};
-
 // 상세보기 팝업 컴포넌트입니다.
 function Specific({ land, onClose }) {
   // 토지가 바뀌면 이미지 선택·실패 상태를 함께 새로 만듭니다.
@@ -435,11 +424,6 @@ function SpecificContent({ land, onClose }) {
                   <InfoRow>
                     <span>도로 접면</span>
                     <strong>{land.regstrSeCodeNm || "-"}</strong>
-                  </InfoRow>
-                  {/* 토지 상세 API에서 받은 평균 경사도를 표시합니다. */}
-                  <InfoRow>
-                    <span>경사도 (DEM)</span>
-                    <strong>{formatAverageSlope(land.averageSlope)}</strong>
                   </InfoRow>
                   <InfoRow>
                     <span>공유 인원</span>

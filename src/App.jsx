@@ -27,17 +27,17 @@ import {
   LandFavorites,
 } from "./pages/Land";
 
-// BUSINESS 플랜 사용자가 내 공간 화면에 접근하지 못하도록 보호합니다.
-function NonBusinessSpaceRoute({ children }) {
+// BUSINESS 플랜 사용자에게 제공하지 않는 화면의 직접 접근을 차단합니다.
+function NonBusinessRoute({ children }) {
   // 계정 확인이 끝난 뒤 현재 플랜에 따라 접근 여부를 결정합니다.
   const { isLoggedIn, user, isAccountLoading } = useAccount();
 
   // 계정 조회 중에는 제한 화면이 잠깐 노출되지 않게 합니다.
   if (isAccountLoading) return null;
 
-  // BUSINESS 플랜은 내 공간 대신 사업 연결 페이지로 이동합니다.
+  // BUSINESS 플랜은 제한 화면 대신 지도 검색 페이지로 이동합니다.
   if (isLoggedIn && user?.plan === "BUSINESS") {
-    return <Navigate to="/business-connections" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // 그 외 사용자는 기존 내 공간 화면을 그대로 이용합니다.
@@ -52,7 +52,7 @@ function App() {
           <Route path="/signup" element={<Signin_2 />} />
           <Route path="/" element={<Map />} />
           {/* 내 공간의 기존 별칭에도 BUSINESS 플랜 접근 제한을 적용합니다. */}
-          <Route path="/land" element={<NonBusinessSpaceRoute><MySpace /></NonBusinessSpaceRoute>} />
+          <Route path="/land" element={<NonBusinessRoute><MySpace /></NonBusinessRoute>} />
           <Route path="/land/favorites" element={<LandFavorites />} />
           <Route path="/land/register" element={<LandRegister />} />
           <Route path="/land/register/confirm" element={<LandRegisterConfirm />} />
@@ -66,11 +66,12 @@ function App() {
           <Route path="/profile/business" element={<BusinessProfile />} />
           <Route path="/business/profile" element={<BusinessProfile />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/business-connections" element={<BusinessPage />} />
+          {/* BUSINESS 플랜은 사업 연결 주소를 직접 입력해도 접근할 수 없습니다. */}
+          <Route path="/business-connections" element={<NonBusinessRoute><BusinessPage /></NonBusinessRoute>} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/plans" element={<Plans />} />
           {/* BUSINESS 플랜은 주소를 직접 입력해도 내 공간으로 이동할 수 없습니다. */}
-          <Route path="/space" element={<NonBusinessSpaceRoute><MySpace /></NonBusinessSpaceRoute>} />
+          <Route path="/space" element={<NonBusinessRoute><MySpace /></NonBusinessRoute>} />
         </Routes>
         <RegisterGuideFooter />
         {/* 각 페이지에 중복되지 않도록 공통 footer를 한 번만 배치합니다. */}

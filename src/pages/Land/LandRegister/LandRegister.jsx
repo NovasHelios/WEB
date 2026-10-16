@@ -9,7 +9,10 @@ import NavBar from "@/components/layout/box/NavBar";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
 import { fetchVworldLandInfo } from "@/API/vworldAPI";
-import { findDetailedLandAddress } from "@/utils/validateLandAddress";
+import {
+  findDetailedLandAddress,
+  searchDetailedLandAddresses,
+} from "@/utils/validateLandAddress";
 // 주소 존재 여부와 별도로 현재 사용자의 중복 등록 여부를 확인합니다.
 import { assertLandNotRegistered, DUPLICATE_LAND_MESSAGE, isDuplicateLandError } from "../landDuplicate";
 import {
@@ -33,15 +36,18 @@ import {
   LandRegisterAddressFieldWrap,
   LandRegisterAddressInput,
   LandRegisterAddressHelper,
+  LandRegisterAddressSearchArea,
+  LandRegisterAddressResultButton,
+  LandRegisterAddressResults,
   LandRegisterKakaoMap,
   LandRegisterVisualCanvas,
   LandRegisterVisualEmpty,
   LandRegisterVisualMapIcon,
 } from "./LandRegister.styled";
 
-// 토지 등록에서 축약 주소가 검색되지 않도록 안내하는 공통 문구입니다.
+// 토지 등록에서 일부 주소 검색 후 전체 도로명 주소를 선택하도록 안내합니다.
 const FULL_ROAD_ADDRESS_MESSAGE =
-  "시·도와 시·군·구를 포함한 전체 도로명 주소를 입력해 주세요.";
+  "주소 일부를 입력한 뒤 검색 결과에서 전체 도로명 주소를 선택해 주세요.";
 
 function LandRegister() {
   const navigate = useNavigate();
@@ -51,6 +57,8 @@ function LandRegister() {
   const markerRef = useRef(null);
   const { registerData, setRegisterData } = useLandRegister();
   const [isAddressChecking, setIsAddressChecking] = useState(false);
+  // 일부 주소 검색으로 찾은 전체 도로명 주소 후보를 보관합니다.
+  const [addressCandidates, setAddressCandidates] = useState([]);
   // 최종 제출에서 돌아온 중복 오류도 기존 주소 안내 위치에 표시합니다.
   const [addressMessage, setAddressMessage] = useState(registerData.addressError || "");
   // 주소 안내는 입력창 아래 한 위치에서 표시하며 오류만 빨간색으로 구분합니다.
@@ -123,8 +131,98 @@ function LandRegister() {
     };
   };
 
-  const handleSearch = (event) => {
-    // 주소 입력 후 유효성 검사를 진행합니다.
+  // 사용자가 선택한 전체 도로명 주소로 기존 공공데이터와 중복 검사를 진행합니다.
+  const validateSelectedAddress = async (selectedAddress) => {
+    setIsAddressChecking(true);
+    // 선택한 전체 도로명 주소를 입력창에 반영하고 이전 위치 결과를 초기화합니다.
+    setRegisterData((prev) => ({
+      ...prev,
+      address: selectedAddress,
+      isAddressValid: false,
+      addressError: "",
+      confirmedAddress: "",
+      confirmedRoadAddress: "",
+      confirmedLocation: "",
+      latitude: "",
+      longitude: "",
+    }));
+    setHasAddressError(false);
+    setAddressMessage("주소를 확인하는 중입니다.");
+    const validationId = addressValidationIdRef.current + 1;
+    addressValidationIdRef.current = validationId;
+
+    try {
+      const result = await validateAddress(selectedAddress);
+      if (validationId !== addressValidationIdRef.current) return;
+
+      if (!result || !result.isDetailedAddress) {
+        setHasAddressError(true);
+        setAddressMessage("선택한 도로명 주소를 확인하지 못했습니다. 다시 검색해 주세요.");
+        return;
+      }
+
+      let vworldInfo;
+      try {
+        vworldInfo = await fetchVworldLandInfo(selectedAddress);
+      } catch {
+        // 공공 데이터 조회 실패가 주소 검증 결과까지 무효화하지 않도록 처리합니다.
+        vworldInfo = null;
+      }
+
+      if (validationId !== addressValidationIdRef.current) return;
+
+      // 내 토지 목록과 선택 주소·표준 주소·PNU를 비교한 뒤에만 검증을 완료합니다.
+      await assertLandNotRegistered({
+        address: selectedAddress,
+        confirmedAddress: result.address,
+        confirmedRoadAddress: result.roadAddress,
+        refinedAddress: vworldInfo?.confirmedAddress,
+        pnu: vworldInfo?.pnu,
+      });
+
+      // 중복 확인 도중 주소가 바뀌었으면 이전 응답을 새 입력에 반영하지 않습니다.
+      if (validationId !== addressValidationIdRef.current) return;
+
+      setHasAddressError(false);
+      setAddressMessage("유효한 주소로 확인되었습니다.");
+      setRegisterData((prev) => ({
+        ...prev,
+        address: selectedAddress,
+        // 정상 주소의 중복 확인이 끝나면 이전 제출 오류를 제거합니다.
+        addressError: "",
+        isAddressValid: true,
+        confirmedAddress: vworldInfo?.confirmedAddress || result.address,
+        confirmedRoadAddress: result.roadAddress,
+        confirmedLocation: vworldInfo?.confirmedLocation || (result.x && result.y ? `${result.y}, ${result.x}` : ""),
+        latitude: vworldInfo?.latitude || result.y,
+        longitude: vworldInfo?.longitude || result.x,
+        pnu: vworldInfo?.pnu || "",
+        area: vworldInfo?.area || "",
+        landCategory: vworldInfo?.landCategory || "",
+        altitude: vworldInfo?.altitude || "",
+        roadAccess: vworldInfo?.roadAccess || "",
+        shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
+      }));
+    } catch (error) {
+      // 지난 검색의 오류가 새 입력 안내를 덮어쓰지 않게 합니다.
+      if (validationId !== addressValidationIdRef.current) return;
+      setHasAddressError(true);
+      // 중복 오류는 지정 문구로, 조회 실패는 재확인 안내로 표시합니다.
+      const message = isDuplicateLandError(error)
+        ? DUPLICATE_LAND_MESSAGE
+        : error?.message || "주소를 확인하지 못했습니다. 잠시 후 다시 검색해주세요.";
+      setAddressMessage(message);
+      // 검증 실패 상태를 저장해 다음 단계와 최종 제출을 함께 차단합니다.
+      setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: message }));
+    } finally {
+      if (validationId === addressValidationIdRef.current) {
+        setIsAddressChecking(false);
+      }
+    }
+  };
+
+  const handleSearch = async (event) => {
+    // 일부 주소를 Kakao 검색에 전달하고 선택 가능한 전체 도로명 주소 후보를 요청합니다.
     event.preventDefault();
     const trimmed = registerData.address.trim();
 
@@ -135,98 +233,53 @@ function LandRegister() {
     }
 
     setIsAddressChecking(true);
-    // 재검증 중에는 이전 성공 상태로 다음 단계를 진행할 수 없도록 초기화합니다.
-    setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: "" }));
+    setAddressCandidates([]);
     setHasAddressError(false);
-    setAddressMessage("주소를 확인하는 중입니다.");
+    setAddressMessage("주소 검색 결과를 불러오는 중입니다.");
+    // 새 검색 중에는 이전에 확인한 주소로 다음 단계에 진입하지 못하게 합니다.
+    setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: "" }));
     const validationId = addressValidationIdRef.current + 1;
     addressValidationIdRef.current = validationId;
 
-    validateAddress(trimmed)
-      .then(async (result) => {
-        if (validationId !== addressValidationIdRef.current) return;
-
-        if (!result || !result.isDetailedAddress) {
-          setHasAddressError(true);
-          setAddressMessage(FULL_ROAD_ADDRESS_MESSAGE);
-          setRegisterData((prev) => ({
-            ...prev,
-            isAddressValid: false,
-            confirmedAddress: "",
-            confirmedRoadAddress: "",
-            confirmedLocation: "",
-            latitude: "",
-            longitude: "",
-          }));
-          return;
-        }
-
-        let vworldInfo;
-        try {
-          vworldInfo = await fetchVworldLandInfo(trimmed);
-        } catch {
-          // 공공 데이터 조회 실패가 주소 검증 결과까지 무효화하지 않도록 처리합니다.
-          vworldInfo = null;
-        }
-
-        if (validationId !== addressValidationIdRef.current) return;
-
-        // 내 토지 목록과 입력 주소·표준 주소·PNU를 비교한 뒤에만 검증을 완료합니다.
-        await assertLandNotRegistered({
-          address: trimmed,
-          confirmedAddress: result.address,
-          confirmedRoadAddress: result.roadAddress,
-          refinedAddress: vworldInfo?.confirmedAddress,
-          pnu: vworldInfo?.pnu,
-        });
-
-        // 중복 확인 도중 주소가 바뀌었으면 이전 응답을 새 입력에 반영하지 않습니다.
-        if (validationId !== addressValidationIdRef.current) return;
-
-        setHasAddressError(false);
-        setAddressMessage("유효한 주소로 확인되었습니다.");
-        setRegisterData((prev) => ({
-          ...prev,
-          address: trimmed,
-          // 정상 주소의 중복 확인이 끝나면 이전 제출 오류를 제거합니다.
-          addressError: "",
-          isAddressValid: true,
-          confirmedAddress: vworldInfo?.confirmedAddress || result.address,
-          confirmedRoadAddress: result.roadAddress,
-          confirmedLocation: vworldInfo?.confirmedLocation || (result.x && result.y ? `${result.y}, ${result.x}` : ""),
-          latitude: vworldInfo?.latitude || result.y,
-          longitude: vworldInfo?.longitude || result.x,
-          pnu: vworldInfo?.pnu || "",
-          area: vworldInfo?.area || "",
-          landCategory: vworldInfo?.landCategory || "",
-          altitude: vworldInfo?.altitude || "",
-          roadAccess: vworldInfo?.roadAccess || "",
-          shareCount: vworldInfo?.shareCount || "0명 (단독소유)",
-        }));
-      })
-      .catch((error) => {
-        // 지난 검색의 오류가 새 입력 안내를 덮어쓰지 않게 합니다.
-        if (validationId !== addressValidationIdRef.current) return;
-        setHasAddressError(true);
-        // 중복 오류는 지정 문구로, 조회 실패는 재확인 안내로 표시합니다.
-        const message = isDuplicateLandError(error)
-          ? DUPLICATE_LAND_MESSAGE
-          : error?.message || "주소를 확인하지 못했습니다. 잠시 후 다시 검색해주세요.";
-        setAddressMessage(message);
-        // 검증 실패 상태를 저장해 다음 단계와 최종 제출을 함께 차단합니다.
-        setRegisterData((prev) => ({ ...prev, isAddressValid: false, addressError: message }));
-      })
-      .finally(() => {
-        if (validationId === addressValidationIdRef.current) {
-          setIsAddressChecking(false);
-        }
+    try {
+      const candidates = await searchDetailedLandAddresses(trimmed, {
+        requireRoadAddress: true,
       });
+      if (validationId !== addressValidationIdRef.current) return;
+
+      if (candidates.length === 0) {
+        setHasAddressError(true);
+        setAddressMessage("검색 결과가 없습니다. 도로명과 건물번호를 확인해 주세요.");
+        return;
+      }
+
+      // 검색된 후보를 그대로 표시하고 사용자가 전체 도로명 주소를 선택하게 합니다.
+      setAddressCandidates(candidates);
+      setAddressMessage("검색 결과에서 등록할 전체 도로명 주소를 선택해 주세요.");
+    } catch (error) {
+      if (validationId !== addressValidationIdRef.current) return;
+      setHasAddressError(true);
+      setAddressMessage(error?.message || "주소 검색 결과를 불러오지 못했습니다.");
+    } finally {
+      if (validationId === addressValidationIdRef.current) {
+        setIsAddressChecking(false);
+      }
+    }
+  };
+
+  const handleAddressCandidateSelect = (candidate) => {
+    // 후보의 전체 도로명 주소만 등록 주소로 사용합니다.
+    const selectedAddress = candidate.road_address?.address_name || "";
+    if (!selectedAddress) return;
+    setAddressCandidates([]);
+    void validateSelectedAddress(selectedAddress);
   };
 
   const handleAddressChange = (event) => {
     // 주소가 바뀌면 이전 검증 결과를 초기화합니다.
     addressValidationIdRef.current += 1;
     setIsAddressChecking(false);
+    setAddressCandidates([]);
     setHasAddressError(false);
     setAddressMessage("");
     setRegisterData((prev) => ({
@@ -278,16 +331,43 @@ function LandRegister() {
               </LandRegisterCardLabel>
 
               <LandRegisterAddressFieldWrap onSubmit={handleSearch}>
-                <LandRegisterAddressField>
-                  <LandRegisterAddressInput
-                    aria-label="등록할 토지 주소"
-                    aria-describedby="land-address-helper"
-                    aria-invalid={hasAddressError}
-                    value={registerData.address}
-                    onChange={handleAddressChange}
-                    placeholder="전체 도로명 주소를 입력해주세요. (예: 서울특별시 강남구 테헤란로 152)"
-                  />
-                </LandRegisterAddressField>
+                {/* 주소 입력선 너비를 기준으로 검색 결과 드롭다운을 겹쳐 표시합니다. */}
+                <LandRegisterAddressSearchArea>
+                  <LandRegisterAddressField>
+                    <LandRegisterAddressInput
+                      aria-label="등록할 토지 주소"
+                      aria-describedby="land-address-helper"
+                      aria-invalid={hasAddressError}
+                      value={registerData.address}
+                      onChange={handleAddressChange}
+                      placeholder="도로명 주소 일부를 입력해주세요. (예: 테헤란로 152)"
+                    />
+                  </LandRegisterAddressField>
+
+                  {/* 일부 주소로 검색된 전체 도로명 주소 후보를 드롭다운 목록으로 표시합니다. */}
+                  {addressCandidates.length > 0 ? (
+                    <LandRegisterAddressResults aria-label="도로명 주소 검색 결과">
+                      {addressCandidates.map((candidate) => {
+                        // 도로명 주소를 기본 문구로, 지번 주소를 보조 문구로 표시합니다.
+                        const roadAddress = candidate.road_address?.address_name || "";
+                        const parcelAddress = candidate.address?.address_name || candidate.address_name || "";
+
+                        return (
+                          <li key={`${roadAddress}-${candidate.x}-${candidate.y}`}>
+                            <LandRegisterAddressResultButton
+                              type="button"
+                              onClick={() => handleAddressCandidateSelect(candidate)}
+                              disabled={isAddressChecking}
+                            >
+                              <strong>{roadAddress}</strong>
+                              {parcelAddress ? <span>지번 {parcelAddress}</span> : null}
+                            </LandRegisterAddressResultButton>
+                          </li>
+                        );
+                      })}
+                    </LandRegisterAddressResults>
+                  ) : null}
+                </LandRegisterAddressSearchArea>
 
                 <LandRegisterPrimaryButton type="submit" disabled={isAddressChecking}>
                   <Search size={16} strokeWidth={2.2} />

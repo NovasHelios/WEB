@@ -92,12 +92,15 @@ const NavBar = ({
     ...(isBusinessAccount
       ? [{ label: "관심 토지", icon: Heart, url: "/land/favorites", activePaths: ["/land/favorites"] }]
       : []),
-    {
-      label: "사업 연결",
-      icon: Handshake,
-      url: "/business-connections",
-      activePaths: ["/business-connections"],
-    },
+    // BUSINESS 플랜에서는 다른 사업자를 찾는 사업 연결 메뉴를 표시하지 않습니다.
+    ...(isBusinessAccount
+      ? []
+      : [{
+          label: "사업 연결",
+          icon: Handshake,
+          url: "/business-connections",
+          activePaths: ["/business-connections"],
+        }]),
   ];
 
   const isMenuActive = (activePaths) => {
