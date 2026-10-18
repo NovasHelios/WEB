@@ -190,10 +190,39 @@ export const ChatAvatar = styled.div`
 
 // 메시지 목록 영역입니다.
 export const ChatMessageArea = styled.div`
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 16px;
+`;
+
+// 채팅 오류를 메시지 영역 가운데에 안내합니다.
+export const ChatErrorNotice = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #f1d0cc;
+  border-radius: 8px;
+  background: rgba(255, 250, 249, 0.96);
+  color: #c2413a;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1.5;
+  text-align: center;
+
+  svg {
+    flex: 0 0 auto;
+  }
 `;
 
 // 메시지 한 줄입니다.
@@ -403,6 +432,34 @@ export const ChatLeaveButton = styled.button`
   font-size: var(--font-sm);
   font-weight: var(--font-bold);
   cursor: pointer;
+`;
+
+// 채팅방 삭제 확인창을 서비스 공통 색상으로 표시합니다.
+export const ChatConfirmOverlay = styled.div`
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  padding: 1rem; background: rgba(31, 28, 23, 0.48); box-sizing: border-box;
+`;
+
+export const ChatConfirmDialog = styled.section`
+  width: min(100%, 26rem); padding: clamp(1.5rem, 5vw, 2rem);
+  border: 1px solid #e6dcc8; border-radius: 1.125rem; background: #fffdf8;
+  color: #2c2925; text-align: center; box-shadow: 0 24px 70px rgba(37, 29, 14, 0.24);
+  h2 { margin: 0; font-size: var(--font-xl); }
+  p { margin: 0.75rem 0 0; color: #756d61; font-size: var(--font-sm); line-height: 1.65; }
+`;
+
+export const ChatConfirmIcon = styled.div`
+  display: grid; place-items: center; width: 3.25rem; height: 3.25rem;
+  margin: 0 auto 1rem; border-radius: 50%; background: #f7efdc; color: #9a7200;
+`;
+
+export const ChatConfirmActions = styled.div`
+  display: flex; justify-content: center; gap: 0.75rem; margin-top: 1.5rem;
+  button { min-width: 7rem; height: 2.75rem; border: 1px solid #d8c5a2; border-radius: 0.5rem;
+    background: #fff; color: #6f6045; font: inherit; cursor: pointer; }
+  button:last-child { border-color: #936e00; background: #936e00; color: #fff; }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  button:focus-visible { outline: 2px solid #936e00; outline-offset: 3px; }
 `;
 
 // 상태 메시지입니다.

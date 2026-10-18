@@ -263,23 +263,23 @@ function Preview({ land }) {
 
         if ([409, 422].includes(response.status) || isExistingChatRoomMessage(errorMessage)) {
           removeClosedChatRoomMatch({ landId, landAddress: address });
-          navigate("/chat");
+          navigate("/chat", { state: { landId: Number(landId) } });
           return;
         }
 
         throw new Error(data?.message || data?.data?.message || "채팅방을 생성하지 못했습니다.");
       }
 
+      const createdRoom = data?.data?.data || data?.data || data;
+      const roomId = createdRoom?.roomId || createdRoom?.id;
       removeClosedChatRoomMatch({
-        roomId: data?.data?.roomId || data?.roomId,
+        roomId,
         landId,
         landAddress: address,
-        counterpartEmail: data?.data?.counterpartEmail || data?.counterpartEmail,
+        counterpartEmail: createdRoom?.counterpartEmail,
       });
-      setFeedback({
-        type: "success",
-        text: "채팅 요청이 생성되었습니다.",
-      });
+      // 생성된 방을 채팅 페이지에서 바로 선택하도록 전달합니다.
+      navigate("/chat", { state: { roomId, landId: Number(landId) } });
     } catch (error) {
       setFeedback({
         type: "error",

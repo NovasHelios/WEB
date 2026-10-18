@@ -39,7 +39,7 @@ const getProfileImage = (profile) => (
 );
 
 // 상세 API 응답을 사업자 소개 화면에 배치합니다.
-function BusinessDetail({ profile, onBack }) {
+function BusinessDetail({ profile, onBack, onStartChat }) {
   const [failedImage, setFailedImage] = useState("");
   // 배열이 아닌 응답이 들어와도 상세 화면이 깨지지 않도록 정규화합니다.
   const fields = Array.isArray(profile.mainFields) ? profile.mainFields.filter(Boolean) : [];
@@ -95,8 +95,8 @@ function BusinessDetail({ profile, onBack }) {
             <div><span>인증 상태</span><strong>{profile.businessVerified ? "완료" : "확인 중"}</strong></div>
           </BusinessSummaryFacts>
 
-          {/* 채팅 API 연결 전까지 화면 동작 없이 상담 연결 명령만 표시합니다. */}
-          <BusinessConsultButton type="button">상담 연결</BusinessConsultButton>
+          {/* 사업자에게 토지 선택 기반 채팅을 시작합니다. */}
+          <BusinessConsultButton type="button" onClick={onStartChat}>사업자와 채팅하기</BusinessConsultButton>
         </BusinessSummaryCard>
 
         {/* 상세 API가 제공하는 소개·활동·상담·인증 정보를 표시합니다. */}
