@@ -45,9 +45,9 @@ import {
   LandRegisterVisualMapIcon,
 } from "./LandRegister.styled";
 
-// 토지 등록에서 일부 주소 검색 후 전체 도로명 주소를 선택하도록 안내합니다.
-const FULL_ROAD_ADDRESS_MESSAGE =
-  "주소 일부를 입력한 뒤 검색 결과에서 전체 도로명 주소를 선택해 주세요.";
+// 토지 등록에서 일부 주소 검색 후 전체 도로명 또는 지번 주소를 선택하도록 안내합니다.
+const FULL_ADDRESS_SELECTION_MESSAGE =
+  "주소 일부를 입력한 뒤 검색 결과에서 전체 주소를 선택해 주세요.";
 
 function LandRegister() {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ function LandRegister() {
   const markerRef = useRef(null);
   const { registerData, setRegisterData } = useLandRegister();
   const [isAddressChecking, setIsAddressChecking] = useState(false);
-  // 일부 주소 검색으로 찾은 전체 도로명 주소 후보를 보관합니다.
+  // 일부 주소 검색으로 찾은 전체 도로명 또는 지번 주소 후보를 보관합니다.
   const [addressCandidates, setAddressCandidates] = useState([]);
   // 최종 제출에서 돌아온 중복 오류도 기존 주소 안내 위치에 표시합니다.
   const [addressMessage, setAddressMessage] = useState(registerData.addressError || "");
@@ -118,9 +118,9 @@ function LandRegister() {
   }, [hasValidLocation, registerData.latitude, registerData.longitude]);
 
   const validateAddress = async (value) => {
-    // 토지 등록은 여러 지역에 같은 도로명이 있어도 혼동하지 않도록 전체 도로명 주소만 허용합니다.
+    // 토지 등록은 여러 지역의 동일 주소를 구분할 수 있도록 선택한 전체 도로명 또는 지번 주소만 허용합니다.
     const matched = await findDetailedLandAddress(value, {
-      requireFullRoadAddress: true,
+      requireFullDetailedAddress: true,
     });
     if (!matched) return null;
     return {
@@ -131,10 +131,10 @@ function LandRegister() {
     };
   };
 
-  // 사용자가 선택한 전체 도로명 주소로 기존 공공데이터와 중복 검사를 진행합니다.
+  // 사용자가 선택한 전체 도로명 또는 지번 주소로 공공데이터와 중복 검사를 진행합니다.
   const validateSelectedAddress = async (selectedAddress) => {
     setIsAddressChecking(true);
-    // 선택한 전체 도로명 주소를 입력창에 반영하고 이전 위치 결과를 초기화합니다.
+    // 선택한 전체 주소를 입력창에 반영하고 이전 위치 결과를 초기화합니다.
     setRegisterData((prev) => ({
       ...prev,
       address: selectedAddress,
@@ -157,7 +157,7 @@ function LandRegister() {
 
       if (!result || !result.isDetailedAddress) {
         setHasAddressError(true);
-        setAddressMessage("선택한 도로명 주소를 확인하지 못했습니다. 다시 검색해 주세요.");
+        setAddressMessage("선택한 주소를 확인하지 못했습니다. 다시 검색해 주세요.");
         return;
       }
 
@@ -222,7 +222,7 @@ function LandRegister() {
   };
 
   const handleSearch = async (event) => {
-    // 일부 주소를 Kakao 검색에 전달하고 선택 가능한 전체 도로명 주소 후보를 요청합니다.
+    // 일부 주소를 Kakao 검색에 전달하고 선택 가능한 상세 주소 후보를 요청합니다.
     event.preventDefault();
     const trimmed = registerData.address.trim();
 
@@ -242,9 +242,8 @@ function LandRegister() {
     addressValidationIdRef.current = validationId;
 
     try {
-      const candidates = await searchDetailedLandAddresses(trimmed, {
-        requireRoadAddress: true,
-      });
+      // 도로명 주소가 없는 임야와 농지도 찾을 수 있도록 상세 지번 결과를 함께 요청합니다.
+      const candidates = await searchDetailedLandAddresses(trimmed);
       if (validationId !== addressValidationIdRef.current) return;
 
       if (candidates.length === 0) {
@@ -253,9 +252,9 @@ function LandRegister() {
         return;
       }
 
-      // 검색된 후보를 그대로 표시하고 사용자가 전체 도로명 주소를 선택하게 합니다.
+      // 검색된 후보를 그대로 표시하고 사용자가 전체 도로명 또는 지번 주소를 선택하게 합니다.
       setAddressCandidates(candidates);
-      setAddressMessage("검색 결과에서 등록할 전체 도로명 주소를 선택해 주세요.");
+      setAddressMessage("검색 결과에서 등록할 전체 주소를 선택해 주세요.");
     } catch (error) {
       if (validationId !== addressValidationIdRef.current) return;
       setHasAddressError(true);
@@ -268,8 +267,12 @@ function LandRegister() {
   };
 
   const handleAddressCandidateSelect = (candidate) => {
-    // 후보의 전체 도로명 주소만 등록 주소로 사용합니다.
-    const selectedAddress = candidate.road_address?.address_name || "";
+    // 도로명 주소를 우선 사용하고 없으면 토지의 전체 지번 주소를 등록 주소로 사용합니다.
+    const selectedAddress =
+      candidate.road_address?.address_name ||
+      candidate.address?.address_name ||
+      candidate.address_name ||
+      "";
     if (!selectedAddress) return;
     setAddressCandidates([]);
     void validateSelectedAddress(selectedAddress);
@@ -340,27 +343,28 @@ function LandRegister() {
                       aria-invalid={hasAddressError}
                       value={registerData.address}
                       onChange={handleAddressChange}
-                      placeholder="도로명 주소 일부를 입력해주세요. (예: 테헤란로 152)"
+                      placeholder="도로명 또는 지번 주소 일부를 입력해주세요."
                     />
                   </LandRegisterAddressField>
 
-                  {/* 일부 주소로 검색된 전체 도로명 주소 후보를 드롭다운 목록으로 표시합니다. */}
+                  {/* 일부 주소로 검색된 전체 도로명 또는 지번 주소 후보를 드롭다운으로 표시합니다. */}
                   {addressCandidates.length > 0 ? (
-                    <LandRegisterAddressResults aria-label="도로명 주소 검색 결과">
+                    <LandRegisterAddressResults aria-label="주소 검색 결과">
                       {addressCandidates.map((candidate) => {
-                        // 도로명 주소를 기본 문구로, 지번 주소를 보조 문구로 표시합니다.
+                        // 도로명 주소가 없으면 전체 지번 주소를 기본 선택 문구로 표시합니다.
                         const roadAddress = candidate.road_address?.address_name || "";
                         const parcelAddress = candidate.address?.address_name || candidate.address_name || "";
+                        const primaryAddress = roadAddress || parcelAddress;
 
                         return (
-                          <li key={`${roadAddress}-${candidate.x}-${candidate.y}`}>
+                          <li key={`${primaryAddress}-${candidate.x}-${candidate.y}`}>
                             <LandRegisterAddressResultButton
                               type="button"
                               onClick={() => handleAddressCandidateSelect(candidate)}
                               disabled={isAddressChecking}
                             >
-                              <strong>{roadAddress}</strong>
-                              {parcelAddress ? <span>지번 {parcelAddress}</span> : null}
+                              <strong>{primaryAddress}</strong>
+                              {roadAddress && parcelAddress ? <span>지번 {parcelAddress}</span> : null}
                             </LandRegisterAddressResultButton>
                           </li>
                         );
@@ -376,7 +380,7 @@ function LandRegister() {
               </LandRegisterAddressFieldWrap>
 
               <LandRegisterAddressHelper id="land-address-helper" $error={hasAddressError} aria-live="polite" aria-atomic="true">
-                {addressMessage || FULL_ROAD_ADDRESS_MESSAGE}
+                {addressMessage || FULL_ADDRESS_SELECTION_MESSAGE}
               </LandRegisterAddressHelper>
 
               <LandRegisterPanelSubtext>

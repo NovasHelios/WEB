@@ -68,11 +68,11 @@ export function searchDetailedLandAddresses(
             return false;
           }
 
-          // 토지 등록 후보에는 사용자가 선택할 전체 도로명 주소가 반드시 있어야 합니다.
+          // 호출부가 요청한 경우에만 전체 도로명 주소가 있는 후보로 제한합니다.
           return !requireRoadAddress || Boolean(item.road_address?.address_name);
         });
 
-        // 같은 도로명 주소가 중복 반환되면 첫 번째 결과만 목록에 남깁니다.
+        // 같은 도로명 또는 지번 주소가 중복 반환되면 첫 번째 결과만 목록에 남깁니다.
         const seenAddresses = new Set();
         resolve(detailedResults.filter((item) => {
           const candidateAddress = normalizeAddressText(
@@ -93,7 +93,7 @@ export function searchDetailedLandAddresses(
 // 검색된 상세 주소 중 입력 조건과 일치하는 한 건을 기존 검증 흐름에 반환합니다.
 export async function findDetailedLandAddress(
   address,
-  { requireFullRoadAddress = false } = {}
+  { requireFullRoadAddress = false, requireFullDetailedAddress = false } = {}
 ) {
   // 엄격 검증에서도 도로명 주소가 포함된 후보만 비교합니다.
   const results = await searchDetailedLandAddresses(address, {
@@ -101,16 +101,25 @@ export async function findDetailedLandAddress(
   });
 
   // 일반 검증은 기존처럼 첫 번째 상세 지번 또는 도로명 주소를 사용합니다.
-  if (!requireFullRoadAddress) return results[0] || null;
+  if (!requireFullRoadAddress && !requireFullDetailedAddress) return results[0] || null;
 
-  // 토지 등록에서는 시·도 표기만 통일한 전체 도로명 주소가 같아야 통과합니다.
+  // 토지 등록에서는 시·도 표기를 통일한 전체 도로명 또는 지번 주소가 같아야 통과합니다.
   const normalizedInput = normalizeRoadAddressText(address);
   return results.find((item) => {
     const fullRoadAddress = normalizeRoadAddressText(
       item.road_address?.address_name
     );
+    const fullParcelAddress = normalizeRoadAddressText(
+      item.address?.address_name || item.address_name
+    );
 
-    return Boolean(fullRoadAddress && normalizedInput === fullRoadAddress);
+    // 기존 도로명 전용 검증은 유지하고 새 상세 주소 검증에서는 지번도 함께 허용합니다.
+    return requireFullRoadAddress
+      ? Boolean(fullRoadAddress && normalizedInput === fullRoadAddress)
+      : Boolean(
+          normalizedInput &&
+          (normalizedInput === fullRoadAddress || normalizedInput === fullParcelAddress)
+        );
   }) || null;
 }
 
