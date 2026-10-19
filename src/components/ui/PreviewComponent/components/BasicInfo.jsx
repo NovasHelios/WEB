@@ -18,8 +18,8 @@ import {
   UnsupportedValue,
 } from "../Preview.styeld";
 
-// 아직 서버에서 전달받지 못한 정보에 표시할 문구입니다.
-const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
+// 서버에서 전달받지 못한 기본 정보에 표시할 공통 문구입니다.
+const MISSING_TEXT = "없음";
 
 // 서버 날짜를 디자인의 YYYY. MM. DD 형식으로 변경합니다.
 const formatDate = (value) => {
@@ -47,7 +47,7 @@ const formatTransactionType = (value) => {
   };
 
   // 등록된 변환값이 없으면 서버 값을 그대로 사용합니다.
-  return transactionLabels[value] || value || UNSUPPORTED_TEXT;
+  return transactionLabels[value] || value || MISSING_TEXT;
 };
 
 // 토지의 기본 정보를 표시하는 탭 콘텐츠입니다.
@@ -70,7 +70,7 @@ function BasicInfo({
         <BasicInfoTitle>기본 정보</BasicInfoTitle>
 
         <ReferenceDate>
-          기준일: {referenceDate || UNSUPPORTED_TEXT}
+          기준일: {referenceDate || MISSING_TEXT}
         </ReferenceDate>
       </BasicInfoHeader>
 
@@ -97,7 +97,7 @@ function BasicInfo({
           {land?.prposAreaName ? (
             <InfoValue>{land.prposAreaName}</InfoValue>
           ) : (
-            <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+            <UnsupportedValue>{MISSING_TEXT}</UnsupportedValue>
           )}
         </BasicInfoRow>
 
@@ -123,7 +123,7 @@ function BasicInfo({
           {referenceDate ? (
             <InfoValue>{referenceDate}</InfoValue>
           ) : (
-            <UnsupportedValue>{UNSUPPORTED_TEXT}</UnsupportedValue>
+            <UnsupportedValue>{MISSING_TEXT}</UnsupportedValue>
           )}
         </BasicInfoRow>
 
