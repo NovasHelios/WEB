@@ -68,19 +68,23 @@ export default function LandSelectionModal({ business, onClose, onCreated }) {
   const startChat = async () => {
     const land = lands.find((item) => String(item.id) === String(selectedId));
     if (!land) return;
+    // 응답에 사용자 ID가 없으면 기존처럼 프로필 ID로 요청해 서버 거절 사유를 확인합니다.
+    const businessUserId = business.businessUserId ?? business.userId ?? business.user?.id ?? business.ownerId ?? business.id;
     setSubmitting(true);
     setError("");
     try {
-      // 선택한 토지와 상담 대상 사업자 정보를 채팅방 생성 요청에 함께 보냅니다.
-      const response = await authFetch(Api.ChatRooms, {
+      // 선택한 토지와 사업자에게 보낼 첫 상담 문구를 토지 소유자 API로 전달합니다.
+      const response = await authFetch(Api.ChatRoomOwner(
+        land.id,
+        businessUserId,
+        `${land.address} 토지로 상담 요청드립니다.`,
+      ), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          landId: land.id,
-          businessProfileId: business.id,
-          initialMessage: `${land.address} 토지로 상담 요청드립니다.`,
-        }),
       });
+      if (!response.ok) {
+        const responseBody = await response.clone().text();
+        console.error("[사업자 채팅방 생성 실패]", { status: response.status, body: responseBody });
+      }
       const payload = await readApiResponse(response, "채팅방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.");
       const result = payload?.data ?? payload;
       const roomId = result?.roomId ?? result?.id;

@@ -80,6 +80,7 @@ function BusinessList({ token }) {
               business={{
                 company: profile.companyName,
                 department: profile.department,
+                profileImage: profile.profileImagePath,
                 specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
                 regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
                 isAvailable: profile.consultationAvailable,

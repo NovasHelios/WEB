@@ -23,6 +23,7 @@ import {
   BusinessSummaryTitle,
   BusinessVerificationList,
 } from "../Business.styled";
+import { resolveProfileImageUrl } from "@/utils/profileImage";
 
 // 서버의 HH:mm:ss 또는 HH:mm 값을 화면용 HH:mm 형식으로 정리합니다.
 const formatTime = (value) => {
@@ -32,9 +33,9 @@ const formatTime = (value) => {
 
 // 목록 또는 상세 응답에 이미지가 추가되는 경우 사용할 실제 경로를 찾습니다.
 const getProfileImage = (profile) => (
-  profile.profileImageUrl
-  || profile.profileImagePath
-  || profile.profileImage
+  resolveProfileImageUrl(profile.profileImagePath)
+  || resolveProfileImageUrl(profile.profileImageUrl)
+  || resolveProfileImageUrl(profile.profileImage)
   || ""
 );
 
