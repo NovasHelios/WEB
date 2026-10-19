@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, MoreVertical, X } from "lucide-react";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
+// 등록 토지 목록 조회 중 공통 회전 로딩 애니메이션을 표시합니다.
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { extractLandArray, formatArea, formatDate, formatMoney, getTransactionLabel, normalizeBaseUrl, resolveImageUrl } from "@/pages/Land/landUtils";
 import { readApiResponse } from "@/utils/apiResponse";
 import {
   LandModalBackdrop, LandModal, LandModalHeader, LandModalTitle, LandModalSubtitle, LandModalClose,
   LandFilterList, LandFilter, LandModalList, LandOption, LandThumbnail, LandOptionBody, LandOptionTitle,
   LandOptionMeta, LandOptionDetails, LandOptionActions, LandChooseButton, LandModalFooter,
-  LandModalError, LandModalEmpty, LandModalSubmit, LandModalLoading,
+  LandModalError, LandModalEmpty, LandModalSubmit,
 } from "./LandSelectionModal.styled";
 
 const FILTERS = [
@@ -118,7 +120,8 @@ export default function LandSelectionModal({ business, onClose, onCreated }) {
         </LandFilterList>
 
         <LandModalList>
-          {loading ? <LandModalLoading>등록한 토지를 불러오고 있어요.</LandModalLoading> : null}
+          {/* 토지 목록 응답을 기다리는 동안 목록 중앙에 공통 로딩 애니메이션을 표시합니다. */}
+          {loading ? <PageLoading isLoading /> : null}
           {!loading && visibleLands.length === 0 ? <LandModalEmpty>{lands.length ? "선택한 거래 방식의 토지가 없습니다." : "등록된 토지가 없습니다."}</LandModalEmpty> : null}
           {!loading && visibleLands.map((land) => {
             const imagePath = land.landImagePaths?.[0] || land.landImagePath || "";

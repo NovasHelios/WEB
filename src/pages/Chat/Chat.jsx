@@ -701,6 +701,31 @@ function ChatSession({ token }) {
       </ChatShell>
       </PageLoading>
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
+      {/* 삭제 확인 후에만 서버의 채팅방 삭제 API를 호출합니다. */}
+      {isLeaveConfirmOpen ? (
+        <ChatConfirmOverlay
+          role="presentation"
+          onMouseDown={(event) => {
+            // 삭제 중이 아닐 때 배경을 누르면 확인창을 닫습니다.
+            if (event.target === event.currentTarget && !isDeleting) setIsLeaveConfirmOpen(false);
+          }}
+        >
+          <ChatConfirmDialog role="dialog" aria-modal="true" aria-labelledby="chat-delete-title">
+            <ChatConfirmIcon aria-hidden="true">
+              <Trash2 size={24} />
+            </ChatConfirmIcon>
+            <h2 id="chat-delete-title">채팅방을 삭제하시겠습니까?</h2>
+            <ChatConfirmActions>
+              <button type="button" onClick={() => setIsLeaveConfirmOpen(false)} disabled={isDeleting}>
+                취소
+              </button>
+              <button type="button" onClick={handleLeaveRoom} disabled={isDeleting}>
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </button>
+            </ChatConfirmActions>
+          </ChatConfirmDialog>
+        </ChatConfirmOverlay>
+      ) : null}
     </ChatPage>
   );
 }

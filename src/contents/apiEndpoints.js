@@ -46,7 +46,7 @@ export const Api = {
   Wish: (landId) => `${BASE}/api/wishes/${landId}`, // POST 찜 등록 / DELETE 찜 취소
 
   // Chat
-    ChatDelete: (roomId) => `${BASE}/api/chat/rooms/${roomId}`, // DELETE 채팅방 삭제
+  ChatDelete: (roomId) => `${BASE}/api/chat/rooms/${encodeURIComponent(roomId)}`, // DELETE 채팅방 삭제
   ChatRooms: `${BASE}/api/chat/rooms`,                                               // GET 목록 / POST 생성
   ChatRoomOwner: (landId, businessUserId, initialMessage = "") => {
     const query = new URLSearchParams({ landId: String(landId), businessUserId: String(businessUserId) });

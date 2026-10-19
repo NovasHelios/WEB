@@ -65,7 +65,6 @@ export const LandModalFooter = styled.footer`
 `;
 export const LandModalError = styled.p`margin: 0 32px 12px; color: #c63c35; font-size: 0.88rem;`;
 export const LandModalEmpty = styled.p`margin: auto; padding: 40px 0; color: #817b72; text-align: center;`;
-export const LandModalLoading = styled.p`margin: auto; padding: 40px 0; color: #817b72; text-align: center;`;
 export const LandModalSubmit = styled.button`
   border-color: #c99322 !important; background: #c99322 !important; color: #fff !important;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
