@@ -30,7 +30,21 @@ function BusinessList({ token }) {
         const response = await authFetch(Api.BusinessProfiles);
         const data = await response.json();
         if (!response.ok) throw new Error(data?.data?.message || "사업자 목록을 불러오지 못했습니다.");
-        if (!cancelled && token === getValidAccessToken()) setProfiles(Array.isArray(data.data) ? data.data : []);
+        const profileList = Array.isArray(data.data) ? data.data : [];
+        // 목록에 플랜이 없는 경우 상세 API에서 가져와 채팅 가능한 사업자만 남깁니다.
+        const profilesWithPlan = await Promise.all(profileList.map(async (profile) => {
+          if (profile.userPlan) return profile;
+          try {
+            const detailResponse = await authFetch(Api.BusinessProfileDetail(profile.id));
+            if (!detailResponse.ok) throw new Error(`HTTP ${detailResponse.status}`);
+            const detailData = await detailResponse.json();
+            return { ...profile, ...(detailData?.data || {}) };
+          } catch (detailError) {
+            console.warn("[사업자 플랜 조회 실패]", { profileId: profile.id, error: detailError });
+            return profile;
+          }
+        }));
+        if (!cancelled && token === getValidAccessToken()) setProfiles(profilesWithPlan);
       } catch (err) { if (!cancelled) setError(err.message); }
       finally { if (!cancelled) setLoading(false); }
     })();
@@ -54,7 +68,8 @@ function BusinessList({ token }) {
     finally { if (request === requestRef.current) setDetailId(null); }
   };
   const visibleProfiles = profiles.filter((profile) =>
-    `${profile.companyName || ""} ${(profile.mainFields || []).join(" ")}`.toLowerCase().includes(keyword.trim().toLowerCase()));
+    String(profile.userPlan || "").toUpperCase() === "BUSINESS"
+    && `${profile.companyName || ""} ${(profile.mainFields || []).join(" ")}`.toLowerCase().includes(keyword.trim().toLowerCase()));
 
   return <BusinessPageRoot>
     <NavBar keyword={keyword} onChangeKeyword={setKeyword} onSearch={() => {}}
@@ -74,12 +89,15 @@ function BusinessList({ token }) {
           <BusinessGrid>
             {!token ? <p>사업자 정보를 보려면 <Link to="/login">로그인</Link>해 주세요.</p> : null}
             {error ? <p role="alert">{error}</p> : null}
-            {token && !loading && !error && visibleProfiles.length === 0 ? <p>검색 조건에 맞는 사업자가 없습니다.</p> : null}
+            {token && !loading && !error && visibleProfiles.length === 0 ? (
+              <p>{keyword.trim() ? "검색어와 일치하는 사업자가 없습니다." : "현재 표시할 수 있는 사업자가 없습니다."}</p>
+            ) : null}
             {/* 원래 카드 외형에 실제 API 데이터를 연결하며 사진이 없으면 기본 아이콘을 사용합니다. */}
             {visibleProfiles.map((profile) => <BusinessCard key={profile.id}
               business={{
                 company: profile.companyName,
                 department: profile.department,
+                profileImage: profile.profileImagePath,
                 specialty: (profile.mainFields || []).join(" · ") || "전문 분야 미등록",
                 regions: profile.nationwideActive ? "전국" : (profile.activeRegions || []).join(" · ") || "활동 지역 미등록",
                 isAvailable: profile.consultationAvailable,

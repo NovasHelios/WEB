@@ -48,6 +48,11 @@ export const Api = {
   // Chat
     ChatDelete: (roomId) => `${BASE}/api/chat/rooms/${roomId}`, // DELETE 채팅방 삭제
   ChatRooms: `${BASE}/api/chat/rooms`,                                               // GET 목록 / POST 생성
+  ChatRoomOwner: (landId, businessUserId, initialMessage = "") => {
+    const query = new URLSearchParams({ landId: String(landId), businessUserId: String(businessUserId) });
+    if (initialMessage) query.set("initialMessage", initialMessage);
+    return `${BASE}/api/chat/rooms/owner?${query.toString()}`;
+  }, // POST 토지 소유자가 사업자에게 채팅 시작
   ChatMessages: (roomId) => `${BASE}/api/chat/rooms/${roomId}/messages`,             // GET 메시지 목록
   ChatAttachment: (roomId) => `${BASE}/api/chat/rooms/${roomId}/attachments`,        // POST 파일 첨부
   ChatAccept: (roomId) => `${BASE}/api/chat/rooms/${roomId}/accept`,                 // PATCH 수락
