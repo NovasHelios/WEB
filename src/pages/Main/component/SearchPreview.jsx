@@ -1,5 +1,5 @@
-// 검색 결과 카드의 이미지 오류 상태를 관리하기 위한 React 훅입니다.
-import { useState } from "react";
+// 검색 결과 카드의 재렌더링과 이미지 오류 상태를 관리하기 위한 React 기능입니다.
+import { memo, useState } from "react";
 
 // 검색 결과 카드의 북마크와 이미지 대체 영역에 사용할 아이콘입니다.
 import { ImageIcon, X } from "lucide-react";
@@ -124,7 +124,7 @@ const getPriceLabel = (transactionType) => {
 };
 
 // 검색 결과 토지 한 건을 카드로 표시합니다.
-function SearchResultCard({ land, isSelected, onSelect }) {
+const SearchResultCard = memo(function SearchResultCard({ land, isSelected, onSelect }) {
   // 대표 이미지 로드 실패 여부입니다.
   const [isImageFailed, setIsImageFailed] = useState(false);
 
@@ -142,9 +142,12 @@ function SearchResultCard({ land, isSelected, onSelect }) {
       {/* 대표 이미지 또는 이미지 없음 상태를 표시합니다. */}
       <ResultImageWrap>
         {imageUrl && !isImageFailed ? (
+          // 화면에 가까워질 때 이미지를 내려받고 비동기로 디코딩합니다.
           <ResultImage
             src={imageUrl}
             alt={`${land?.address || "검색 결과 토지"} 대표 이미지`}
+            loading="lazy"
+            decoding="async"
             onError={() => setIsImageFailed(true)}
           />
         ) : (
@@ -173,7 +176,7 @@ function SearchResultCard({ land, isSelected, onSelect }) {
       </ResultCardBody>
     </ResultCard>
   );
-}
+});
 
 // 검색 지역 안에 등록된 토지 목록을 표시하는 왼쪽 패널입니다.
 function SearchPreview({
@@ -235,4 +238,5 @@ function SearchPreview({
   );
 }
 
-export default SearchPreview;
+// 검색 결과 상태가 바뀌지 않았을 때 전체 목록의 반복 렌더링을 건너뜁니다.
+export default memo(SearchPreview);

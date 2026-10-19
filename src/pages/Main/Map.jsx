@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NavBar from "@/components/layout/box/NavBar";
 import Preview from "@/components/ui/PreviewComponent/Preview";
 import Filter from "@/components/ui/Filter/Filter";
@@ -18,7 +18,11 @@ import {
 } from "./Map.styled";
 
 import markupImage from "@/images/markup.png";
-import { renderLandMarkers, updateLandLayerByZoom } from "./component/mapMarker";
+import {
+  getLandMarkerDisplayMode,
+  renderLandMarkers,
+  updateLandLayerByZoom,
+} from "./component/mapMarker";
 import {
   fetchAllLandList,
   fetchFilteredLandList,
@@ -28,22 +32,46 @@ import { createLandFilterBody } from "./landFilterMapper";
 // 한국 시간 기준 등록 시각 변환과 누락값을 뒤로 보내는 정렬을 재사용합니다.
 import { compareNullableNumbers, landTimestamp } from "@/utils/landList";
 
-// 마커 화면에 영향을 주는 토지 값만 정렬해 동일 응답 여부를 비교합니다.
-const createMarkerRenderSignature = (lands) =>
-  JSON.stringify(
-    lands
-      .map((land) => [
-        land.id ?? land.landId ?? land.pnu ?? land.address ?? "",
+// 연속된 지도 이동이 끝난 뒤 마지막 위치만 조회하기 위한 대기 시간입니다.
+const FILTER_IDLE_DEBOUNCE_MS = 200;
+
+// 연속 지역 검색에서 전체 토지 목록을 다시 받지 않을 캐시 유지 시간입니다.
+const SEARCH_LAND_CACHE_TTL_MS = 30_000;
+
+// 마커 화면에 영향을 주는 값만 식별자별로 저장해 정렬 없이 비교합니다.
+const createMarkerRenderSnapshot = (lands) => {
+  // 현재 컴포넌트 이름 Map과 충돌하지 않도록 전역 내장 Map을 명시합니다.
+  const snapshot = new globalThis.Map();
+  lands.forEach((land, index) => {
+    // 서버 식별자가 없을 때만 주소와 순번을 비교 키로 사용합니다.
+    const key = String(
+      land.id ?? land.landId ?? land.pnu ?? `${land.address || "land"}-${index}`
+    );
+    // 표시 결과에 영향을 주는 값만 짧은 문자열로 저장합니다.
+    snapshot.set(
+      key,
+      [
         land.x ?? "",
         land.y ?? "",
         land.desiredPrice ?? "",
-        land.area ?? "",
+        land.desiredArea ?? "",
         land.transactionType ?? "",
         land.regionSido ?? "",
         land.regionSigungu ?? "",
-      ])
-      .sort((left, right) => String(left[0]).localeCompare(String(right[0])))
-  );
+      ].join("|")
+    );
+  });
+  return snapshot;
+};
+
+// 두 마커 스냅샷을 선형 시간으로 비교합니다.
+const areMarkerSnapshotsEqual = (left, right) => {
+  if (left.size !== right.size) return false;
+  for (const [key, value] of left) {
+    if (right.get(key) !== value) return false;
+  }
+  return true;
+};
 
 function Map() {
   // Kakao 지도가 렌더링될 DOM 요소를 참조하기 위한 ref입니다.
@@ -68,16 +96,55 @@ function Map() {
   const landDisplayDataRef = useRef([]);
 
   // 동일한 필터 결과에서 전체 마커를 다시 만드는 작업을 생략하기 위한 서명입니다.
-  const lastMarkerRenderSignatureRef = useRef("");
+  // 현재 컴포넌트 이름 Map과 충돌하지 않도록 전역 내장 Map을 명시합니다.
+  const lastMarkerRenderSnapshotRef = useRef(new globalThis.Map());
 
   // 가장 최근에 시작한 필터 요청을 구분하기 위한 번호입니다.
   const filterRequestIdRef = useRef(0);
+
+  // 새 필터 요청이 시작될 때 이전 네트워크 요청을 실제로 취소합니다.
+  const filterRequestAbortControllerRef = useRef(null);
+
+  // 연속 지도 이동에서 마지막 idle 이벤트만 실행하기 위한 타이머입니다.
+  const idleFilterTimerRef = useRef(null);
+
+  // 화면 이탈 시 Kakao 지도 이벤트를 정확히 제거하기 위한 등록 정보입니다.
+  const mapEventHandlersRef = useRef(null);
+
+  // 마지막으로 표시한 마커 종류를 저장해 같은 확대 영역의 반복 순회를 막습니다.
+  const markerVisibilityModeRef = useRef(null);
+
+  // 메모된 하위 컴포넌트에 최신 동작을 안정된 함수 참조로 전달하기 위한 ref입니다.
+  const applyFiltersHandlerRef = useRef(null);
+  const selectSearchLandHandlerRef = useRef(null);
+  const clearSearchHandlerRef = useRef(null);
+
+  // 필터 컴포넌트가 검색어 입력 때문에 다시 렌더링되지 않도록 함수 참조를 고정합니다.
+  const stableHandleApplyFilters = useCallback(
+    (nextFilters) => applyFiltersHandlerRef.current?.(nextFilters),
+    []
+  );
+
+  // 검색 결과 카드가 유지될 때 선택 함수 참조도 함께 유지합니다.
+  const stableHandleSelectSearchLand = useCallback(
+    (land) => selectSearchLandHandlerRef.current?.(land),
+    []
+  );
+
+  // 검색 결과 닫기 함수가 매 렌더링마다 바뀌지 않도록 고정합니다.
+  const stableHandleClearSearch = useCallback(
+    () => clearSearchHandlerRef.current?.(),
+    []
+  );
 
   // 가장 최근에 클릭한 토지 상세 요청을 구분하기 위한 번호입니다.
   const landDetailRequestIdRef = useRef(0);
 
   // 가장 최근에 실행한 주소 검색을 구분하기 위한 번호입니다.
   const searchRequestIdRef = useRef(0);
+
+  // 짧은 시간 안의 연속 지역 검색에서 전체 토지 응답을 재사용합니다.
+  const allLandsCacheRef = useRef({ lands: null, fetchedAt: 0 });
 
   // 현재 지도에 적용된 필터 조건을 저장하는 state입니다.
   const [appliedFilters, setAppliedFilters] = useState({
@@ -473,8 +540,19 @@ function Map() {
     filters,
   }) => {
     try {
-      // 검색할 때만 GET /api/lands 전체 조회 API를 호출합니다.
-      const allLands = await fetchAllLandList();
+      // 최근 전체 토지 응답이 있으면 네트워크 요청 없이 재사용합니다.
+      const cachedLands = allLandsCacheRef.current;
+      const canReuseCachedLands =
+        Array.isArray(cachedLands.lands) &&
+        Date.now() - cachedLands.fetchedAt < SEARCH_LAND_CACHE_TTL_MS;
+      const allLands = canReuseCachedLands
+        ? cachedLands.lands
+        : await fetchAllLandList();
+
+      // 새로 받은 전체 목록은 다음 지역 검색에서 재사용할 수 있게 저장합니다.
+      if (!canReuseCachedLands) {
+        allLandsCacheRef.current = { lands: allLands, fetchedAt: Date.now() };
+      }
 
       // 더 최신 검색이 시작됐다면 이전 전체 조회 결과를 반영하지 않습니다.
       if (searchRequestId !== searchRequestIdRef.current) return;
@@ -642,12 +720,13 @@ function Map() {
   // 서버에서 받은 토지 목록을 지도 마커로 렌더링합니다.
   const renderFilteredLands = async (lands, isStale) => {
     // 지도 이동 후에도 마커 데이터가 같으면 기존 객체와 이벤트를 그대로 재사용합니다.
-    const renderSignature = createMarkerRenderSignature(lands);
-    if (renderSignature === lastMarkerRenderSignatureRef.current) {
+    const renderSnapshot = createMarkerRenderSnapshot(lands);
+    if (areMarkerSnapshotsEqual(renderSnapshot, lastMarkerRenderSnapshotRef.current)) {
       updateLandLayerByZoom({
         mapRef: mapInstanceRef,
         markerLayerRef: landMarkerLayerRef,
         districtMarkerLayerRef,
+        visibilityModeRef: markerVisibilityModeRef,
       });
       return;
     }
@@ -701,12 +780,13 @@ function Map() {
 
           // 시·군·구 집계 마커 목록 ref입니다.
           districtMarkerLayerRef,
+          visibilityModeRef: markerVisibilityModeRef,
         }),
     });
 
     // 최신 요청으로 렌더링을 마친 경우에만 다음 비교 기준을 갱신합니다.
     if (!isStale?.()) {
-      lastMarkerRenderSignatureRef.current = renderSignature;
+      lastMarkerRenderSnapshotRef.current = renderSnapshot;
     }
   };
 
@@ -720,6 +800,11 @@ function Map() {
     // 현재 요청보다 더 최신 요청이 시작되었는지 확인합니다.
     const isStale = () => requestId !== filterRequestIdRef.current;
 
+    // 이전 조회가 아직 진행 중이면 응답 파싱과 서버 작업을 더 이어가지 않게 중단합니다.
+    filterRequestAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    filterRequestAbortControllerRef.current = controller;
+
     try {
       // 현재 적용된 필터 조건과 현재 지도 영역을 서버 요청 body로 변환합니다.
       const requestBody = createLandFilterBody(
@@ -729,7 +814,9 @@ function Map() {
       );
 
       // /api/lands/filter API로 현재 화면에 보여줄 토지 목록을 조회합니다.
-      const { ok, result } = await fetchFilteredLandList(requestBody);
+      const { ok, result } = await fetchFilteredLandList(requestBody, {
+        signal: controller.signal,
+      });
 
       // 더 최신 요청이 시작됐다면 현재 응답을 화면에 반영하지 않습니다.
       if (isStale()) return;
@@ -744,12 +831,21 @@ function Map() {
       await renderFilteredLands(lands, isStale);
 
     } catch (error) {
+      // 더 최신 지도 조회로 취소된 요청은 사용자 오류로 기록하지 않습니다.
+      if (error.name === "AbortError") return;
       console.error("등록된 토지 목록 조회 실패:", error);
+    } finally {
+      // 현재 요청이 마지막 요청일 때만 취소 컨트롤러 참조를 정리합니다.
+      if (filterRequestAbortControllerRef.current === controller) {
+        filterRequestAbortControllerRef.current = null;
+      }
     }
   }
 
   // 필터 컴포넌트에서 적용 버튼을 눌렀을 때 백엔드에 필터 조건을 전달합니다.
   const handleApplyFilters = async (nextFilters) => {
+    // 사용자가 직접 적용한 필터가 대기 중인 지도 이동 조회보다 우선하도록 타이머를 지웁니다.
+    window.clearTimeout(idleFilterTimerRef.current);
     // 기존 필터 값에 새로 적용한 필터 값을 병합합니다.
     const mergedFilters = mergeAppliedFilters(
       appliedFiltersRef.current,
@@ -762,6 +858,9 @@ function Map() {
     // 공통 조회 함수를 사용해 최신 필터 요청만 지도에 반영합니다.
     await fetchRegisteredLands(mergedFilters);
   };
+
+  // 메모된 필터가 항상 최신 적용 로직을 실행하도록 ref를 갱신합니다.
+  applyFiltersHandlerRef.current = handleApplyFilters;
 
   useEffect(() => {
     // Kakao Maps SDK가 로드된 뒤 지도를 초기화하는 함수입니다.
@@ -800,10 +899,15 @@ function Map() {
       mapInstanceRef.current = map;
 
       // 지도 이동 또는 확대/축소가 끝났을 때 현재 화면 영역 기준으로 마커를 다시 조회합니다.
-      window.kakao.maps.event.addListener(map, "idle", () => {
-        // 현재 필터 조건과 지도 영역을 기준으로 /api/lands/filter API를 다시 호출합니다.
-        fetchRegisteredLands(appliedFiltersRef.current);
-      });
+      const handleMapIdle = () => {
+        // 짧은 시간에 연속 발생한 지도 이동 조회는 마지막 한 번만 남깁니다.
+        window.clearTimeout(idleFilterTimerRef.current);
+        idleFilterTimerRef.current = window.setTimeout(() => {
+          // 현재 필터 조건과 마지막 지도 영역으로 서버를 조회합니다.
+          void fetchRegisteredLands(appliedFiltersRef.current);
+        }, FILTER_IDLE_DEBOUNCE_MS);
+      };
+      window.kakao.maps.event.addListener(map, "idle", handleMapIdle);
 
       // 지도 크기를 다시 계산합니다.
       setTimeout(() => {
@@ -811,26 +915,54 @@ function Map() {
       }, 100);
 
       // 등록된 토지 목록을 불러옵니다.
-      fetchRegisteredLands();
+      void fetchRegisteredLands();
 
       // Kakao 지도 줌 변경 이벤트를 등록합니다.
-      window.kakao.maps.event.addListener(map, "zoom_changed", () => {
+      const handleZoomChanged = () => {
+        // 표시 종류가 실제로 바뀌었는지 확인하기 위해 이전 모드를 보관합니다.
+        const previousMode = markerVisibilityModeRef.current;
+
         // 줌 레벨에 따라 마커 표시 방식을 갱신합니다.
         updateLandLayerByZoom({
           mapRef: mapInstanceRef,
           markerLayerRef: landMarkerLayerRef,
           districtMarkerLayerRef,
+          visibilityModeRef: markerVisibilityModeRef,
         });
-      });
+
+        // 개별·시군구 경계를 넘었을 때만 보관된 데이터로 필요한 마커를 즉시 만듭니다.
+        const nextMode = getLandMarkerDisplayMode(mapInstanceRef);
+        if (
+          previousMode &&
+          nextMode &&
+          previousMode !== nextMode &&
+          landDisplayDataRef.current.length > 0
+        ) {
+          // 같은 데이터라도 표시 종류가 달라졌으므로 렌더링 비교 기준을 초기화합니다.
+          // 현재 컴포넌트 이름 Map과 충돌하지 않도록 전역 내장 Map을 명시합니다.
+          lastMarkerRenderSnapshotRef.current = new globalThis.Map();
+          void renderFilteredLands(landDisplayDataRef.current, () => false);
+        }
+      };
+      window.kakao.maps.event.addListener(map, "zoom_changed", handleZoomChanged);
 
       // 지도 빈 곳을 클릭하면 선택된 토지 상태를 초기화합니다.
-      window.kakao.maps.event.addListener(map, "click", () => {
+      const handleMapClick = () => {
         // 진행 중인 이전 토지 상세 요청이 화면을 다시 열지 못하도록 무효화합니다.
         landDetailRequestIdRef.current += 1;
 
         // 선택된 토지를 비워 미리보기 패널을 닫습니다.
         setSelectedLand(null);
-      });
+      };
+      window.kakao.maps.event.addListener(map, "click", handleMapClick);
+
+      // 컴포넌트 해제 시 사용할 지도와 이벤트 함수를 함께 저장합니다.
+      mapEventHandlersRef.current = {
+        map,
+        handleMapIdle,
+        handleZoomChanged,
+        handleMapClick,
+      };
 
       // 지도 초기화가 끝났음을 반환합니다.
       return true;
@@ -847,6 +979,17 @@ function Map() {
     // 컴포넌트가 사라질 때 interval을 정리합니다.
     return () => {
       clearInterval(waitForKakao);
+      window.clearTimeout(idleFilterTimerRef.current);
+      filterRequestAbortControllerRef.current?.abort();
+
+      // 재진입할 때 이전 지도 이벤트가 중복 실행되지 않도록 모두 제거합니다.
+      const handlers = mapEventHandlersRef.current;
+      if (handlers && window.kakao?.maps?.event) {
+        window.kakao.maps.event.removeListener(handlers.map, "idle", handlers.handleMapIdle);
+        window.kakao.maps.event.removeListener(handlers.map, "zoom_changed", handlers.handleZoomChanged);
+        window.kakao.maps.event.removeListener(handlers.map, "click", handlers.handleMapClick);
+      }
+      mapEventHandlersRef.current = null;
     };
     // Kakao 지도 초기화는 최초 마운트 때만 실행합니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -975,6 +1118,10 @@ function Map() {
     }));
   };
 
+  // 메모된 검색 결과가 최신 선택 및 닫기 동작을 사용하도록 ref를 갱신합니다.
+  selectSearchLandHandlerRef.current = handleSelectSearchLand;
+  clearSearchHandlerRef.current = handleClearSearch;
+
   // 추천 지역 클릭 시 해당 지역명으로 검색 실행
   const handleSuggestionClick = async (suggestion) => {
     setKeyword(suggestion);
@@ -1023,9 +1170,9 @@ function Map() {
           // 현재 상세보기에 선택된 토지 카드 강조에 사용합니다.
           selectedLandId={selectedLand?.id ?? selectedLand?.landId}
           // 카드 클릭 시 해당 토지 위치로 이동하고 상세보기를 엽니다.
-          onSelectLand={handleSelectSearchLand}
+          onSelectLand={stableHandleSelectSearchLand}
           // X 버튼으로 검색어와 결과를 초기화합니다.
-          onClear={handleClearSearch}
+          onClear={stableHandleClearSearch}
         />
       )}
 
@@ -1038,7 +1185,7 @@ function Map() {
           // 현재 적용된 필터 조건입니다.
           filters={appliedFilters}
           // 필터 적용 시 실행할 함수입니다.
-          onApplyFilters={handleApplyFilters}
+          onApplyFilters={stableHandleApplyFilters}
         />
       </FilterArea>
 

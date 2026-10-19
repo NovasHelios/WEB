@@ -1,4 +1,4 @@
-import { ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
@@ -1116,12 +1116,9 @@ function MySpace() {
         <SpaceDeleteOverlay onMouseDown={(event) => {
           if (event.target === event.currentTarget && !deletingId) setLandPendingDelete(null);
         }}>
-          <SpaceDeleteDialog role="alertdialog" aria-modal="true" aria-labelledby="delete-land-title" aria-describedby="delete-land-description">
+          <SpaceDeleteDialog role="alertdialog" aria-modal="true" aria-labelledby="delete-land-title">
             <SpaceDeleteIcon><AlertTriangle size={25} aria-hidden="true" /></SpaceDeleteIcon>
             <h2 id="delete-land-title">토지를 삭제하시겠습니까?</h2>
-            <p id="delete-land-description">
-              {landPendingDelete.address || landPendingDelete.title || "선택한 토지"}를 삭제하면 목록에서 사라집니다. 삭제를 진행하시겠습니까?
-            </p>
             <SpaceDeleteActions>
               <SpaceActionButton type="button" $secondary autoFocus disabled={Boolean(deletingId)} onClick={() => setLandPendingDelete(null)}>
                 취소

@@ -54,6 +54,9 @@ const districtMarkerImageCache = new Map();
 // 좌표가 없는 동일 주소를 지도 이동마다 다시 지오코딩하지 않도록 요청 결과를 재사용합니다.
 const geocodePromiseCache = new Map();
 
+// 생성된 Kakao 개별 마커의 비교 정보와 최신 클릭 데이터를 DOM 밖에서 보관합니다.
+const landMarkerMetadata = new WeakMap();
+
 // 캐시에 값을 저장하고 오래된 첫 항목을 제거해 최대 크기를 유지합니다.
 const setBoundedCacheValue = (cache, key, value) => {
   if (cache.size >= MARKER_CACHE_LIMIT && !cache.has(key)) {
@@ -342,6 +345,14 @@ const createDistrictGroups = (lands) => {
   return Array.from(groups.values());
 };
 
+// 현재 Kakao 지도 확대 수준에서 표시해야 할 마커 종류를 반환합니다.
+export const getLandMarkerDisplayMode = (mapRef) => {
+  if (!mapRef.current) return null;
+  return mapRef.current.getLevel() <= INDIVIDUAL_MARKER_MAX_LEVEL
+    ? "individual"
+    : "district";
+};
+
 // 현재 지도 레벨에 따라 Kakao 마커 표시 상태를 갱신합니다.
 export const updateLandLayerByZoom = ({
   // Kakao 지도 객체를 담은 ref입니다.
@@ -352,15 +363,22 @@ export const updateLandLayerByZoom = ({
 
   // 시·군·구 집계 마커 배열을 담은 ref입니다.
   districtMarkerLayerRef,
+
+  // 마지막 표시 모드를 저장해 같은 확대 구간에서 전체 마커를 다시 순회하지 않습니다.
+  visibilityModeRef,
 }) => {
   // Kakao 지도 객체가 없으면 중단합니다.
   if (!mapRef.current) return;
 
   // 현재 Kakao 지도 레벨을 가져옵니다.
-  const level = mapRef.current.getLevel();
+  const nextMode = getLandMarkerDisplayMode(mapRef);
 
   // 가까운 지도에서는 개별 마커를, 먼 지도에서는 시군구 집계 마커를 표시합니다.
-  const shouldShowIndividualMarkers = level <= INDIVIDUAL_MARKER_MAX_LEVEL;
+  const shouldShowIndividualMarkers = nextMode === "individual";
+
+  // 확대 단계가 개별 또는 시군구 표시 구간 안에서 유지되면 변경 작업을 생략합니다.
+  if (visibilityModeRef?.current === nextMode) return;
+  if (visibilityModeRef) visibilityModeRef.current = nextMode;
 
   // 개별 토지 마커의 지도 표시 여부를 갱신합니다.
   if (Array.isArray(markerLayerRef.current)) {
@@ -603,11 +621,17 @@ export const renderLandMarkers = async ({
   // 지오코딩 중 더 최신 요청이 시작됐다면 현재 결과를 지도에 반영하지 않습니다.
   if (isStale?.()) return;
 
-  // 지오코딩이 모두 끝난 뒤 기존 마커를 한 번에 제거합니다.
+  // 기존 개별 마커를 토지 식별자로 찾아 재사용할 수 있게 정리합니다.
+  const existingLandMarkers = new Map();
   if (Array.isArray(markerLayerRef.current)) {
     markerLayerRef.current.forEach((marker) => {
-      // 기존 마커를 지도에서 제거합니다.
-      marker.setMap(null);
+      // 이전 렌더링에서 저장한 식별 정보가 있는 마커만 재사용 후보로 보관합니다.
+      const metadata = landMarkerMetadata.get(marker);
+      if (metadata?.key) {
+        existingLandMarkers.set(metadata.key, marker);
+      } else {
+        marker.setMap(null);
+      }
     });
   }
 
@@ -630,77 +654,116 @@ export const renderLandMarkers = async ({
     mapRef.current.getLevel() <= INDIVIDUAL_MARKER_MAX_LEVEL;
 
   // 좌표 변환이 끝난 토지를 Kakao 마커로 표시합니다.
-  displayLands.forEach((land) => {
+  // 확대 상태에서 실제로 보이는 경우에만 개별 토지 마커를 생성합니다.
+  if (shouldShowIndividualMarkers) displayLands.forEach((land, index) => {
+    // API별 식별자 차이를 정리하고, 식별자가 없을 때만 주소와 순번을 사용합니다.
+    const markerKey = String(
+      land.id ?? land.landId ?? land.pnu ?? `${land.address || "land"}-${index}`
+    );
+
+    // 좌표와 마커 문구가 동일한지 빠르게 비교할 문자열을 만듭니다.
+    const markerSignature = [
+      land.lat,
+      land.lon,
+      land.desiredPrice,
+      land.desiredArea,
+    ].join("|");
+
+    // 같은 토지의 기존 Kakao 마커가 있으면 객체와 클릭 이벤트를 그대로 재사용합니다.
+    let marker = existingLandMarkers.get(markerKey);
+    const previousMetadata = marker ? landMarkerMetadata.get(marker) : null;
+
     // markup.png 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
-    // 서버 면적을 유효한 숫자로 변환합니다.
-    const numericArea = toFiniteNumber(land.area);
+    // 마커에는 실제 토지 면적이 아닌 사용자가 등록한 희망 면적을 표시합니다.
+    const numericArea = toFiniteNumber(land.desiredArea);
 
     // 유효한 면적만 숫자로 표시하고, 없는 값은 안내 문구로 대체합니다.
     const areaText = Number.isFinite(numericArea)
       ? `${Math.round(numericArea).toLocaleString()}㎡`
       : "면적 없음";
 
-    // 로드가 완료된 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
-    const markerImageUrl = createLandMarkerImage({
-      priceText: formatPrice(land.desiredPrice),
-      areaText,
-      markerBackground,
+    // 새 마커이거나 좌표·문구가 변경된 마커만 이미지와 위치를 갱신합니다.
+    if (!marker || previousMetadata?.signature !== markerSignature) {
+      // 로드가 완료된 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
+      const markerImageUrl = createLandMarkerImage({
+        priceText: formatPrice(land.desiredPrice),
+        areaText,
+        markerBackground,
+      });
+
+      // Kakao 지도에서 사용할 마커 이미지와 기준점을 생성합니다.
+      const markerImage = new window.kakao.maps.MarkerImage(
+        markerImageUrl,
+        new window.kakao.maps.Size(MARKER_WIDTH, MARKER_HEIGHT),
+        {
+          offset: new window.kakao.maps.Point(MARKER_WIDTH / 2, MARKER_HEIGHT),
+        }
+      );
+
+      if (marker) {
+        // 기존 마커는 필요한 위치와 이미지만 변경합니다.
+        marker.setPosition(land.position);
+        marker.setImage(markerImage);
+      } else {
+        // 새 토지만 새로운 Kakao 마커 객체를 만듭니다.
+        marker = new window.kakao.maps.Marker({
+          map: shouldShowIndividualMarkers ? mapRef.current : null,
+          position: land.position,
+          image: markerImage,
+        });
+
+        // 클릭 이벤트는 한 번만 등록하고 최신 토지 정보는 WeakMap에서 읽습니다.
+        const clickHandler = () => {
+          const currentMetadata = landMarkerMetadata.get(marker);
+          if (!currentMetadata) return;
+          currentMetadata.onMarkerClick?.(currentMetadata.land);
+          mapRef.current.setCenter(currentMetadata.land.position);
+          mapRef.current.setLevel(3);
+        };
+        window.kakao.maps.event.addListener(marker, "click", clickHandler);
+        landMarkerMetadata.set(marker, { clickHandler });
+      }
+    }
+
+    // 재사용 마커도 현재 확대 단계에 맞는 지도 표시 상태로 맞춥니다.
+    marker.setMap(shouldShowIndividualMarkers ? mapRef.current : null);
+
+    // 다음 클릭과 비교에서 사용할 최신 토지 정보와 표시값을 저장합니다.
+    landMarkerMetadata.set(marker, {
+      ...landMarkerMetadata.get(marker),
+      key: markerKey,
+      signature: markerSignature,
+      land,
+      onMarkerClick,
     });
 
-    // Kakao 지도에서 실제로 보일 마커 크기를 설정합니다.
-    const imageSize = new window.kakao.maps.Size(
-      MARKER_WIDTH,
-      MARKER_HEIGHT
-    );
-
-    // 마커 이미지의 하단 중앙이 실제 좌표에 닿도록 기준점을 설정합니다.
-    const imageOption = {
-      offset: new window.kakao.maps.Point(
-        MARKER_WIDTH / 2,
-        MARKER_HEIGHT
-      ),
-    };
-
-    // Kakao 마커 이미지를 생성합니다.
-    const markerImage = new window.kakao.maps.MarkerImage(
-      markerImageUrl,
-      imageSize,
-      imageOption
-    );
-
-    // Kakao 마커를 생성합니다.
-    const marker = new window.kakao.maps.Marker({
-      // 마커가 표시될 지도입니다.
-      map: shouldShowIndividualMarkers ? mapRef.current : null,
-
-      // 마커 위치입니다.
-      position: land.position,
-
-      // 마커 이미지입니다.
-      image: markerImage,
-    });
-
-    // 마커 클릭 시 미리보기 패널을 열 수 있도록 이벤트를 등록합니다.
-    window.kakao.maps.event.addListener(marker, "click", () => {
-      // 클릭된 토지 정보를 상위 컴포넌트로 전달합니다.
-      onMarkerClick?.(land);
-
-      // 클릭된 위치로 지도 중심을 이동합니다.
-      mapRef.current.setCenter(land.position);
-
-      // 클릭된 토지가 잘 보이도록 확대합니다.
-      mapRef.current.setLevel(3);
-    });
+    // 이번 결과에 포함된 마커는 제거 대상 목록에서 제외합니다.
+    existingLandMarkers.delete(markerKey);
 
     // 나중에 제거하거나 표시 상태를 바꾸기 위해 마커를 배열에 저장합니다.
     markers.push(marker);
   });
 
+  // 새 필터 결과에서 사라진 개별 마커만 이벤트와 지도에서 제거합니다.
+  existingLandMarkers.forEach((marker) => {
+    const metadata = landMarkerMetadata.get(marker);
+    if (metadata?.clickHandler) {
+      window.kakao.maps.event.removeListener(marker, "click", metadata.clickHandler);
+    }
+    marker.setMap(null);
+    landMarkerMetadata.delete(marker);
+  });
+
   // 현재 필터 결과를 시·군·구별 집계 정보로 변환합니다.
-  const districtGroups = createDistrictGroups(displayLands);
+  const districtGroups = shouldShowIndividualMarkers
+    ? []
+    : createDistrictGroups(displayLands);
 
   // 클릭 시 기존 선택 마커와 새 선택 마커의 이미지를 함께 갱신합니다.
   const districtMarkerSelections = [];
+
+  // 시군구 선택 시 전체 배열 대신 이전 선택과 새 선택만 갱신합니다.
+  let selectedDistrictEntry = null;
 
   // 각 시·군·구 그룹을 하나의 집계 마커로 생성합니다.
   districtGroups.forEach((group) => {
@@ -758,16 +821,25 @@ export const renderLandMarkers = async ({
     // 개별 마커보다 위에 표시되도록 집계 마커의 표시 순서를 높입니다.
     marker.setZIndex(2);
 
+    // 현재 집계 마커의 선택 상태와 이미지 생성 함수를 함께 보관합니다.
+    const markerEntry = { marker, groupKey, getMarkerImage };
+    if (selectedDistrictKeyRef?.current === groupKey) {
+      selectedDistrictEntry = markerEntry;
+    }
+
     // 클릭한 집계 마커의 소속 토지를 기존 검색 사이드바에 표시합니다.
     window.kakao.maps.event.addListener(marker, "click", () => {
       // 다음 마커 재생성에서도 선택한 시군구를 식별할 수 있도록 저장합니다.
       if (selectedDistrictKeyRef) selectedDistrictKeyRef.current = groupKey;
 
-      // 클릭한 마커만 강조하고 이전에 선택한 마커는 기본 테두리로 복원합니다.
-      districtMarkerSelections.forEach((entry) => {
-        // 상태별 캐시 이미지를 사용해 클릭 즉시 테두리를 갱신합니다.
-        entry.marker.setImage(entry.getMarkerImage(entry.groupKey === groupKey));
-      });
+      // 이전 선택만 기본 테두리로 복원하고 현재 선택 마커를 강조합니다.
+      if (selectedDistrictEntry && selectedDistrictEntry !== markerEntry) {
+        selectedDistrictEntry.marker.setImage(
+          selectedDistrictEntry.getMarkerImage(false)
+        );
+      }
+      markerEntry.marker.setImage(markerEntry.getMarkerImage(true));
+      selectedDistrictEntry = markerEntry;
 
       // 마커 중심이나 확대 수준을 바꾸지 않고 현재 그룹을 전달합니다.
       onDistrictMarkerClick?.(group);
@@ -777,7 +849,7 @@ export const renderLandMarkers = async ({
     districtMarkers.push(marker);
 
     // 다른 시군구를 클릭할 때 현재 마커의 선택 테두리를 해제할 수 있도록 저장합니다.
-    districtMarkerSelections.push({ marker, groupKey, getMarkerImage });
+    districtMarkerSelections.push(markerEntry);
   });
 
   // 생성된 Kakao 마커 목록을 ref에 저장합니다.
@@ -793,11 +865,11 @@ export const renderLandMarkers = async ({
       // 이후 지도 재조회에서도 이전 선택 테두리가 다시 나타나지 않도록 지웁니다.
       if (selectedDistrictKeyRef) selectedDistrictKeyRef.current = null;
 
-      // 기본 상태의 캐시 이미지를 사용해 현재 마커를 검은색 테두리로 복원합니다.
-      districtMarkerSelections.forEach((entry) => {
-        // 지도 재조회 없이 현재 마커 이미지만 즉시 변경합니다.
-        entry.marker.setImage(entry.getMarkerImage(false));
-      });
+      // 선택된 마커 하나만 기본 테두리로 복원합니다.
+      selectedDistrictEntry?.marker.setImage(
+        selectedDistrictEntry.getMarkerImage(false)
+      );
+      selectedDistrictEntry = null;
     };
   }
 

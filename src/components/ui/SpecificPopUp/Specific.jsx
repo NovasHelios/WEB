@@ -95,6 +95,13 @@ const hasScoreValue = (value) =>
   String(value).trim() !== "" &&
   Number.isFinite(Number(value));
 
+// 비어 있지 않은 점수 중 하나라도 0점이면 종합 결과를 사업 불가로 구분합니다.
+const hasZeroScore = (analysis) =>
+  Boolean(analysis) &&
+  [analysis.totalScore, ...SOLAR_ANALYSIS_ITEMS.map(({ key }) => analysis[key])].some(
+    (value) => hasScoreValue(value) && Number(value) === 0
+  );
+
 // 항목별 점수를 기존 막대가 사용하는 백분율 값으로 변환합니다.
 const calculateScorePercent = (score, maxScore) => {
   // 만점이 유효하지 않으면 빈 막대를 표시합니다.
@@ -248,6 +255,8 @@ function SpecificContent({ land, onClose }) {
   const totalScore = normalizeScore(developmentAnalysis?.totalScore, 100);
   // 종합 점수가 비어 있으면 0점 대신 평가 불가 상태로 표시합니다.
   const isTotalScoreAvailable = Boolean(developmentAnalysis) && hasScoreValue(developmentAnalysis?.totalScore);
+  // 유효한 평가 점수에 0점이 포함되면 종합 적합도만 사업 불가로 표시합니다.
+  const isBusinessUnavailable = hasZeroScore(developmentAnalysis);
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
@@ -461,30 +470,41 @@ function SpecificContent({ land, onClose }) {
                 <SectionTitle>
                   <Bot size={18} strokeWidth={2} />
                   태양광 적합도 분석
-                  <ScoreBadge>
+                  {/* 평가 불가와 사업 불가 배지는 경고 의미가 드러나도록 붉은색으로 표시합니다. */}
+                  <ScoreBadge
+                    $unavailable={
+                      Boolean(developmentAnalysisError) ||
+                      (Boolean(developmentAnalysis) &&
+                        (isBusinessUnavailable || !isTotalScoreAvailable))
+                    }
+                  >
                     {isDevelopmentAnalysisLoading
                       ? "분석 중"
                       : developmentAnalysisError
                         ? "분석 실패"
                         : developmentAnalysis
-                          ? isTotalScoreAvailable
-                            ? `${totalScore}점 / 100점`
-                            : "평가 불가"
+                          ? isBusinessUnavailable
+                            ? "사업 불가"
+                            : isTotalScoreAvailable
+                              ? `${totalScore}점 / 100점`
+                              : "평가 불가"
                           : "분석 결과 없음"}
                   </ScoreBadge>
                 </SectionTitle>
 
                 <AnalysisGrid>
                   <AnalysisItem
-                    $score={isTotalScoreAvailable ? totalScore : 0}
-                    $barColor={isTotalScoreAvailable ? getTotalScoreColor(totalScore) : undefined}
+                    $score={isTotalScoreAvailable && !isBusinessUnavailable ? totalScore : 0}
+                    $barColor={isTotalScoreAvailable && !isBusinessUnavailable ? getTotalScoreColor(totalScore) : undefined}
                   >
                     <span>종합 적합도</span>
                     <strong>
                       {developmentAnalysis
-                        ? isTotalScoreAvailable
-                          ? `${totalScore}점 / 100점`
-                          : "평가 불가"
+                        ? isBusinessUnavailable
+                          ? "사업 불가"
+                          : isTotalScoreAvailable
+                            ? `${totalScore}점 / 100점`
+                            : "평가 불가"
                         : "-점 / 100점"}
                     </strong>
                   </AnalysisItem>

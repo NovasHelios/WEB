@@ -389,10 +389,11 @@ export const AnalysisLoadingText = styled.strong`
 export const ScoreBadge = styled.span`
   margin-left: auto;
   padding: 6px 10px;
-  border: 1px solid #86efac;
+  /* 평가 실패·불가 상태에는 붉은색 경고 배지를 사용합니다. */
+  border: 1px solid ${({ $unavailable }) => ($unavailable ? "#fecaca" : "#86efac")};
   border-radius: 6px;
-  background: #f0fdf4;
-  color: #16a34a;
+  background: ${({ $unavailable }) => ($unavailable ? "#fef2f2" : "#f0fdf4")};
+  color: ${({ $unavailable }) => ($unavailable ? "#dc2626" : "#16a34a")};
   font-size: var(--font-xs);
   font-weight: var(--font-bold);
 `;

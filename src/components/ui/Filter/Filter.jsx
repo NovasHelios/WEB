@@ -1,5 +1,5 @@
-// 필터 내부 상태를 관리하기 위한 React 훅입니다.
-import { useState } from "react";
+// 필터 입력과 불필요한 상위 재렌더링 차단에 사용할 React 기능입니다.
+import { memo, useState } from "react";
 
 import { ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 
@@ -984,4 +984,5 @@ function Filter({ filters, onApplyFilters }) {
   );
 }
 
-export default Filter;
+// 필터 값과 적용 함수가 유지되면 지도 검색어 변경 시 필터를 다시 그리지 않습니다.
+export default memo(Filter);

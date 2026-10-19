@@ -1,5 +1,5 @@
-// 대표 이미지 변경 상태를 관리하기 위한 React 훅입니다.
-import { useEffect, useState } from "react";
+// 선택 토지가 그대로일 때 미리보기 재렌더링을 막기 위한 React 기능입니다.
+import { memo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // 대표 이미지 위 관심 버튼에 사용할 아이콘입니다.
@@ -533,4 +533,5 @@ function Preview({ land }) {
   );
 }
 
-export default Preview;
+// 검색어 입력처럼 토지와 무관한 지도 상태 변경에서는 미리보기를 다시 그리지 않습니다.
+export default memo(Preview);
