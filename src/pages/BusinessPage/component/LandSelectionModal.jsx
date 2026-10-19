@@ -68,6 +68,11 @@ export default function LandSelectionModal({ business, onClose, onCreated }) {
   const startChat = async () => {
     const land = lands.find((item) => String(item.id) === String(selectedId));
     if (!land) return;
+    // 상세 응답에서 확인한 상대 플랜과 상담 활성 상태를 요청 직전에 다시 검증합니다.
+    if (String(business.userPlan || "").toUpperCase() !== "BUSINESS" || !business.consultationAvailable) {
+      setError("현재 플랜 또는 상담 설정으로는 채팅을 시작할 수 없습니다.");
+      return;
+    }
     // 응답에 사용자 ID가 없으면 기존처럼 프로필 ID로 요청해 서버 거절 사유를 확인합니다.
     const businessUserId = business.businessUserId ?? business.userId ?? business.user?.id ?? business.ownerId ?? business.id;
     setSubmitting(true);

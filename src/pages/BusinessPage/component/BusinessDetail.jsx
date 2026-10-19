@@ -58,6 +58,9 @@ function BusinessDetail({ profile, onBack, onStartChat }) {
   const regionText = profile.nationwideActive
     ? "전국"
     : regions.join(", ") || "활동 지역이 등록되지 않았습니다.";
+  // 채팅 수신이 가능한 BUSINESS 플랜이며 상담이 활성화된 경우만 요청을 허용합니다.
+  const canReceiveChat = String(profile.userPlan || "").toUpperCase() === "BUSINESS"
+    && Boolean(profile.consultationAvailable);
 
   return (
     <BusinessDetailSection aria-label="사업자 상세 정보">
@@ -97,7 +100,9 @@ function BusinessDetail({ profile, onBack, onStartChat }) {
           </BusinessSummaryFacts>
 
           {/* 사업자에게 토지 선택 기반 채팅을 시작합니다. */}
-          <BusinessConsultButton type="button" onClick={onStartChat}>사업자와 채팅하기</BusinessConsultButton>
+          <BusinessConsultButton type="button" onClick={onStartChat} disabled={!canReceiveChat}>
+            {canReceiveChat ? "사업자와 채팅하기" : "상담 신청 불가"}
+          </BusinessConsultButton>
         </BusinessSummaryCard>
 
         {/* 상세 API가 제공하는 소개·활동·상담·인증 정보를 표시합니다. */}
