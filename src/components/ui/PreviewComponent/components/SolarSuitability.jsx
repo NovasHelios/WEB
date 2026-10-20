@@ -229,7 +229,7 @@ function ReportContent({ landId, isReportLocked = false }) {
                 ? "사업 불가"
                 : isTotalScoreAvailable
                   ? totalScore
-                  : "평가 불가"}
+                  : "사업불가"}
               {isTotalScoreAvailable && !isBusinessUnavailable && <small>점</small>}
             </ScoreGaugeValue>
           </ScoreGauge>
@@ -240,8 +240,6 @@ function ReportContent({ landId, isReportLocked = false }) {
           {isLoading
             ? "분석 중"
             : analysis?.disqualified
-              ? "인허가 검토 부적합"
-              : analysis?.grade
                 ? `${analysis.grade} 등급`
                 : "\u00A0"}
         </AnalysisStatus>
