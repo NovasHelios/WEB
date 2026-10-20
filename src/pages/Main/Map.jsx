@@ -932,8 +932,8 @@ function Map() {
       // 지도 컨테이너가 없으면 지도를 생성하지 않습니다.
       if (!container) return false;
 
-      // 초기 중심 좌표를 생성합니다.
-      const center = new window.kakao.maps.LatLng(35.664, 128.415);
+      // 지도 최초 진입 시 서울시청을 중심으로 표시합니다.
+      const center = new window.kakao.maps.LatLng(37.5665, 126.9780);
 
       // Kakao 지도 생성 옵션을 설정합니다.
       const options = {
