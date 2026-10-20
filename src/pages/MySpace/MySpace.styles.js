@@ -121,6 +121,37 @@ export const SpaceContainer = styled.div`
   gap: 16px;
 `;
 
+// 내 토지 목록 아래에 페이지 이동 컨트롤을 가운데 배치합니다.
+export const SpacePagination = styled.nav`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0 8px;
+`;
+
+// 현재 페이지와 이전·다음 이동을 같은 버튼 규격으로 표시합니다.
+export const SpacePageButton = styled.button`
+  display: inline-flex;
+  min-width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid ${({ $active }) => ($active ? "#9a7400" : "#d8c5a2")};
+  border-radius: 6px;
+  background: ${({ $active }) => ($active ? "#9a7400" : "var(--color-surface)")};
+  color: ${({ $active }) => ($active ? "#fff" : "#5d5445")};
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+
+  &:disabled { color: #aaa49a; cursor: not-allowed; }
+  &:focus-visible { outline: 2px solid #8a6800; outline-offset: 2px; }
+`;
+
 export const SpaceCard = styled.article`
   border: 1px solid #eadfc8;
   border-radius: 12px;

@@ -125,16 +125,8 @@ function LandRegisterConfirm() {
                 <ConfirmTableValue>{registerData.area || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
               <ConfirmTableRow>
-                <ConfirmTableCell>고도</ConfirmTableCell>
-                <ConfirmTableValue>{registerData.altitude || "-"}</ConfirmTableValue>
-              </ConfirmTableRow>
-              <ConfirmTableRow>
                 <ConfirmTableCell>지목</ConfirmTableCell>
                 <ConfirmTableValue>{registerData.landCategory || "-"}</ConfirmTableValue>
-              </ConfirmTableRow>
-              <ConfirmTableRow>
-                <ConfirmTableCell>도로 접근성</ConfirmTableCell>
-                <ConfirmTableValue>{registerData.roadAccess || "-"}</ConfirmTableValue>
               </ConfirmTableRow>
             </ConfirmTable>
           </ConfirmCard>

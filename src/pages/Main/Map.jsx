@@ -4,6 +4,7 @@ import Preview from "@/components/ui/PreviewComponent/Preview";
 import Filter from "@/components/ui/Filter/Filter";
 // 검색한 지역 안의 등록 토지 목록을 표시하는 패널입니다.
 import SearchPreview from "./component/SearchPreview";
+import SameLandListingsModal from "./component/SameLandListingsModal";
 import {
   MapPage,
   MapContainer,
@@ -227,6 +228,7 @@ function Map() {
 
   // 마커를 클릭했을 때 상세 패널에 보여줄 토지 정보
   const [selectedLand, setSelectedLand] = useState(null);
+  const [sameLandListings, setSameLandListings] = useState(null);
 
   // 지도 화면에서 사용할 서비스 스타일 안내창 상태입니다.
   const [alertMessage, setAlertMessage] = useState("");
@@ -591,9 +593,59 @@ function Map() {
   };
 
   // 마커와 검색 결과 카드가 함께 사용하는 토지 상세보기 함수입니다.
-  const openLandPreview = async (land) => {
+  const openLandPreview = async (
+    land,
+    skipSameParcelCheck = false,
+    sameParcelLands = []
+  ) => {
     // 토지 정보가 없으면 상세 조회를 실행하지 않습니다.
     if (!land) return;
+
+    if (!skipSameParcelCheck) {
+      // 같은 필지 마커가 전달한 목록을 우선 사용해 별도 조회 지연 없이 팝업을 엽니다.
+      if (sameParcelLands.length > 1) {
+        const selectedId = land.id ?? land.landId;
+        setSelectedLand(null);
+        setSameLandListings({ selectedId, lands: sameParcelLands });
+        return;
+      }
+
+      // 전체 토지 목록에서 동일 필지 등록을 찾아 여러 건이면 선택 팝업을 엽니다.
+      const cached = allLandsCacheRef.current;
+      let allLands = cached.lands;
+      if (!Array.isArray(allLands) || Date.now() - cached.fetchedAt >= SEARCH_LAND_CACHE_TTL_MS) {
+        try {
+          allLands = await fetchAllLandList();
+          allLandsCacheRef.current = { lands: allLands, fetchedAt: Date.now() };
+        } catch (error) {
+          console.error("같은 필지 등록 조회 실패:", error);
+          allLands = landDisplayDataRef.current;
+        }
+      }
+
+      const parcelId = String(land.pnu ?? land.PNU ?? "").trim();
+      const normalizedAddress = String(land.address || "").replace(/\s+/g, "").toLowerCase();
+      const matches = (Array.isArray(allLands) ? allLands : []).filter((item) => {
+        const itemParcelId = String(item.pnu ?? item.PNU ?? "").trim();
+        if (parcelId) return itemParcelId === parcelId;
+        return normalizedAddress && String(item.address || "").replace(/\s+/g, "").toLowerCase() === normalizedAddress;
+      });
+      const selectedId = land.id ?? land.landId;
+      if (!matches.some((item) => String(item.id ?? item.landId) === String(selectedId))) {
+        matches.push(land);
+      }
+
+      if (matches.length > 1) {
+        const sortedMatches = [...matches].sort((left, right) => {
+          const leftDate = new Date(left.createdAt || 0).getTime();
+          const rightDate = new Date(right.createdAt || 0).getTime();
+          return rightDate - leftDate;
+        });
+        setSelectedLand(null);
+        setSameLandListings({ selectedId, lands: sortedMatches });
+        return;
+      }
+    }
 
     // 이번 클릭에 고유 번호를 부여해 이전 상세 응답과 구분합니다.
     const detailRequestId = ++landDetailRequestIdRef.current;
@@ -880,8 +932,8 @@ function Map() {
       // 지도 컨테이너가 없으면 지도를 생성하지 않습니다.
       if (!container) return false;
 
-      // 초기 중심 좌표를 생성합니다.
-      const center = new window.kakao.maps.LatLng(35.664, 128.415);
+      // 지도 최초 진입 시 서울시청을 중심으로 표시합니다.
+      const center = new window.kakao.maps.LatLng(37.5665, 126.9780);
 
       // Kakao 지도 생성 옵션을 설정합니다.
       const options = {
@@ -1197,6 +1249,18 @@ function Map() {
           land={selectedLand}
         />
       </DetailPanelArea>
+
+      {sameLandListings ? (
+        <SameLandListingsModal
+          lands={sameLandListings.lands}
+          selectedId={sameLandListings.selectedId}
+          onClose={() => setSameLandListings(null)}
+          onSelectListing={(listing) => {
+            setSameLandListings(null);
+            void openLandPreview(listing, true);
+          }}
+        />
+      ) : null}
 
       {alertMessage ? (
         <MapAlertOverlay

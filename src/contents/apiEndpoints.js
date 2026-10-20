@@ -18,7 +18,9 @@ export const Api = {
     VworldLand: `${BASE}/api/vworld/land`, // GET 주소 기반 토지 자동 조회
     LandDevelopmentAnalysis: (landId) =>
       `${BASE}/api/lands/${encodeURIComponent(landId)}/analysis/development`, // GET 토지 개발 적합도 분석
-    SolarSummary: `${BASE}/api/ai/solar/summary`, // GET 토지 AI 종합 보고서
+    SolarSummary: `${BASE}/api/ai/solar/summary`, // GET AI 태양광 종합 보고서
+    SolarSuitabilityReport: `${BASE}/api/ai/solar/suitability`, // GET AI 태양광 적합도 설명
+    AiLandReport: `${BASE}/api/ai/report`, // GET 토지 투자 가치 AI 보고서
   Lands: `${BASE}/api/lands`,                                                        // GET 전체조회 / POST 등록 (multipart)
   MyLands: `${BASE}/api/lands/me`,                                                    // GET 내가 등록한 토지 목록
   Land: (landId) => `${BASE}/api/lands/${landId}`,                                   // GET 상세 / PATCH 수정 / DELETE 삭제
@@ -32,6 +34,7 @@ export const Api = {
   MyPlan: `${BASE}/api/users/me/plan`, // GET/PATCH 내 플랜
   MyProfileImage: `${BASE}/api/users/me/image`, // PATCH 프로필 이미지
   BusinessProfile: `${BASE}/api/business/profile`, // GET/PUT 내 사업자 프로필
+  BusinessProfileLicense: `${BASE}/api/business/profile/license`, // PATCH 사업자등록증 업로드
   BusinessProfiles: `${BASE}/api/business/profiles`, // GET 사업자 목록
   BusinessProfileDetail: (id) => `${BASE}/api/business/profiles/${encodeURIComponent(id)}`, // GET 사업자 상세
 

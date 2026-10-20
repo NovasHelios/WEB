@@ -457,24 +457,5 @@ export const BusinessSmallButton = styled.button`
   color: #6f6045;
   font-size: var(--font-xs);
   cursor: pointer;
-`;
-
-export const BusinessCredentialList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 18px;
-`;
-
-export const BusinessCredential = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid #e9e1d6;
-  border-radius: 4px;
-  background: #fffdfb;
-  color: #50483f;
-  font-size: var(--font-sm);
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;

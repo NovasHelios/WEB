@@ -30,7 +30,14 @@ function BusinessList({ token }) {
         const response = await authFetch(Api.BusinessProfiles);
         const data = await response.json();
         if (!response.ok) throw new Error(data?.data?.message || "사업자 목록을 불러오지 못했습니다.");
-        const profileList = Array.isArray(data.data) ? data.data : [];
+        // 스웨거의 페이지 응답과 기존 배열 응답을 모두 목록으로 처리합니다.
+        const pageData = data?.data ?? data;
+        const profileList = Array.isArray(pageData)
+          ? pageData
+          : Array.isArray(pageData?.content)
+            ? pageData.content
+            : null;
+        if (!profileList) throw new Error("사업자 목록 응답 형식이 올바르지 않습니다.");
         // 목록에 플랜이 없는 경우 상세 API에서 가져와 채팅 가능한 사업자만 남깁니다.
         const profilesWithPlan = await Promise.all(profileList.map(async (profile) => {
           if (profile.userPlan) return profile;
