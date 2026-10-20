@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, Plus, ShieldCheck } from "lucide-react";
+import { ImagePlus, Plus, ShieldCheck } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import BusinessTimePicker from "./BusinessTimePicker";
 import {
   BusinessBasicGrid,
@@ -12,13 +12,12 @@ import {
   BusinessCertificate,
   BusinessCertificateIcon,
   BusinessCertificateStatus,
-  BusinessCredential,
-  BusinessCredentialList,
   BusinessField,
   BusinessFieldGrid,
   BusinessFieldInput,
   BusinessFieldTextarea,
   BusinessImageBox,
+  BusinessImageButton,
   BusinessImagePreview,
   BusinessIntroduction,
   BusinessOptionLabel,
@@ -91,9 +90,19 @@ function BusinessProfileForm() {
   const [isConsultationActive, setIsConsultationActive] = useState(true);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
-  const [imagePreview, setImagePreview] = useState(null);
+  const [businessImagePreview, setBusinessImagePreview] = useState(null);
+  const [businessImageFile, setBusinessImageFile] = useState(null);
+  const businessImageInputRef = useRef(null);
   const [saveMessage, setSaveMessage] = useState("");
+  const [licenseMessage, setLicenseMessage] = useState("");
+  const [isLicenseUploading, setIsLicenseUploading] = useState(false);
+  const [isBusinessProfileSaved, setIsBusinessProfileSaved] = useState(false);
+  const licenseInputRef = useRef(null);
   const [businessMeta, setBusinessMeta] = useState({ businessNumber: "", businessVerified: false });
+
+  useEffect(() => () => {
+    if (businessImagePreview?.startsWith("blob:")) URL.revokeObjectURL(businessImagePreview);
+  }, [businessImagePreview]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -117,10 +126,11 @@ function BusinessProfileForm() {
       }
       const user = userData?.data || {};
       const business = businessData?.data || {};
-      // 사업자 화면도 로그인한 사용자의 실제 프로필 사진을 표시합니다.
-      const imagePath = String(user.profileImagePath || "");
+      setIsBusinessProfileSaved(businessResponse.ok);
+      // 사업자 프로필 사진은 사용자 프로필 사진과 별도로 표시합니다.
+      const imagePath = String(business.profileImagePath || "");
       const relativePath = imagePath.replace(/^\/+/, "");
-      setImagePreview(!imagePath ? null : /^https?:\/\//.test(imagePath) ? imagePath
+      setBusinessImagePreview(!imagePath ? null : /^https?:\/\//.test(imagePath) ? imagePath
         : `https://api.helioss.site/${relativePath.startsWith("uploads/") ? relativePath : `uploads/profiles/${relativePath}`}`);
       if (user.plan !== "BUSINESS") throw new Error("사업자 프로필은 BUSINESS 플랜에서 사용할 수 있습니다.");
       setNationwideActive(Boolean(business.nationwideActive));
@@ -162,6 +172,52 @@ function BusinessProfileForm() {
     };
   }, []);
 
+  // 사업자 프로필에 사용할 사진을 선택하고 저장 전 미리보기로 표시합니다.
+  const handleBusinessImageChange = (event) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    setBusinessImageFile(file);
+    setBusinessImagePreview(URL.createObjectURL(file));
+    setSaveMessage("");
+    event.currentTarget.value = "";
+  };
+
+  // 사업자등록증을 별도 인증 파일 API로 업로드합니다.
+  const handleLicenseUpload = async (event) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setIsLicenseUploading(true);
+    setLicenseMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("licenseFile", file);
+      const response = await authFetch(Api.BusinessProfileLicense, {
+        method: "PATCH",
+        body: formData,
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json") ? await response.json() : null;
+      if (!response.ok) {
+        throw new Error(result?.data?.message || result?.message || "사업자등록증을 업로드하지 못했습니다.");
+      }
+
+      const uploadedProfile = result?.data?.data || result?.data || {};
+      setBusinessMeta((current) => ({
+        ...current,
+        businessLicensePath: uploadedProfile.businessLicensePath || uploadedProfile.licensePath || current.businessLicensePath || "uploaded",
+        businessVerified: uploadedProfile.businessVerified ?? current.businessVerified,
+      }));
+      setLicenseMessage("사업자등록증을 업로드했습니다.");
+    } catch (error) {
+      setLicenseMessage(error.message || "사업자등록증을 업로드하지 못했습니다.");
+    } finally {
+      setIsLicenseUploading(false);
+      input.value = "";
+    }
+  };
+
   // Swagger 요청 필드만 서버에 저장하고 실패를 완료로 표시하지 않습니다.
   const handleSave = async () => {
     if (isSaving || !isReady) return;
@@ -191,19 +247,38 @@ function BusinessProfileForm() {
     setIsSaving(true);
     setSaveMessage("");
     try {
-      const response = await authFetch(Api.BusinessProfile, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: profile.company.trim(), businessNumber: businessMeta.businessNumber.trim(),
-          department: profile.department, jobTitle: profile.position,
-          mainFields: selectedSpecialties, mainFieldDescription: profile.shortIntro,
-          businessDescription: profile.introduction, activeRegions: selectedRegions,
-          nationwideActive, consultationAvailable: isConsultationActive,
-          consultationStartTime: startTime, consultationEndTime: endTime,
-        }),
+      const params = new URLSearchParams({
+        companyName: profile.company.trim(),
+        businessNumber: businessMeta.businessNumber.trim(),
+        department: profile.department,
+        jobTitle: profile.position,
+        mainFieldDescription: profile.shortIntro,
+        businessDescription: profile.introduction,
+        nationwideActive: String(nationwideActive),
+        consultationAvailable: String(isConsultationActive),
+        consultationStartTime: startTime,
+        consultationEndTime: endTime,
       });
-      if (!response.ok) throw new Error("사업자 프로필 저장에 실패했습니다. 플랜과 입력값을 확인해주세요.");
+      selectedSpecialties.forEach((field) => params.append("mainFields", field));
+      selectedRegions.forEach((region) => params.append("activeRegions", region));
+
+      const formData = new FormData();
+      if (businessImageFile) formData.append("profileImage", businessImageFile);
+
+      const response = await authFetch(`${Api.BusinessProfile}?${params.toString()}`, {
+        method: "PUT",
+        body: formData,
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+      if (!response.ok) {
+        const serverMessage = typeof result === "string"
+          ? result.trim()
+          : result?.data?.message || result?.message || result?.error;
+        throw new Error(serverMessage || `사업자 프로필 저장에 실패했습니다. (HTTP ${response.status})`);
+      }
       // 서버 저장이 성공한 경우에만 지도 화면으로 이동합니다.
       navigate("/", { replace: true });
     } catch (error) {
@@ -290,8 +365,18 @@ function BusinessProfileForm() {
           <BusinessBasicGrid>
             <BusinessImageBox>
               <span>프로필 사진</span>
-              <Link to="/profile">사진·연락처 수정은 내 프로필로 이동</Link>
-              {imagePreview ? <BusinessImagePreview src={imagePreview} alt="프로필 미리보기" /> : null}
+              <input
+                ref={businessImageInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleBusinessImageChange}
+              />
+              {businessImagePreview ? <BusinessImagePreview src={businessImagePreview} alt="사업자 프로필 사진 미리보기" /> : null}
+              <BusinessImageButton type="button" onClick={() => businessImageInputRef.current?.click()}>
+                <ImagePlus size={20} aria-hidden="true" />
+                사진 변경
+              </BusinessImageButton>
             </BusinessImageBox>
 
             <BusinessFieldGrid>
@@ -431,12 +516,25 @@ function BusinessProfileForm() {
                   </span>
                 </div>
               </BusinessCertificateStatus>
-              <BusinessSmallButton type="button">서류 재업로드 / 갱신</BusinessSmallButton>
+              <div>
+                <input
+                  ref={licenseInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  hidden
+                  onChange={handleLicenseUpload}
+                />
+                <BusinessSmallButton
+                  type="button"
+                  disabled={!isReady || isLicenseUploading || !isBusinessProfileSaved}
+                  onClick={() => licenseInputRef.current?.click()}
+                >
+                  {isLicenseUploading ? "업로드 중..." : "서류 재업로드 / 갱신"}
+                </BusinessSmallButton>
+                {!isBusinessProfileSaved ? <small style={{ display: "block", marginTop: 6 }}>프로필 저장 후 업로드할 수 있어.</small> : null}
+                {licenseMessage ? <small role="status" style={{ display: "block", marginTop: 6 }}>{licenseMessage}</small> : null}
+              </div>
             </BusinessCertificate>
-            <BusinessOptionLabel>보유 자격증 현황 <span>+ 자격증 추가</span></BusinessOptionLabel>
-            <BusinessCredentialList>
-              <BusinessCredential><BadgeCheck size={15} /> 등록된 자격증이 없습니다.</BusinessCredential>
-            </BusinessCredentialList>
           </BusinessProfileSection>
         </BusinessBottomGrid>
 

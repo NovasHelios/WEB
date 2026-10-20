@@ -61,7 +61,7 @@ import {
 // 선택한 토지의 태양광 개발 적합도 분석 결과를 조회합니다.
 import {
   fetchLandDevelopmentAnalysis,
-  fetchSolarSummaryReport,
+  fetchAiLandReport,
 } from "@/pages/Main/landApi";
 import { useAccount } from "@/contexts/AccountContext";
 import ReportAccessGate from "@/components/ui/PreviewComponent/components/ReportAccessGate";
@@ -149,12 +149,10 @@ function SpecificContent({ land, onClose }) {
   const [developmentAnalysis, setDevelopmentAnalysis] = useState(null);
   // 적합도 분석 조회 실패 시 기존 카드 안에 표시할 오류 문구입니다.
   const [developmentAnalysisError, setDevelopmentAnalysisError] = useState("");
-  // 새 AI 종합 보고서 API에서 받은 상세보기 보고서입니다.
-  const [solarSummaryReport, setSolarSummaryReport] = useState("");
-  // AI 종합 보고서 조회 실패 문구입니다.
-  const [solarSummaryError, setSolarSummaryError] = useState("");
-  // AI 종합 보고서를 불러오는 중인지 나타냅니다.
-  const [isSolarSummaryLoading, setIsSolarSummaryLoading] = useState(true);
+  // 토지 투자 가치 AI 보고서와 요청 상태입니다.
+  const [aiLandReport, setAiLandReport] = useState("");
+  const [aiLandReportError, setAiLandReportError] = useState("");
+  const [isAiLandReportLoading, setIsAiLandReportLoading] = useState(true);
   // 유효한 토지 ID가 있으면 분석 결과를 받을 때까지 로딩 화면을 표시합니다.
   const [isDevelopmentAnalysisLoading, setIsDevelopmentAnalysisLoading] =
     useState(
@@ -208,7 +206,7 @@ function SpecificContent({ land, onClose }) {
     return () => controller.abort();
   }, [analysisLandId]);
 
-  // 상세보기 대상 토지가 바뀌면 새 AI 종합 보고서를 조회합니다.
+  // 상세보기 대상 토지가 바뀌면 토지 투자 가치 AI 보고서를 조회합니다.
   useEffect(() => {
     // AI 의견 열람 플랜이 아니거나 유효한 토지 ID가 없으면 보고서를 요청하지 않습니다.
     if (!canViewAiOpinion || analysisLandId === undefined || analysisLandId === null || analysisLandId === "") {
@@ -218,26 +216,26 @@ function SpecificContent({ land, onClose }) {
     // 팝업이 닫힐 때 진행 중인 보고서 요청을 취소합니다.
     const controller = new AbortController();
 
-    // 비동기 함수 안에서 상태를 초기화하고 새 AI 종합 보고서를 요청합니다.
-    const loadSolarSummary = async () => {
-      setSolarSummaryReport("");
-      setSolarSummaryError("");
-      setIsSolarSummaryLoading(true);
+    // 비동기 함수 안에서 상태를 초기화하고 새 투자 가치 보고서를 요청합니다.
+    const loadAiLandReport = async () => {
+      setAiLandReport("");
+      setAiLandReportError("");
+      setIsAiLandReportLoading(true);
 
       try {
-        const summary = await fetchSolarSummaryReport(analysisLandId, { signal: controller.signal });
-        if (!controller.signal.aborted) setSolarSummaryReport(typeof summary?.report === "string" ? summary.report : "");
+        const report = await fetchAiLandReport(analysisLandId, { signal: controller.signal });
+        if (!controller.signal.aborted) setAiLandReport(typeof report?.report === "string" ? report.report : "");
       } catch (error) {
         if (!controller.signal.aborted && error?.name !== "AbortError") {
-          setSolarSummaryError(error?.message || "AI 종합 보고서를 불러오지 못했습니다.");
+          setAiLandReportError(error?.message || "토지 AI 보고서를 불러오지 못했습니다.");
         }
       } finally {
-        if (!controller.signal.aborted) setIsSolarSummaryLoading(false);
+        if (!controller.signal.aborted) setIsAiLandReportLoading(false);
       }
     };
 
-    // 현재 토지의 보고서 조회를 시작합니다.
-    void loadSolarSummary();
+    // 현재 토지의 투자 가치 보고서 조회를 시작합니다.
+    void loadAiLandReport();
 
     // 컴포넌트 정리 시 진행 중인 보고서 요청을 취소합니다.
     return () => controller.abort();
@@ -574,14 +572,14 @@ function SpecificContent({ land, onClose }) {
             <p>{land.description || "등록된 상세 설명이 없습니다."}</p>
           </AiOpinion>
 
-          {/* 새 AI 종합 보고서 API가 반환한 내용을 표시합니다. */}
+          {/* 토지 AI 보고서 API가 반환한 투자 가치 분석을 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
             {canViewAiOpinion ? (
               <p>
-                {isSolarSummaryLoading
-                  ? "AI 종합 보고서를 불러오는 중입니다."
-                  : solarSummaryReport || solarSummaryError || "등록된 AI 종합 보고서가 없습니다."}
+                {isAiLandReportLoading
+                  ? "토지 AI 보고서를 불러오는 중입니다."
+                  : aiLandReport || aiLandReportError || "등록된 토지 AI 보고서가 없습니다."}
               </p>
             ) : (
               // 무료 또는 비로그인 사용자는 실제 보고서를 대신해 공통 잠금 안내를 표시합니다.

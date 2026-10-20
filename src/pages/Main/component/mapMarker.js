@@ -36,6 +36,10 @@ const DISTRICT_MARKER_DISPLAY_SCALE = 0.8;
 // 시·군·구 집계 마커에 사용할 요청 색상입니다.
 const DISTRICT_MARKER_TEXT_COLOR = "#D0A926";
 
+// 같은 필지에 여러 등록이 있을 때 주소와 유형별 건수를 보여주는 카드 크기입니다.
+const DUPLICATE_MARKER_WIDTH = 220;
+const DUPLICATE_MARKER_HEIGHT = 120;
+
 // 같은 배경 이미지를 요청할 때 재사용할 로딩 Promise입니다.
 let markerBackgroundPromise = null;
 
@@ -50,6 +54,9 @@ const landMarkerImageCache = new Map();
 
 // 지역명·거래 건수가 같은 시군구 마커 이미지를 재사용합니다.
 const districtMarkerImageCache = new Map();
+
+// 주소와 등록 유형 건수가 같은 중복 등록 카드를 재사용합니다.
+const duplicateMarkerImageCache = new Map();
 
 // 좌표가 없는 동일 주소를 지도 이동마다 다시 지오코딩하지 않도록 요청 결과를 재사용합니다.
 const geocodePromiseCache = new Map();
@@ -291,6 +298,99 @@ const createDistrictMarkerImage = ({ districtName, counts, isSelected = false })
   return markerImageUrl;
 };
 
+// 같은 필지에 등록된 주소와 매매·임대·사업희망 건수를 카드형 마커로 그립니다.
+const createDuplicateMarkerImage = ({ address, counts }) => {
+  // 중복 핀에는 시도와 시군구를 제외한 상세 주소만 표시합니다.
+  const addressParts = String(address || "").trim().split(/\s+/).filter(Boolean);
+  if (addressParts.length > 1) addressParts.shift();
+  while (addressParts.length && /(시|군|구)$/.test(addressParts[0])) addressParts.shift();
+  const displayAddress = addressParts.join(" ") || address || "주소 정보 없음";
+  const cacheKey = [window.devicePixelRatio || 1, displayAddress, counts.lease, counts.sale, counts.businessHope].join("|");
+  const cachedImage = duplicateMarkerImageCache.get(cacheKey);
+  if (cachedImage) return cachedImage;
+
+  const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+  const canvas = document.createElement("canvas");
+  canvas.width = DUPLICATE_MARKER_WIDTH * pixelRatio;
+  canvas.height = DUPLICATE_MARKER_HEIGHT * pixelRatio;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(pixelRatio, pixelRatio);
+
+  drawRoundedRect(ctx, 1, 1, DUPLICATE_MARKER_WIDTH - 2, DUPLICATE_MARKER_HEIGHT - 18, 16);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.strokeStyle = "#1c3447";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 상단 주소 영역은 짙은 남색으로 분리해 시안처럼 강조합니다.
+  ctx.beginPath();
+  ctx.moveTo(21, 1);
+  ctx.lineTo(DUPLICATE_MARKER_WIDTH - 21, 1);
+  ctx.quadraticCurveTo(DUPLICATE_MARKER_WIDTH - 1, 1, DUPLICATE_MARKER_WIDTH - 1, 21);
+  ctx.lineTo(DUPLICATE_MARKER_WIDTH - 1, 37);
+  ctx.lineTo(1, 37);
+  ctx.lineTo(1, 21);
+  ctx.quadraticCurveTo(1, 1, 21, 1);
+  ctx.closePath();
+  ctx.fillStyle = "#1c3447";
+  ctx.fill();
+
+  // 지도 위치를 가리키는 작은 꼬리를 카드 하단에 추가합니다.
+  ctx.beginPath();
+  const pointerX = DUPLICATE_MARKER_WIDTH / 2;
+  ctx.moveTo(pointerX - 13, DUPLICATE_MARKER_HEIGHT - 18);
+  ctx.lineTo(pointerX, DUPLICATE_MARKER_HEIGHT - 1);
+  ctx.lineTo(pointerX + 13, DUPLICATE_MARKER_HEIGHT - 18);
+  ctx.closePath();
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.strokeStyle = "#1c3447";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pointerX - 11, DUPLICATE_MARKER_HEIGHT - 18);
+  ctx.lineTo(pointerX + 11, DUPLICATE_MARKER_HEIGHT - 18);
+  ctx.strokeStyle = "#ffffff";
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = "800 15px sans-serif";
+  const normalizedAddress = String(displayAddress).trim();
+  ctx.fillText(normalizedAddress, 13, 20, DUPLICATE_MARKER_WIDTH - 26);
+
+  // 하단 칩에는 서버에서 받은 거래 유형별 등록 수만 표시합니다.
+  const rows = [["매매", counts.sale], ["임대", counts.lease], ["사업희망", counts.businessHope]];
+  const chipY = 55;
+  const chipGap = 4;
+  const chipWidth = (DUPLICATE_MARKER_WIDTH - 26 - chipGap * 2) / 3;
+  rows.forEach(([label, count], index) => {
+    const x = 13 + index * (chipWidth + chipGap);
+    drawRoundedRect(ctx, x, chipY, chipWidth, 28, 7);
+    ctx.fillStyle = "#f1f3f5";
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.font = "700 13px sans-serif";
+    ctx.fillStyle = "#29313a";
+    const labelWidth = ctx.measureText(`${label} `).width;
+    ctx.font = "800 14px sans-serif";
+    const countWidth = ctx.measureText(String(count)).width;
+    const textStartX = x + (chipWidth - labelWidth - countWidth) / 2;
+    ctx.textAlign = "left";
+    ctx.font = "700 13px sans-serif";
+    ctx.fillText(label, textStartX, chipY + 14, chipWidth - 8);
+    ctx.fillStyle = "#00a34a";
+    ctx.font = "800 14px sans-serif";
+    ctx.fillText(String(count), textStartX + labelWidth, chipY + 14, chipWidth - 8);
+  });
+
+  const imageUrl = canvas.toDataURL();
+  setBoundedCacheValue(duplicateMarkerImageCache, cacheKey, imageUrl);
+  return imageUrl;
+};
+
 // 표시 가능한 토지를 시·군·구별로 묶고 각 그룹의 중심 좌표와 건수를 계산합니다.
 const createDistrictGroups = (lands) => {
   // 같은 시군구를 빠르게 찾기 위해 Map을 사용합니다.
@@ -407,6 +507,7 @@ export const createLandMarkerImage = ({
   priceText,
   areaText,
   markerBackground,
+  listingCount = 1,
 }) => {
   // 로드가 끝난 배경 이미지가 없으면 마커 이미지를 만들지 않습니다.
   if (!markerBackground) return "";
@@ -417,6 +518,7 @@ export const createLandMarkerImage = ({
     window.devicePixelRatio || 1,
     priceText,
     areaText,
+    listingCount,
   ].join("|");
   const cachedImage = landMarkerImageCache.get(cacheKey);
   if (cachedImage) return cachedImage;
@@ -491,6 +593,19 @@ export const createLandMarkerImage = ({
     34,
     LAND_MARKER_BASE_WIDTH - 12
   );
+
+  // 같은 필지에 여러 등록이 있으면 마커에 등록 건수를 표시합니다.
+  if (listingCount > 1) {
+    ctx.font = "700 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#D0A926";
+    ctx.beginPath();
+    ctx.arc(LAND_MARKER_BASE_WIDTH - 8, 8, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(String(listingCount), LAND_MARKER_BASE_WIDTH - 8, 8, 14);
+  }
 
   // Kakao MarkerImage에서 사용할 data URL을 저장해 반복 Canvas 변환을 줄입니다.
   const markerImageUrl = canvas.toDataURL();
@@ -653,13 +768,32 @@ export const renderLandMarkers = async ({
   const shouldShowIndividualMarkers =
     mapRef.current.getLevel() <= INDIVIDUAL_MARKER_MAX_LEVEL;
 
+  // PNU가 같은 등록만 한 마커로 묶고, 그 외 토지는 개별 마커로 유지합니다.
+  const groupedLands = new Map();
+  if (shouldShowIndividualMarkers) {
+    displayLands.forEach((land, index) => {
+      const parcelId = String(land.pnu ?? land.PNU ?? "").trim();
+      const fallbackId = String(
+        land.id ?? land.landId ?? `${land.address || "land"}-${index}`
+      );
+      const key = parcelId ? `pnu:${parcelId}` : `land:${fallbackId}`;
+      const group = groupedLands.get(key);
+      if (group) group.lands.push(land);
+      else groupedLands.set(key, { key, lands: [land] });
+    });
+  }
+
   // 좌표 변환이 끝난 토지를 Kakao 마커로 표시합니다.
   // 확대 상태에서 실제로 보이는 경우에만 개별 토지 마커를 생성합니다.
-  if (shouldShowIndividualMarkers) displayLands.forEach((land, index) => {
-    // API별 식별자 차이를 정리하고, 식별자가 없을 때만 주소와 순번을 사용합니다.
-    const markerKey = String(
-      land.id ?? land.landId ?? land.pnu ?? `${land.address || "land"}-${index}`
-    );
+  if (shouldShowIndividualMarkers) groupedLands.forEach((group) => {
+    const land = group.lands[0];
+    const listingCount = group.lands.length;
+    const markerKey = group.key;
+    const duplicateCounts = group.lands.reduce((counts, listing) => {
+      const countKey = getTransactionCountKey(listing.transactionType);
+      if (countKey) counts[countKey] += 1;
+      return counts;
+    }, { lease: 0, sale: 0, businessHope: 0 });
 
     // 좌표와 마커 문구가 동일한지 빠르게 비교할 문자열을 만듭니다.
     const markerSignature = [
@@ -667,6 +801,11 @@ export const renderLandMarkers = async ({
       land.lon,
       land.desiredPrice,
       land.desiredArea,
+      listingCount,
+      land.address,
+      duplicateCounts.lease,
+      duplicateCounts.sale,
+      duplicateCounts.businessHope,
     ].join("|");
 
     // 같은 토지의 기존 Kakao 마커가 있으면 객체와 클릭 이벤트를 그대로 재사용합니다.
@@ -685,18 +824,27 @@ export const renderLandMarkers = async ({
     // 새 마커이거나 좌표·문구가 변경된 마커만 이미지와 위치를 갱신합니다.
     if (!marker || previousMetadata?.signature !== markerSignature) {
       // 로드가 완료된 배경 위에 가격과 면적을 얹은 마커 이미지를 생성합니다.
-      const markerImageUrl = createLandMarkerImage({
-        priceText: formatPrice(land.desiredPrice),
-        areaText,
-        markerBackground,
-      });
+      const markerImageUrl = listingCount > 1
+        ? createDuplicateMarkerImage({ address: land.address, counts: duplicateCounts })
+        : createLandMarkerImage({
+          priceText: formatPrice(land.desiredPrice),
+          areaText,
+          markerBackground,
+          listingCount,
+        });
 
       // Kakao 지도에서 사용할 마커 이미지와 기준점을 생성합니다.
       const markerImage = new window.kakao.maps.MarkerImage(
         markerImageUrl,
-        new window.kakao.maps.Size(MARKER_WIDTH, MARKER_HEIGHT),
+        new window.kakao.maps.Size(
+          listingCount > 1 ? DUPLICATE_MARKER_WIDTH : MARKER_WIDTH,
+          listingCount > 1 ? DUPLICATE_MARKER_HEIGHT : MARKER_HEIGHT
+        ),
         {
-          offset: new window.kakao.maps.Point(MARKER_WIDTH / 2, MARKER_HEIGHT),
+          offset: new window.kakao.maps.Point(
+            listingCount > 1 ? DUPLICATE_MARKER_WIDTH / 2 : MARKER_WIDTH / 2,
+            listingCount > 1 ? DUPLICATE_MARKER_HEIGHT : MARKER_HEIGHT
+          ),
         }
       );
 
@@ -716,9 +864,14 @@ export const renderLandMarkers = async ({
         const clickHandler = () => {
           const currentMetadata = landMarkerMetadata.get(marker);
           if (!currentMetadata) return;
-          currentMetadata.onMarkerClick?.(currentMetadata.land);
+          currentMetadata.onMarkerClick?.(
+            currentMetadata.land,
+            false,
+            currentMetadata.lands
+          );
           mapRef.current.setCenter(currentMetadata.land.position);
-          mapRef.current.setLevel(3);
+          // 중복 등록 핀은 상세 위치를 더 잘 확인할 수 있도록 한 단계 더 확대합니다.
+          mapRef.current.setLevel(currentMetadata.listingCount > 1 ? 1 : 3);
         };
         window.kakao.maps.event.addListener(marker, "click", clickHandler);
         landMarkerMetadata.set(marker, { clickHandler });
@@ -734,6 +887,8 @@ export const renderLandMarkers = async ({
       key: markerKey,
       signature: markerSignature,
       land,
+      lands: group.lands,
+      listingCount,
       onMarkerClick,
     });
 

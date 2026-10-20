@@ -126,3 +126,29 @@ export const fetchSolarSummaryReport = async (landId, { signal } = {}) => {
   const result = await readApiResponse(response, "AI 종합 보고서를 불러오지 못했습니다.");
   return result?.data ?? result ?? null;
 };
+
+// 태양광 적합도 기준별 AI 설명 보고서를 조회합니다.
+export const fetchSolarSuitabilityReport = async (landId, { signal } = {}) => {
+  if (landId === undefined || landId === null || landId === "") return null;
+
+  const params = new URLSearchParams({ landId: String(landId) });
+  const response = await authFetch(`${Api.SolarSuitabilityReport}?${params.toString()}`, {
+    method: "GET",
+    signal,
+  });
+  const result = await readApiResponse(response, "태양광 적합도 보고서를 불러오지 못했습니다.");
+  return result?.data ?? result ?? null;
+};
+
+// 토지 정보를 기반으로 생성한 투자 가치 AI 보고서를 조회합니다.
+export const fetchAiLandReport = async (landId, { signal } = {}) => {
+  if (landId === undefined || landId === null || landId === "") return null;
+
+  const params = new URLSearchParams({ landId: String(landId) });
+  const response = await authFetch(`${Api.AiLandReport}?${params.toString()}`, {
+    method: "GET",
+    signal,
+  });
+  const result = await readApiResponse(response, "토지 AI 보고서를 불러오지 못했습니다.");
+  return result?.data ?? result ?? null;
+};

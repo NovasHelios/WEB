@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 // 선택한 토지의 개발 적합도 분석 결과를 조회하는 함수입니다.
-import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
+import { fetchLandDevelopmentAnalysis, fetchSolarSuitabilityReport } from "@/pages/Main/landApi";
 import { useAccount } from "@/contexts/AccountContext";
 import useAuthToken from "@/hooks/useAuthToken";
 import ReportAccessGate from "./ReportAccessGate";
@@ -18,7 +18,6 @@ import {
   AnalysisReportItemTitle,
   AnalysisReportList,
   AnalysisReportSection,
-  AnalysisReportText,
   AnalysisReportTitle,
   AnalysisRetryButton,
   AnalysisLoadingOverlay,
@@ -58,27 +57,6 @@ const REPORT_SECTION_LABELS = {
   "용도지역·용도지구": "용도 지역·지구",
 };
 
-// 대괄호 제목이 포함된 분석 근거를 제목과 설명 목록으로 분리합니다.
-const parseAnalysisRationale = (rationale) => {
-  // 문자열이 아니거나 비어 있으면 파싱할 보고서가 없는 것으로 처리합니다.
-  if (typeof rationale !== "string" || !rationale.trim()) return [];
-
-  // 다음 대괄호 제목 전까지의 모든 문장을 현재 항목의 설명으로 찾습니다.
-  const sectionPattern = /\[([^\]]+)\]\s*([\s\S]*?)(?=\s*\[[^\]]+\]|$)/g;
-
-  // 서버가 전달한 항목 순서를 유지하면서 화면용 제목과 원문 설명을 만듭니다.
-  return Array.from(rationale.matchAll(sectionPattern), (match) => {
-    // 제목 비교 시 공백 차이로 항목을 놓치지 않도록 공백을 제거합니다.
-    const normalizedTitle = match[1].replace(/\s+/g, "").trim();
-
-    // 정의된 제목은 디자인 표기로 바꾸고 알 수 없는 제목은 원문을 사용합니다.
-    return {
-      title: REPORT_SECTION_LABELS[normalizedTitle] || match[1].trim(),
-      text: match[2].trim(),
-    };
-  }).filter((section) => section.text);
-};
-
 // 서버 점수를 숫자로 바꾸고 화면에서 허용하는 점수 범위 안으로 제한합니다.
 const normalizeScore = (value, maxScore) => {
   const numericValue = Number(value);
@@ -107,9 +85,13 @@ function ReportContent({ landId, isReportLocked = false }) {
   // 개발 적합도 분석을 요청하고 있는지 나타냅니다.
   const [isLoading, setIsLoading] = useState(true);
   // 실패한 개발 적합도 분석 요청을 다시 실행하기 위한 값입니다.
-  const [attempt, setAttempt] = useState(0);
   // 개발 적합도 분석 조회에 실패했을 때 표시할 메시지입니다.
   const [errorMessage, setErrorMessage] = useState("");
+  // 스웨거의 태양광 적합도 AI API 응답을 별도로 보관합니다.
+  const [suitabilityReport, setSuitabilityReport] = useState(null);
+  const [isSuitabilityReportLoading, setIsSuitabilityReportLoading] = useState(false);
+  const [suitabilityReportError, setSuitabilityReportError] = useState("");
+  const [reportAttempt, setReportAttempt] = useState(0);
 
   useEffect(() => {
     // 이전 토지의 비동기 응답이 현재 화면에 반영되는 것을 막습니다.
@@ -173,7 +155,44 @@ function ReportContent({ landId, isReportLocked = false }) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [landId, attempt]);
+  }, [landId]);
+
+  useEffect(() => {
+    let ignore = false;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60000);
+
+    // 스웨거의 기준별 AI 설명을 불러옵니다.
+    const loadSuitabilityReport = async () => {
+      if (isReportLocked || landId === undefined || landId === null || landId === "") {
+        setIsSuitabilityReportLoading(false);
+        return;
+      }
+      setSuitabilityReport(null);
+      setSuitabilityReportError("");
+      setIsSuitabilityReportLoading(true);
+      try {
+        const report = await fetchSolarSuitabilityReport(landId, { signal: controller.signal });
+        if (!ignore) setSuitabilityReport(report);
+      } catch (error) {
+        if (!ignore) {
+          setSuitabilityReportError(controller.signal.aborted
+            ? "보고서 조회 시간이 초과됐습니다. 다시 시도해 주세요."
+            : error?.message || "태양광 적합도 보고서를 불러오지 못했습니다.");
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        if (!ignore) setIsSuitabilityReportLoading(false);
+      }
+    };
+    void loadSuitabilityReport();
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [isReportLocked, landId, reportAttempt]);
 
   // 서버의 종합 점수를 100점 범위로 정리합니다.
   const totalScore = normalizeScore(analysis?.totalScore, 100);
@@ -183,8 +202,19 @@ function ReportContent({ landId, isReportLocked = false }) {
   const isBusinessUnavailable = hasZeroScore(analysis);
   // 정상 응답이 준비된 뒤에만 점수 바가 실제 값까지 채워지게 합니다.
   const isAnalysisReady = !isLoading && !errorMessage && Boolean(analysis);
-  // 서버의 종합 분석 근거를 보고서 항목 목록으로 변환합니다.
-  const reportSections = parseAnalysisRationale(analysis?.rationale);
+  // 새 AI API 기준명과 설명을 기존 보고서 항목 UI에 맞춥니다.
+  const reportSections = Array.isArray(suitabilityReport?.criteria)
+    ? suitabilityReport.criteria.map((item) => {
+      const normalizedTitle = String(item.criterion || "").replace(/\s+/g, "").trim();
+      const scoreText = hasScoreValue(item.score) && hasScoreValue(item.maxScore)
+        ? `${item.score}/${item.maxScore}점 · `
+        : "";
+      return {
+        title: REPORT_SECTION_LABELS[normalizedTitle] || item.criterion || "분석 기준",
+        text: `${scoreText}${item.explanation || "분석 설명이 없습니다."}`,
+      };
+    })
+    : [];
 
   return (
     // 분석 조회 상태, 점수, 보고서, 오류 복구 동작을 표시합니다.
@@ -282,34 +312,34 @@ function ReportContent({ landId, isReportLocked = false }) {
         ) : (
           <AnalysisReportBox>
           {/* 개발 적합도 분석을 요청하는 동안 보고서 영역에 로딩 문구를 표시합니다. */}
-          {isLoading && (
+          {isSuitabilityReportLoading && (
             <AnalysisStatusMessage $compact role="status">
-              태양광 적합도 분석을 불러오는 중입니다.
+              태양광 적합도 AI 보고서를 불러오는 중입니다.
             </AnalysisStatusMessage>
           )}
 
-          {/* 개발 적합도 분석 조회에 실패하면 오류와 재시도 버튼을 표시합니다. */}
-          {!isLoading && errorMessage && (
+          {/* AI 보고서 조회 실패는 점수 분석과 분리해 재시도할 수 있습니다. */}
+          {!isSuitabilityReportLoading && suitabilityReportError && (
             <AnalysisError role="alert">
-              <p>{errorMessage}</p>
+              <p>{suitabilityReportError}</p>
               <AnalysisRetryButton
                 type="button"
-                onClick={() => setAttempt((value) => value + 1)}
+                onClick={() => setReportAttempt((value) => value + 1)}
               >
                 다시 시도
               </AnalysisRetryButton>
             </AnalysisError>
           )}
 
-          {/* 조회 결과가 없으면 보고서 영역에서 빈 분석 상태를 안내합니다. */}
-          {!isLoading && !errorMessage && !analysis && (
+          {/* API가 기준별 설명을 반환하지 않으면 보고서 빈 상태를 표시합니다. */}
+          {!isSuitabilityReportLoading && !suitabilityReportError && reportSections.length === 0 && (
             <AnalysisStatusMessage $compact>
-              등록된 적합도 분석 결과가 없습니다.
+              등록된 적합도 보고서가 없습니다.
             </AnalysisStatusMessage>
           )}
 
-          {/* 대괄호 제목을 인식한 분석 근거는 항목별 보고서로 표시합니다. */}
-          {isAnalysisReady && reportSections.length > 0 && (
+          {/* 스웨거 응답의 기준별 설명을 항목별 보고서로 표시합니다. */}
+          {!isSuitabilityReportLoading && !suitabilityReportError && reportSections.length > 0 && (
             <AnalysisReportList>
               {reportSections.map((section, index) => (
                 <AnalysisReportItem key={`${section.title}-${index}`}>
@@ -322,12 +352,6 @@ function ReportContent({ landId, isReportLocked = false }) {
             </AnalysisReportList>
           )}
 
-          {/* 제목 형식을 인식하지 못하면 서버 원문을 기존 문단 형태로 표시합니다. */}
-          {isAnalysisReady && reportSections.length === 0 && (
-            <AnalysisReportText>
-              {analysis.rationale || "등록된 분석 근거가 없습니다."}
-            </AnalysisReportText>
-          )}
           </AnalysisReportBox>
         )}
       </AnalysisReportSection>

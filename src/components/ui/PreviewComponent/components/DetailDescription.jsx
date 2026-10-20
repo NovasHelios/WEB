@@ -14,6 +14,10 @@ import {
   AnalysisLoadingText,
   AnalysisRetryButton,
   AnalysisStatusMessage,
+  AnalysisReportList,
+  AnalysisReportItem,
+  AnalysisReportItemTitle,
+  AnalysisReportItemText,
   DetailDescriptionBox,
   DetailDescriptionContent,
   DetailDescriptionSection,
@@ -31,7 +35,7 @@ export default function DetailDescription({ landId, description }) {
     useAccount();
   // 인증 토큰이 변경되면 현재 토지의 분석을 다시 요청합니다.
   const token = useAuthToken();
-  // 서버에서 받은 AI 종합 평가 문장입니다.
+  // 서버에서 받은 AI 종합 평가 항목입니다.
   const [rationale, setRationale] = useState("");
   // AI 종합 평가를 요청하고 있는지 나타냅니다.
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +50,12 @@ export default function DetailDescription({ landId, description }) {
   // 유효한 토지 ID가 있을 때만 개발 적합도 분석을 요청합니다.
   const hasLandId =
     landId !== undefined && landId !== null && landId !== "";
+  // 서버 응답을 정해진 순서로 화면용 항목으로 변환합니다.
+  const reportSections = [
+    { title: "유리한 조건", text: rationale?.favorableConditions },
+    { title: "제약 요인", text: rationale?.constraints },
+    { title: "추가 확인 사항", text: rationale?.additionalChecks },
+  ].filter((section) => typeof section.text === "string" && section.text.trim());
   // 계정 권한과 토지 ID 조건을 모두 충족한 경우에만 API를 호출합니다.
   const canLoadAnalysis = canRequestAnalysis && hasLandId;
   // 계정 확인 또는 평가 요청 중에는 동일한 로딩 화면을 표시합니다.
@@ -77,10 +87,7 @@ export default function DetailDescription({ landId, description }) {
         // 컴포넌트가 사라졌거나 다른 토지로 변경됐다면 결과를 반영하지 않습니다.
         if (ignore) return;
 
-        // 문자열 형식의 보고서만 AI 종합 평가로 저장합니다.
-        setRationale(
-          typeof data?.report === "string" ? data.report : ""
-        );
+        setRationale(data || null);
       } catch (error) {
         // 현재 요청이 유효할 때만 오류 메시지를 저장합니다.
         if (!ignore) {
@@ -177,7 +184,7 @@ export default function DetailDescription({ landId, description }) {
             {/* AI 종합 평가를 불러오는 동안 흐려질 본문 자리를 유지합니다. */}
             {canLoadAnalysis && isLoading && (
               <DetailDescriptionText>
-                {rationale || "AI 종합 평가를 준비하고 있습니다."}
+                AI 종합 평가를 준비하고 있습니다.
               </DetailDescriptionText>
             )}
 
@@ -196,9 +203,20 @@ export default function DetailDescription({ landId, description }) {
 
             {/* 조회가 끝나면 서버에서 받은 AI 종합 평가를 표시합니다. */}
             {canLoadAnalysis && !isLoading && !errorMessage && (
-              <DetailDescriptionText>
-                {rationale || "등록된 AI 종합 평가가 없습니다."}
-              </DetailDescriptionText>
+              reportSections.length > 0 ? (
+                <AnalysisReportList>
+                  {reportSections.map((section) => (
+                    <AnalysisReportItem key={section.title}>
+                      <AnalysisReportItemTitle>{section.title}</AnalysisReportItemTitle>
+                      <AnalysisReportItemText>{section.text}</AnalysisReportItemText>
+                    </AnalysisReportItem>
+                  ))}
+                </AnalysisReportList>
+              ) : (
+                <DetailDescriptionText>
+                  {rationale?.report || "등록된 AI 종합 평가가 없습니다."}
+                </DetailDescriptionText>
+              )
             )}
               </AnalysisBlurLayer>
 
