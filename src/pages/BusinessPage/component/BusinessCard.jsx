@@ -15,6 +15,7 @@ import {
   BusinessSpecialty,
   BusinessDetailButton,
 } from "../Business.styled";
+import { resolveProfileImageUrl } from "@/utils/profileImage";
 
 // 서버 상담 시간을 카드에서 사용할 HH:mm 형식으로 정리합니다.
 const formatConsultationTime = (value) => {
@@ -43,9 +44,10 @@ function BusinessCard({ business, onViewDetail, isLoading }) {
     isAvailable,
     consultationStartTime,
     consultationEndTime,
-    profileImage,
+    profileImage: profileImagePath,
     regions,
   } = business;
+  const profileImage = resolveProfileImageUrl(profileImagePath);
 
   // API에 담당자 이름이 없으면 실제 회사명을 사용하고 가상 이름은 만들지 않습니다.
   const displayName = name ? (name.includes("사업가") ? name : `${name} 사업가`) : company || "회사명 미등록";

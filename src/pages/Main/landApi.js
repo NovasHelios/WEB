@@ -64,7 +64,7 @@ export const fetchLandDetail = async (landId) => {
 };
 
 // 필터 조건으로 서버에서 토지 목록을 조회합니다.
-export const fetchFilteredLandList = async (requestBody) => {
+export const fetchFilteredLandList = async (requestBody, { signal } = {}) => {
   // 배포 환경에서도 백엔드 도메인으로 토지 필터 조회 API를 호출합니다.
   const response = await authFetch(Api.LandFilter, {
     method: "POST",
@@ -72,6 +72,8 @@ export const fetchFilteredLandList = async (requestBody) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(requestBody),
+    // 새 지도 조회가 시작되면 이전 네트워크 요청을 중단할 수 있게 합니다.
+    signal,
   });
 
   // 서버 응답을 JSON으로 변환합니다.

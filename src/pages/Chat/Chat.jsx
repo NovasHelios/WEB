@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Client } from "@stomp/stompjs";
-import { LogOut, Paperclip, Search, Send, Map, X } from "lucide-react";
+import { AlertTriangle, LogOut, Paperclip, Search, Send, Map, Trash2, X } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
 // 채팅 데이터를 불러올 때 다른 페이지와 동일한 공통 로딩 화면을 사용합니다.
 import PageLoading from "@/components/ui/PageLoading/PageLoading";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/chatRooms";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
-import { mergeChatMessages } from "@/utils/chatMessages";
+import { mergeChatMessages, parseChatTimestamp } from "@/utils/chatMessages";
 import { readApiResponse } from "@/utils/apiResponse";
 import { getTransactionLabel } from "@/pages/Land/landUtils";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
@@ -25,6 +25,7 @@ import {
   ChatBubble,
   ChatComposer,
   ChatEmpty,
+  ChatErrorNotice,
   ChatInputBox,
   ChatLandHeader,
   ChatLandImage,
@@ -46,6 +47,10 @@ import {
   ChatStatusText,
   ChatTime,
   ChatLeaveButton,
+  ChatConfirmOverlay,
+  ChatConfirmDialog,
+  ChatConfirmIcon,
+  ChatConfirmActions,
 } from "./Chat.styles";
 
 const normalizeBaseUrl = (value) => {
@@ -82,9 +87,15 @@ const resolveLandImageUrl = (path) => {
 const formatTime = (value) => {
   // 메시지 시간을 시안처럼 시:분으로 표시합니다.
   if (!value) return "";
-  const date = new Date(value);
+  const timestamp = parseChatTimestamp(value);
+  const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 };
 
 const formatPrice = (value) => {
@@ -117,6 +128,7 @@ const normalizeMessage = (payload) => {
 
 function ChatSession({ token }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef(null);
   const clientRef = useRef(null);
   const sendingRef = useRef(false);
@@ -125,6 +137,7 @@ function ChatSession({ token }) {
   const selectedRoomIdRef = useRef(null);
   const roomEpochRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -146,6 +159,16 @@ function ChatSession({ token }) {
     () => rooms.find((room) => String(room.roomId) === String(selectedRoomId)) || null,
     [rooms, selectedRoomId],
   );
+
+  useEffect(() => {
+    if (!isLeaveConfirmOpen) return undefined;
+    // 채팅방 삭제 확인은 Escape로 닫을 수 있습니다.
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !isDeleting) setIsLeaveConfirmOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isLeaveConfirmOpen, isDeleting]);
 
   useEffect(() => {
     // 비동기 수신 콜백에서 현재 선택된 방을 정확히 확인합니다.
@@ -228,7 +251,11 @@ function ChatSession({ token }) {
         const nextRooms = filterOpenChatRooms(extractArray(roomsData));
         setMyEmail(profileData?.data?.email || "");
         setRooms(nextRooms);
-        setSelectedRoomId(nextRooms[0]?.roomId || null);
+        const requestedRoom = nextRooms.find((room) =>
+          (location.state?.roomId && String(room.roomId) === String(location.state.roomId))
+          || (location.state?.landId && String(room.landId) === String(location.state.landId))
+        );
+        setSelectedRoomId(requestedRoom?.roomId || nextRooms[0]?.roomId || null);
       } catch (err) {
         setError(err.message || "채팅 목록을 불러오지 못했습니다.");
       } finally {
@@ -238,7 +265,7 @@ function ChatSession({ token }) {
 
     // 채팅 페이지 진입 시 내 채팅방 목록을 조회합니다.
     void fetchInitialData();
-  }, [navigate]);
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const handleChatRoomsChanged = () => {
@@ -402,7 +429,6 @@ function ChatSession({ token }) {
     sendingRef.current = true;
     setIsSending(true);
     setError("");
-    setStatusMessage("메시지를 전송하는 중입니다.");
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
@@ -465,7 +491,6 @@ function ChatSession({ token }) {
   const handleLeaveRoom = async () => {
     // 채팅방 삭제 API를 호출하고 목록에서 즉시 제거합니다.
     if (!selectedRoom || isDeleting) return;
-    if (!(await window.confirm("채팅방과 모든 메시지를 삭제할까요? 삭제 후에는 복구할 수 없습니다."))) return;
     const leavingRoom = selectedRoom;
     setIsDeleting(true);
     setError("");
@@ -485,6 +510,7 @@ function ChatSession({ token }) {
       addClosedChatRoomId(leavingRoom.roomId);
       setRooms((prev) => prev.filter((room) => String(room.roomId) !== String(leavingRoom.roomId)));
       setSelectedRoomId((prev) => String(prev) === String(leavingRoom.roomId) ? null : prev);
+      setIsLeaveConfirmOpen(false);
     } catch (err) {
       if (token === getValidAccessToken()) setError(err.message || "삭제하지 못했습니다. 다시 시도해주세요.");
     } finally {
@@ -568,10 +594,15 @@ function ChatSession({ token }) {
                 ) : null}
               </ChatRoomHeader>
 
-              {error ? <ChatStatusText $error>{error}</ChatStatusText> : null}
               {statusMessage ? <ChatStatusText>{statusMessage}</ChatStatusText> : null}
 
               <ChatMessageArea>
+                {error ? (
+                  <ChatErrorNotice role="alert" aria-live="assertive">
+                    <AlertTriangle size={17} aria-hidden="true" />
+                    <span>{error}</span>
+                  </ChatErrorNotice>
+                ) : null}
                 {!isMessageLoading && messages.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
                 {messages.map((message) => {
                   const mine = message.senderEmail === myEmail;
@@ -657,7 +688,7 @@ function ChatSession({ token }) {
                   <strong>{formatPrice(selectedLand.desiredPrice)}</strong>
                 </ChatLandRow>
               </ChatLandInfo>
-              <ChatLeaveButton type="button" onClick={handleLeaveRoom} disabled={isDeleting}>
+              <ChatLeaveButton type="button" onClick={() => setIsLeaveConfirmOpen(true)} disabled={isDeleting}>
                 <LogOut size={15} />
                 채팅방 삭제
               </ChatLeaveButton>
@@ -669,6 +700,31 @@ function ChatSession({ token }) {
       </ChatShell>
       </PageLoading>
       <Specific land={detailLand} onClose={() => setDetailLand(null)} />
+      {/* 삭제 확인 후에만 서버의 채팅방 삭제 API를 호출합니다. */}
+      {isLeaveConfirmOpen ? (
+        <ChatConfirmOverlay
+          role="presentation"
+          onMouseDown={(event) => {
+            // 삭제 중이 아닐 때 배경을 누르면 확인창을 닫습니다.
+            if (event.target === event.currentTarget && !isDeleting) setIsLeaveConfirmOpen(false);
+          }}
+        >
+          <ChatConfirmDialog role="dialog" aria-modal="true" aria-labelledby="chat-delete-title">
+            <ChatConfirmIcon aria-hidden="true">
+              <Trash2 size={24} />
+            </ChatConfirmIcon>
+            <h2 id="chat-delete-title">채팅방을 삭제하시겠습니까?</h2>
+            <ChatConfirmActions>
+              <button type="button" onClick={() => setIsLeaveConfirmOpen(false)} disabled={isDeleting}>
+                취소
+              </button>
+              <button type="button" onClick={handleLeaveRoom} disabled={isDeleting}>
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </button>
+            </ChatConfirmActions>
+          </ChatConfirmDialog>
+        </ChatConfirmOverlay>
+      ) : null}
     </ChatPage>
   );
 }

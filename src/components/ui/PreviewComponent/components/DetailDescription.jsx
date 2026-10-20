@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAccount } from "@/contexts/AccountContext";
 import useAuthToken from "@/hooks/useAuthToken";
 import { fetchSolarSummaryReport } from "@/pages/Main/landApi";
+import ReportAccessGate from "./ReportAccessGate";
 import {
   AnalysisBlurLayer,
   AnalysisError,
@@ -126,17 +127,16 @@ export default function DetailDescription({ landId, description }) {
           aria-live="polite"
           aria-busy={isEvaluationLoading}
         >
-          {/* 로딩 중에는 기존 평가 영역을 유지한 채 흐리게 표시합니다. */}
-          <AnalysisBlurLayer
-            $loading={isEvaluationLoading}
-            aria-hidden={isEvaluationLoading}
-          >
-            {/* 로그인 전에는 API를 호출하지 않고 로그인 필요 상태를 표시합니다. */}
-            {!isLoggedIn && (
-              <AnalysisStatusMessage $compact>
-                로그인 후 AI 종합 평가를 확인할 수 있습니다.
-              </AnalysisStatusMessage>
-            )}
+          {/* 무료 또는 비로그인 사용자는 실제 평가 대신 공통 잠금 안내를 확인합니다. */}
+          {!isAccountLoading && (!isLoggedIn || user?.plan === "FREE") ? (
+            <ReportAccessGate requiresLogin={!isLoggedIn} compact />
+          ) : (
+            <>
+              {/* 로딩 중에는 기존 평가 영역을 유지한 채 흐리게 표시합니다. */}
+              <AnalysisBlurLayer
+                $loading={isEvaluationLoading}
+                aria-hidden={isEvaluationLoading}
+              >
 
             {/* 로그인 계정 정보를 확인하는 동안 흐려질 안내 문구를 표시합니다. */}
             {isLoggedIn && isAccountLoading && (
@@ -153,13 +153,6 @@ export default function DetailDescription({ landId, description }) {
                   다시 확인
                 </AnalysisRetryButton>
               </AnalysisError>
-            )}
-
-            {/* 무료 플랜에서는 개발 적합도 분석을 요청하지 않습니다. */}
-            {isLoggedIn && !isAccountLoading && user?.plan === "FREE" && (
-              <AnalysisStatusMessage $compact>
-                AI 종합 평가는 유료 플랜에서 제공됩니다.
-              </AnalysisStatusMessage>
             )}
 
             {/* 알 수 없는 플랜은 분석 API를 호출하지 않고 확인 문구를 표시합니다. */}
@@ -207,17 +200,19 @@ export default function DetailDescription({ landId, description }) {
                 {rationale || "등록된 AI 종합 평가가 없습니다."}
               </DetailDescriptionText>
             )}
-          </AnalysisBlurLayer>
+              </AnalysisBlurLayer>
 
-          {/* 계정 또는 평가 데이터를 불러오는 동안 중앙 로딩 애니메이션을 표시합니다. */}
-          {isEvaluationLoading && (
-            <AnalysisLoadingOverlay
-              role="status"
-              aria-label="AI 종합 평가 로딩 중"
-            >
-              <AnalysisLoadingSpinner aria-hidden="true" />
-              <AnalysisLoadingText>로딩 중</AnalysisLoadingText>
-            </AnalysisLoadingOverlay>
+              {/* 계정 또는 평가 데이터를 불러오는 동안 중앙 로딩 애니메이션을 표시합니다. */}
+              {isEvaluationLoading && (
+                <AnalysisLoadingOverlay
+                  role="status"
+                  aria-label="AI 종합 평가 로딩 중"
+                >
+                  <AnalysisLoadingSpinner aria-hidden="true" />
+                  <AnalysisLoadingText>로딩 중</AnalysisLoadingText>
+                </AnalysisLoadingOverlay>
+              )}
+            </>
           )}
         </DetailDescriptionBox>
       </DetailDescriptionSection>

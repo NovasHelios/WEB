@@ -48,7 +48,6 @@ import {
   ThumbImage,
   ThumbRow,
   Title,
-  UnsupportedText,
 } from "./Specific.styled";
 import SpecificMiniMap from "./SpecificMiniMap";
 import {
@@ -64,9 +63,8 @@ import {
   fetchLandDevelopmentAnalysis,
   fetchSolarSummaryReport,
 } from "@/pages/Main/landApi";
-
-// 아직 서버/API 연동이 되지 않은 값에 표시할 공통 문구입니다.
-const UNSUPPORTED_TEXT = "아직 지원하지 않는 기능입니다";
+import { useAccount } from "@/contexts/AccountContext";
+import ReportAccessGate from "@/components/ui/PreviewComponent/components/ReportAccessGate";
 
 // 태양광 적합도 API 필드와 항목별 실제 만점을 연결합니다.
 const SOLAR_ANALYSIS_ITEMS = [
@@ -95,6 +93,13 @@ const hasScoreValue = (value) =>
   String(value).trim() !== "" &&
   Number.isFinite(Number(value));
 
+// 비어 있지 않은 점수 중 하나라도 0점이면 종합 결과를 사업 불가로 구분합니다.
+const hasZeroScore = (analysis) =>
+  Boolean(analysis) &&
+  [analysis.totalScore, ...SOLAR_ANALYSIS_ITEMS.map(({ key }) => analysis[key])].some(
+    (value) => hasScoreValue(value) && Number(value) === 0
+  );
+
 // 항목별 점수를 기존 막대가 사용하는 백분율 값으로 변환합니다.
 const calculateScorePercent = (score, maxScore) => {
   // 만점이 유효하지 않으면 빈 막대를 표시합니다.
@@ -114,15 +119,10 @@ const getTotalScoreColor = (score) => {
   return "#5dde88";
 };
 
-// 상세 API의 평균 경사도를 도 단위 문구로 변환합니다.
-const formatAverageSlope = (value) => {
-  // 0도는 유효하게 표시하고 값이 없거나 숫자가 아니면 대체 문구를 반환합니다.
-  if (value === null || value === undefined || value === "") return "-";
+// 예상 발전 정보의 숫자를 천 단위 구분과 단위가 포함된 문구로 변환합니다.
+const formatExpectedValue = (value, unit) => {
   const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) return "-";
-
-  // 긴 소수는 둘째 자리까지만 표시합니다.
-  return `${numericValue.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}°`;
+  return Number.isFinite(numericValue) ? `${numericValue.toLocaleString("ko-KR")} ${unit}` : "없음";
 };
 
 // 상세보기 팝업 컴포넌트입니다.
@@ -132,6 +132,13 @@ function Specific({ land, onClose }) {
 }
 
 function SpecificContent({ land, onClose }) {
+  // 예상 설비용량과 발전량을 확인할 수 있는 현재 계정 플랜을 가져옵니다.
+  const { isLoggedIn, user } = useAccount();
+  // 예상 정보는 비즈니스 플랜에서만 확인할 수 있습니다.
+  const accountPlan = String(user?.plan || "").toUpperCase();
+  const canViewExpectedInfo = accountPlan === "BUSINESS";
+  // AI 의견은 프로 및 비즈니스 플랜에서 확인할 수 있습니다.
+  const canViewAiOpinion = ["PRO", "BUSINESS"].includes(accountPlan);
   // 상세보기 분석 API에 사용할 토지 ID를 정리합니다.
   const analysisLandId = land?.id ?? land?.landId;
   // 대표 이미지 로딩 실패 시 깨진 이미지 대신 placeholder를 보여줍니다.
@@ -203,8 +210,8 @@ function SpecificContent({ land, onClose }) {
 
   // 상세보기 대상 토지가 바뀌면 새 AI 종합 보고서를 조회합니다.
   useEffect(() => {
-    // 유효한 토지 ID가 없으면 보고서를 요청하지 않습니다.
-    if (analysisLandId === undefined || analysisLandId === null || analysisLandId === "") {
+    // AI 의견 열람 플랜이 아니거나 유효한 토지 ID가 없으면 보고서를 요청하지 않습니다.
+    if (!canViewAiOpinion || analysisLandId === undefined || analysisLandId === null || analysisLandId === "") {
       return undefined;
     }
 
@@ -234,7 +241,7 @@ function SpecificContent({ land, onClose }) {
 
     // 컴포넌트 정리 시 진행 중인 보고서 요청을 취소합니다.
     return () => controller.abort();
-  }, [analysisLandId]);
+  }, [analysisLandId, canViewAiOpinion]);
 
 
   // 선택된 토지가 없으면 팝업을 보여주지 않습니다.
@@ -259,6 +266,8 @@ function SpecificContent({ land, onClose }) {
   const totalScore = normalizeScore(developmentAnalysis?.totalScore, 100);
   // 종합 점수가 비어 있으면 0점 대신 평가 불가 상태로 표시합니다.
   const isTotalScoreAvailable = Boolean(developmentAnalysis) && hasScoreValue(developmentAnalysis?.totalScore);
+  // 유효한 평가 점수에 0점이 포함되면 종합 적합도만 사업 불가로 표시합니다.
+  const isBusinessUnavailable = hasZeroScore(developmentAnalysis);
 
   return (
     // 팝업 뒤 배경을 덮고 블러 처리하는 영역입니다.
@@ -436,11 +445,6 @@ function SpecificContent({ land, onClose }) {
                     <span>도로 접면</span>
                     <strong>{land.regstrSeCodeNm || "-"}</strong>
                   </InfoRow>
-                  {/* 토지 상세 API에서 받은 평균 경사도를 표시합니다. */}
-                  <InfoRow>
-                    <span>경사도 (DEM)</span>
-                    <strong>{formatAverageSlope(land.averageSlope)}</strong>
-                  </InfoRow>
                   <InfoRow>
                     <span>공유 인원</span>
                     <strong>{land.cnrsPsnCo || "-"}</strong>
@@ -454,17 +458,26 @@ function SpecificContent({ land, onClose }) {
 
               <InfoCard>
                 <SectionTitle>예상 정보</SectionTitle>
-
-                <InfoList>
-                  <InfoRow>
-                    <span>설치 용량</span>
-                    <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
-                  </InfoRow>
-                  <InfoRow>
-                    <span>발전량</span>
-                    <UnsupportedText>{UNSUPPORTED_TEXT}</UnsupportedText>
-                  </InfoRow>
-                </InfoList>
+                {canViewExpectedInfo ? (
+                  <InfoList>
+                    <InfoRow>
+                      <span>설치 용량</span>
+                      <strong>{formatExpectedValue(land.installedCapacityKw, "kW")}</strong>
+                    </InfoRow>
+                    <InfoRow>
+                      <span>발전량</span>
+                      <strong>{formatExpectedValue(land.annualGenerationKwh, "kWh")}/년</strong>
+                    </InfoRow>
+                  </InfoList>
+                ) : (
+                  // 무료 또는 비로그인 사용자는 실제 값을 대신해 공통 잠금 안내를 표시합니다.
+                  <ReportAccessGate
+                    requiresLogin={!isLoggedIn}
+                    compact
+                    lockedTitle="예상 정보는 비즈니스 플랜에서 제공돼요"
+                    lockedDescription="예상 설비용량과 발전량은 비즈니스 플랜에서 확인할 수 있어요."
+                  />
+                )}
               </InfoCard>
             </InfoColumn>
 
@@ -477,30 +490,41 @@ function SpecificContent({ land, onClose }) {
                 <SectionTitle>
                   <Bot size={18} strokeWidth={2} />
                   태양광 적합도 분석
-                  <ScoreBadge>
+                  {/* 평가 불가와 사업 불가 배지는 경고 의미가 드러나도록 붉은색으로 표시합니다. */}
+                  <ScoreBadge
+                    $unavailable={
+                      Boolean(developmentAnalysisError) ||
+                      (Boolean(developmentAnalysis) &&
+                        (isBusinessUnavailable || !isTotalScoreAvailable))
+                    }
+                  >
                     {isDevelopmentAnalysisLoading
                       ? "분석 중"
                       : developmentAnalysisError
                         ? "분석 실패"
                         : developmentAnalysis
-                          ? isTotalScoreAvailable
-                            ? `${totalScore}점 / 100점`
-                            : "평가 불가"
+                          ? isBusinessUnavailable
+                            ? "사업 불가"
+                            : isTotalScoreAvailable
+                              ? `${totalScore}점 / 100점`
+                              : "평가 불가"
                           : "분석 결과 없음"}
                   </ScoreBadge>
                 </SectionTitle>
 
                 <AnalysisGrid>
                   <AnalysisItem
-                    $score={isTotalScoreAvailable ? totalScore : 0}
-                    $barColor={isTotalScoreAvailable ? getTotalScoreColor(totalScore) : undefined}
+                    $score={isTotalScoreAvailable && !isBusinessUnavailable ? totalScore : 0}
+                    $barColor={isTotalScoreAvailable && !isBusinessUnavailable ? getTotalScoreColor(totalScore) : undefined}
                   >
                     <span>종합 적합도</span>
                     <strong>
                       {developmentAnalysis
-                        ? isTotalScoreAvailable
-                          ? `${totalScore}점 / 100점`
-                          : "평가 불가"
+                        ? isBusinessUnavailable
+                          ? "사업 불가"
+                          : isTotalScoreAvailable
+                            ? `${totalScore}점 / 100점`
+                            : "평가 불가"
                         : "-점 / 100점"}
                     </strong>
                   </AnalysisItem>
@@ -553,11 +577,16 @@ function SpecificContent({ land, onClose }) {
           {/* 새 AI 종합 보고서 API가 반환한 내용을 표시합니다. */}
           <AiOpinion>
             <SectionTitle>AI 의견</SectionTitle>
-            <p>
-              {isSolarSummaryLoading
-                ? "AI 종합 보고서를 불러오는 중입니다."
-                : solarSummaryReport || solarSummaryError || "등록된 AI 종합 보고서가 없습니다."}
-            </p>
+            {canViewAiOpinion ? (
+              <p>
+                {isSolarSummaryLoading
+                  ? "AI 종합 보고서를 불러오는 중입니다."
+                  : solarSummaryReport || solarSummaryError || "등록된 AI 종합 보고서가 없습니다."}
+              </p>
+            ) : (
+              // 무료 또는 비로그인 사용자는 실제 보고서를 대신해 공통 잠금 안내를 표시합니다.
+              <ReportAccessGate requiresLogin={!isLoggedIn} compact />
+            )}
           </AiOpinion>
         </MainContent>
       </Panel>

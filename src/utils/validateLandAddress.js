@@ -37,21 +37,29 @@ const normalizeRoadAddressText = (value) => {
   return [normalizedRegionName, ...addressParts].join(" ");
 };
 
-// 행정구역 검색 결과를 제외하고 지번·건물 번호가 있는 실제 주소만 허용합니다.
-export function findDetailedLandAddress(
+// 행정구역 검색 결과를 제외하고 지번·건물 번호가 있는 상세 주소 후보를 모두 반환합니다.
+export function searchDetailedLandAddresses(
   address,
-  { requireFullRoadAddress = false } = {}
+  { requireRoadAddress = false } = {}
 ) {
   return new Promise((resolve) => {
     const services = window.kakao?.maps?.services;
-    if (!services?.Geocoder) return resolve(null);
-    // 검색과 표준 주소 비교에 동일하게 사용할 입력 주소를 정리합니다.
+    if (!services?.Geocoder) return resolve([]);
+    // 일부 주소도 검색할 수 있도록 공백만 정리하고 원문 검색어를 유지합니다.
     const normalizedInput = normalizeAddressText(address);
-    const timeout = window.setTimeout(() => resolve(null), 10000);
+    if (!normalizedInput) return resolve([]);
+
+    const timeout = window.setTimeout(() => resolve([]), 10000);
     try {
       new services.Geocoder().addressSearch(normalizedInput, (results, status) => {
         window.clearTimeout(timeout);
-        resolve(status === services.Status.OK && Array.isArray(results) ? results.find((item) => {
+        if (status !== services.Status.OK || !Array.isArray(results)) {
+          resolve([]);
+          return;
+        }
+
+        // 상세 번호가 있고 필요 시 도로명 주소도 존재하는 결과만 선택합니다.
+        const detailedResults = results.filter((item) => {
           // 지번 또는 건물번호가 있는 상세 주소인지 먼저 확인합니다.
           const hasDetailedNumber =
             [item.address?.main_address_no, item.road_address?.main_building_no]
@@ -60,24 +68,59 @@ export function findDetailedLandAddress(
             return false;
           }
 
-          // 엄격 검증이 아니면 기존처럼 상세 지번과 도로명 주소를 모두 허용합니다.
-          if (!requireFullRoadAddress) return true;
+          // 호출부가 요청한 경우에만 전체 도로명 주소가 있는 후보로 제한합니다.
+          return !requireRoadAddress || Boolean(item.road_address?.address_name);
+        });
 
-          // 토지 등록에서는 시·도 표기만 통일한 전체 도로명 주소가 같아야 통과합니다.
-          const fullRoadAddress = normalizeRoadAddressText(
-            item.road_address?.address_name
+        // 같은 도로명 또는 지번 주소가 중복 반환되면 첫 번째 결과만 목록에 남깁니다.
+        const seenAddresses = new Set();
+        resolve(detailedResults.filter((item) => {
+          const candidateAddress = normalizeAddressText(
+            item.road_address?.address_name || item.address?.address_name || item.address_name
           );
-          return Boolean(
-            fullRoadAddress &&
-            normalizeRoadAddressText(normalizedInput) === fullRoadAddress
-          );
-        }) || null : null);
+          if (!candidateAddress || seenAddresses.has(candidateAddress)) return false;
+          seenAddresses.add(candidateAddress);
+          return true;
+        }));
       });
     } catch {
       window.clearTimeout(timeout);
-      resolve(null);
+      resolve([]);
     }
   });
+}
+
+// 검색된 상세 주소 중 입력 조건과 일치하는 한 건을 기존 검증 흐름에 반환합니다.
+export async function findDetailedLandAddress(
+  address,
+  { requireFullRoadAddress = false, requireFullDetailedAddress = false } = {}
+) {
+  // 엄격 검증에서도 도로명 주소가 포함된 후보만 비교합니다.
+  const results = await searchDetailedLandAddresses(address, {
+    requireRoadAddress: requireFullRoadAddress,
+  });
+
+  // 일반 검증은 기존처럼 첫 번째 상세 지번 또는 도로명 주소를 사용합니다.
+  if (!requireFullRoadAddress && !requireFullDetailedAddress) return results[0] || null;
+
+  // 토지 등록에서는 시·도 표기를 통일한 전체 도로명 또는 지번 주소가 같아야 통과합니다.
+  const normalizedInput = normalizeRoadAddressText(address);
+  return results.find((item) => {
+    const fullRoadAddress = normalizeRoadAddressText(
+      item.road_address?.address_name
+    );
+    const fullParcelAddress = normalizeRoadAddressText(
+      item.address?.address_name || item.address_name
+    );
+
+    // 기존 도로명 전용 검증은 유지하고 새 상세 주소 검증에서는 지번도 함께 허용합니다.
+    return requireFullRoadAddress
+      ? Boolean(fullRoadAddress && normalizedInput === fullRoadAddress)
+      : Boolean(
+          normalizedInput &&
+          (normalizedInput === fullRoadAddress || normalizedInput === fullParcelAddress)
+        );
+  }) || null;
 }
 
 // 수정 화면에서는 상세 주소 검색의 성공 여부만 사용합니다.

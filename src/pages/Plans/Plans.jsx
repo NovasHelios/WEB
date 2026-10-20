@@ -35,15 +35,15 @@ const planOptions = [
   {
     id: "PRO", name: "프로 플랜",
     description: "더 많은 정보와 기회를 얻으세요",
-    monthly: "4,900",
-    yearly: "49,000",
+    monthly: "9,900",
+    yearly: "89,000",
     features: ["기본 토지 정보 열람", "자동 조회 정보 열람", "상담 요청 및 채팅", "AI 분석 리포트"],
   },
   {
     id: "BUSINESS", name: "비즈니스 플랜",
     description: "전문적인 분석으로 성공 확률을 높이세요",
     monthly: "14,900",
-    yearly: "149,000",
+    yearly: "119,000",
     features: ["모든 자동 조회 정보 열람", "관심 토지 등록", "상담 요청 및 채팅", "AI 분석 리포트", "태양광 적합도 분석", "예상 발전량 및 수익 분석"],
     featured: true,
   },

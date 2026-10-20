@@ -23,6 +23,7 @@ import {
   BusinessSummaryTitle,
   BusinessVerificationList,
 } from "../Business.styled";
+import { resolveProfileImageUrl } from "@/utils/profileImage";
 
 // 서버의 HH:mm:ss 또는 HH:mm 값을 화면용 HH:mm 형식으로 정리합니다.
 const formatTime = (value) => {
@@ -32,14 +33,14 @@ const formatTime = (value) => {
 
 // 목록 또는 상세 응답에 이미지가 추가되는 경우 사용할 실제 경로를 찾습니다.
 const getProfileImage = (profile) => (
-  profile.profileImageUrl
-  || profile.profileImagePath
-  || profile.profileImage
+  resolveProfileImageUrl(profile.profileImagePath)
+  || resolveProfileImageUrl(profile.profileImageUrl)
+  || resolveProfileImageUrl(profile.profileImage)
   || ""
 );
 
 // 상세 API 응답을 사업자 소개 화면에 배치합니다.
-function BusinessDetail({ profile, onBack }) {
+function BusinessDetail({ profile, onBack, onStartChat }) {
   const [failedImage, setFailedImage] = useState("");
   // 배열이 아닌 응답이 들어와도 상세 화면이 깨지지 않도록 정규화합니다.
   const fields = Array.isArray(profile.mainFields) ? profile.mainFields.filter(Boolean) : [];
@@ -57,6 +58,9 @@ function BusinessDetail({ profile, onBack }) {
   const regionText = profile.nationwideActive
     ? "전국"
     : regions.join(", ") || "활동 지역이 등록되지 않았습니다.";
+  // 채팅 수신이 가능한 BUSINESS 플랜이며 상담이 활성화된 경우만 요청을 허용합니다.
+  const canReceiveChat = String(profile.userPlan || "").toUpperCase() === "BUSINESS"
+    && Boolean(profile.consultationAvailable);
 
   return (
     <BusinessDetailSection aria-label="사업자 상세 정보">
@@ -95,8 +99,10 @@ function BusinessDetail({ profile, onBack }) {
             <div><span>인증 상태</span><strong>{profile.businessVerified ? "완료" : "확인 중"}</strong></div>
           </BusinessSummaryFacts>
 
-          {/* 채팅 API 연결 전까지 화면 동작 없이 상담 연결 명령만 표시합니다. */}
-          <BusinessConsultButton type="button">상담 연결</BusinessConsultButton>
+          {/* 사업자에게 토지 선택 기반 채팅을 시작합니다. */}
+          <BusinessConsultButton type="button" onClick={onStartChat} disabled={!canReceiveChat}>
+            {canReceiveChat ? "사업자와 채팅하기" : "상담 신청 불가"}
+          </BusinessConsultButton>
         </BusinessSummaryCard>
 
         {/* 상세 API가 제공하는 소개·활동·상담·인증 정보를 표시합니다. */}

@@ -59,8 +59,13 @@ const Gate = styled.section`
   a:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 4px; }
 `;
 
-// 비로그인과 무료 플랜의 다음 행동을 서로 다른 문구와 링크로 안내합니다.
-export default function ReportAccessGate({ requiresLogin, compact = false }) {
+// 비로그인과 제한 플랜의 다음 행동을 서로 다른 문구와 링크로 안내합니다.
+export default function ReportAccessGate({
+  requiresLogin,
+  compact = false,
+  lockedTitle = "AI 보고서는 유료 플랜에서 제공돼요",
+  lockedDescription,
+}) {
   return (
     <Gate $compact={compact} aria-label="AI 분석 보고서 이용 안내">
       {/* 공개용 모형이며 실제 분석 결과나 점수를 포함하지 않습니다. */}
@@ -93,11 +98,13 @@ export default function ReportAccessGate({ requiresLogin, compact = false }) {
           <h3>
             {requiresLogin
               ? "로그인 후 확인할 수 있어요"
-              : "AI 보고서는 유료 플랜에서 제공돼요"}
+              : lockedTitle}
           </h3>
           <p>
             {requiresLogin ? (
               "토지의 AI 분석 보고서를 확인하려면 로그인해 주세요. 로그인 후 이용 중인 플랜을 확인합니다."
+            ) : lockedDescription ? (
+              lockedDescription
             ) : (
               <>
                 무료 플랜에서는 AI 분석 보고서를 열람할 수 없어요.

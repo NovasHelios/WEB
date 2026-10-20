@@ -93,6 +93,13 @@ const hasScoreValue = (value) =>
   String(value).trim() !== "" &&
   Number.isFinite(Number(value));
 
+// 비어 있지 않은 점수 중 하나라도 0점이면 종합 결과를 사업 불가로 구분합니다.
+const hasZeroScore = (analysis) =>
+  Boolean(analysis) &&
+  [analysis.totalScore, ...SCORE_ITEMS.map(({ key }) => analysis[key])].some(
+    (value) => hasScoreValue(value) && Number(value) === 0
+  );
+
 // 선택한 토지의 태양광 적합도와 플랜에 맞는 AI 보고서를 표시합니다.
 function ReportContent({ landId, isReportLocked = false }) {
   // 서버에서 받은 개발 적합도 분석 결과입니다.
@@ -172,6 +179,8 @@ function ReportContent({ landId, isReportLocked = false }) {
   const totalScore = normalizeScore(analysis?.totalScore, 100);
   // 종합 점수가 비어 있으면 0점으로 오해하지 않고 평가 불가로 표시합니다.
   const isTotalScoreAvailable = Boolean(analysis) && hasScoreValue(analysis?.totalScore);
+  // 유효한 평가 점수에 0점이 포함되면 종합 적합도만 사업 불가로 표시합니다.
+  const isBusinessUnavailable = hasZeroScore(analysis);
   // 정상 응답이 준비된 뒤에만 점수 바가 실제 값까지 채워지게 합니다.
   const isAnalysisReady = !isLoading && !errorMessage && Boolean(analysis);
   // 서버의 종합 분석 근거를 보고서 항목 목록으로 변환합니다.
@@ -190,8 +199,14 @@ function ReportContent({ landId, isReportLocked = false }) {
           <TotalScoreLabel>종합 적합도</TotalScoreLabel>
           <ScoreGauge
             $score={totalScore}
-            $loaded={isAnalysisReady && isTotalScoreAvailable}
-            aria-label={isTotalScoreAvailable ? `종합 적합도 ${totalScore}점` : "종합 적합도 평가 불가"}
+            $loaded={isAnalysisReady && isTotalScoreAvailable && !isBusinessUnavailable}
+            aria-label={
+              isBusinessUnavailable
+                ? "종합 적합도 사업 불가"
+                : isTotalScoreAvailable
+                  ? `종합 적합도 ${totalScore}점`
+                  : "종합 적합도 평가 불가"
+            }
           >
             {/* 둥근 양 끝과 점수별 색상을 표현하는 반원형 SVG 게이지입니다. */}
             <svg viewBox="0 0 120 64" aria-hidden="true" focusable="false">
@@ -208,9 +223,14 @@ function ReportContent({ landId, isReportLocked = false }) {
                 pathLength="100"
               />
             </svg>
-            <ScoreGaugeValue $unavailable={!isTotalScoreAvailable}>
-              {isTotalScoreAvailable ? totalScore : "평가 불가"}
-              {isTotalScoreAvailable && <small>점</small>}
+            {/* 사업 불가와 평가 불가 상태에서는 숫자 대신 상태 문구를 표시합니다. */}
+            <ScoreGaugeValue $unavailable={!isTotalScoreAvailable || isBusinessUnavailable}>
+              {isBusinessUnavailable
+                ? "사업 불가"
+                : isTotalScoreAvailable
+                  ? totalScore
+                  : "사업불가"}
+              {isTotalScoreAvailable && !isBusinessUnavailable && <small>점</small>}
             </ScoreGaugeValue>
           </ScoreGauge>
         </TotalScoreRow>
@@ -220,8 +240,6 @@ function ReportContent({ landId, isReportLocked = false }) {
           {isLoading
             ? "분석 중"
             : analysis?.disqualified
-              ? "인허가 검토 부적합"
-              : analysis?.grade
                 ? `${analysis.grade} 등급`
                 : "\u00A0"}
         </AnalysisStatus>

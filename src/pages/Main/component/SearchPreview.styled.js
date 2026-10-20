@@ -85,6 +85,9 @@ export const ResultList = styled.div`
 
 // 토지 이미지와 정보를 함께 표시하는 클릭 가능한 카드입니다.
 export const ResultCard = styled.button`
+  /* 화면 밖 카드는 실제로 가까워질 때까지 레이아웃과 페인트 작업을 미룹니다. */
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
   width: 100%;
   padding: 0;
   overflow: hidden;

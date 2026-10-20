@@ -11,7 +11,9 @@ const pageLoadingSpin = keyframes`
 // 로딩 오버레이의 위치 기준과 초기 목록 높이를 확보합니다.
 const PageLoadingFrame = styled.div`
   position: relative;
-  min-height: ${({ $loading }) => ($loading ? "320px" : "0")};
+  /* 전역 로딩에서는 화면 전체, 부분 로딩에서는 기존 최소 높이를 확보합니다. */
+  min-height: ${({ $loading, $fullScreen }) =>
+    $fullScreen ? "100dvh" : $loading ? "320px" : "0"};
 `;
 
 // 데이터를 불러오는 동안 기존 페이지 내용을 흐리게 표시합니다.
@@ -57,9 +59,14 @@ const PageLoadingText = styled.strong`
 `;
 
 // 페이지의 기존 내용을 유지하면서 공통 로딩 애니메이션을 표시합니다.
-export default function PageLoading({ isLoading, children }) {
+export default function PageLoading({ isLoading, children, fullScreen = false }) {
   return (
-    <PageLoadingFrame $loading={isLoading} aria-busy={isLoading}>
+    // 전역 여부에 맞는 높이를 확보한 뒤 기존 로딩 애니메이션을 재사용합니다.
+    <PageLoadingFrame
+      $loading={isLoading}
+      $fullScreen={fullScreen}
+      aria-busy={isLoading}
+    >
       {/* 로딩 중에는 목록을 유지한 채 흐리게 처리하고 입력을 막습니다. */}
       <PageLoadingContent $loading={isLoading} aria-hidden={isLoading}>
         {children}

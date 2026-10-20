@@ -279,6 +279,7 @@ export const BusinessConsultButton = styled.button`
 
   &:hover { background: #c79b0d; }
   &:focus-visible { outline: 2px solid #8c6800; outline-offset: 3px; }
+  &:disabled { background: #dedbd5; color: #777168; cursor: not-allowed; }
 `;
 
 // 상세 소개 항목을 담는 오른쪽 정보 카드입니다.
