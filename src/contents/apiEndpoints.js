@@ -32,6 +32,7 @@ export const Api = {
   MyPlan: `${BASE}/api/users/me/plan`, // GET/PATCH 내 플랜
   MyProfileImage: `${BASE}/api/users/me/image`, // PATCH 프로필 이미지
   BusinessProfile: `${BASE}/api/business/profile`, // GET/PUT 내 사업자 프로필
+  BusinessProfileLicense: `${BASE}/api/business/profile/license`, // PATCH 사업자등록증 업로드
   BusinessProfiles: `${BASE}/api/business/profiles`, // GET 사업자 목록
   BusinessProfileDetail: (id) => `${BASE}/api/business/profiles/${encodeURIComponent(id)}`, // GET 사업자 상세
 

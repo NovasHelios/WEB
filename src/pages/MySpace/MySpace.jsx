@@ -10,7 +10,7 @@ import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
 import { validateLandAddress } from "@/utils/validateLandAddress";
 import AreaValue from "@/components/ui/AreaValue";
 import { ListPageDivider } from "@/styles/listPage";
-import { formatLandDate, landTimestamp, compareNullableNumbers } from "@/utils/landList";
+import { formatLandDate, landTimestamp } from "@/utils/landList";
 import { withRequestTimeout, forEachConcurrent } from "@/utils/asyncRequests";
 import { readApiResponse } from "@/utils/apiResponse";
 import { mergeLandImages } from "@/utils/landImages";
@@ -64,6 +64,8 @@ import {
   SpaceModalSelect,
   SpaceModalTextarea,
   SpacePage,
+  SpacePagination,
+  SpacePageButton,
   SpaceSortBar,
   SpaceStatText,
   SpaceTitle,
@@ -85,6 +87,13 @@ const normalizeBaseUrl = (value) => {
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
 const LOCAL_REGISTERED_AT_KEY = "helios-land-registered-at";
+const MY_LANDS_PAGE_SIZE = 20;
+const MY_LANDS_SORT_CODES = {
+  "최근 등록순": "n",
+  "오래된 등록순": "o",
+  "가격 높은 순": "pd",
+  "가격 낮은 순": "pa",
+};
 
 const resolveImageUrl = (path, revision) => {
   if (!path) return "";
@@ -321,7 +330,9 @@ function MySpace() {
   const searchKeyword = (searchParams.get("keyword") || "").trim().toLowerCase();
   const [keyword, setKeyword] = useState(() => searchParams.get("keyword") || "");
   const [activeSort, setActiveSort] = useState("최근 등록순");
+  const [currentPage, setCurrentPage] = useState(1);
   const [lands, setLands] = useState([]);
+  const [pageInfo, setPageInfo] = useState({ totalElements: 0, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [editingLand, setEditingLand] = useState(null);
@@ -372,12 +383,26 @@ function MySpace() {
 
     try {
       const data = await withRequestTimeout(async (requestSignal) => {
-        const response = await authFetch(Api.MyLands, { signal: requestSignal });
+        const params = new URLSearchParams({
+          page: String(currentPage - 1),
+          sort: MY_LANDS_SORT_CODES[activeSort] || "n",
+        });
+        const response = await authFetch(`${Api.MyLands}?${params}`, { signal: requestSignal });
         return readApiResponse(response, "내 토지 목록을 불러오지 못했습니다.");
       }, signal);
       if (signal?.aborted) return;
-      const list = extractArray(data);
-      // 전체 목록은 먼저 표시하고 누락된 정보만 도착하는 순서대로 보완합니다.
+      const pageData = data?.data ?? data;
+      const list = extractArray(pageData);
+      const totalElements = Number(pageData?.totalElements);
+      const totalPages = Number(pageData?.totalPages);
+      // 서버 페이지 메타데이터를 사용하고, 누락된 경우 현재 응답 건수로 안전하게 대체합니다.
+      setPageInfo({
+        totalElements: Number.isFinite(totalElements) ? totalElements : list.length,
+        totalPages: Number.isFinite(totalPages) && totalPages > 0
+          ? totalPages
+          : Math.max(1, Math.ceil(list.length / MY_LANDS_PAGE_SIZE)),
+      });
+      // 현재 페이지 목록만 먼저 표시하고 누락된 정보만 도착하는 순서대로 보완합니다.
       setLands(list.map(normalizeLand));
       setIsLoading(false);
       await forEachConcurrent(list, async (land, index) => {
@@ -407,44 +432,28 @@ function MySpace() {
       if (signal?.aborted) return;
       setError(err.name === "AbortError" ? "목록 조회 시간이 초과됐습니다. 새로고침 후 다시 시도해주세요." : err.message || "내 토지 목록을 불러오지 못했습니다.");
       setLands([]);
+      setPageInfo({ totalElements: 0, totalPages: 1 });
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [navigate]);
+  }, [activeSort, currentPage, navigate]);
 
   useEffect(() => {
     const controller = new AbortController();
-    // 내 공간 페이지 진입 시 내가 등록한 토지를 조회합니다.
+    // 페이지 또는 정렬이 바뀌면 서버에 해당 내 토지 목록을 조회합니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchMyLands(controller.signal);
     return () => controller.abort();
   }, [fetchMyLands]);
 
-  const sortedLands = useMemo(() => {
-    // 상태 필터 제거 후 전체 토지를 기준으로 정렬합니다.
-    // URL 검색어를 실제 주소 목록에 적용한 뒤 정렬합니다.
-    const next = lands.filter((land) => !searchKeyword || String(land.title || "").toLowerCase().includes(searchKeyword));
-
-    if (activeSort === "최근 등록순") {
-      return next.sort((a, b) => compareNullableNumbers(a.registeredAt, b.registeredAt, true));
-    }
-
-    if (activeSort === "오래된 등록순") {
-      return next.sort((a, b) => compareNullableNumbers(a.registeredAt, b.registeredAt));
-    }
-
-    if (activeSort === "가격 높은 순") {
-      return next.sort((a, b) => compareNullableNumbers(a.rawPrice, b.rawPrice, true));
-    }
-
-    if (activeSort === "가격 낮은 순") {
-      return next.sort((a, b) => compareNullableNumbers(a.rawPrice, b.rawPrice));
-    }
-
-    return next;
-  }, [activeSort, lands, searchKeyword]);
-
-  const totalCount = useMemo(() => lands.length, [lands]);
+  const sortedLands = useMemo(
+    () => lands.filter((land) => !searchKeyword || String(land.title || "").toLowerCase().includes(searchKeyword)),
+    [lands, searchKeyword],
+  );
+  const totalCount = pageInfo.totalElements;
+  const totalPages = Math.max(1, pageInfo.totalPages);
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageLands = sortedLands;
   // 선택한 토지의 등록 이미지를 이미지 관리 팝업용 URL 목록으로 변환합니다.
   const editImageUrls = useMemo(() => {
     if (!editingLand) return [];
@@ -742,7 +751,14 @@ function MySpace() {
         throw new Error(data?.message || data?.data?.message || "토지를 삭제하지 못했습니다.");
       }
 
+      if (lands.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => Math.max(1, page - 1));
+      }
       setLands((prev) => prev.filter((item) => item.id !== land.id));
+      setPageInfo((prev) => ({
+        ...prev,
+        totalElements: Math.max(0, prev.totalElements - 1),
+      }));
       setLandPendingDelete(null);
     } catch (err) {
       setError(err.message || "토지를 삭제하지 못했습니다.");
@@ -787,7 +803,10 @@ function MySpace() {
           onToggleSidebar={() => {}}
           keyword={keyword}
           onChangeKeyword={setKeyword}
-          onSearch={() => setSearchParams(keyword.trim() ? { keyword: keyword.trim() } : {})}
+                onSearch={() => {
+                  setCurrentPage(1);
+                  setSearchParams(keyword.trim() ? { keyword: keyword.trim() } : {});
+                }}
           isSuggestionOpen={false}
           regionSuggestions={[]}
         />
@@ -824,7 +843,7 @@ function MySpace() {
               <SpaceToolbar>
                 <SpaceSortBar>
                   <SpaceStatText>
-                    <strong>{searchKeyword ? "검색 결과" : "총"} {sortedLands.length}건</strong>
+                    <strong>{searchKeyword ? "현재 페이지 검색 결과" : "총"} {searchKeyword ? sortedLands.length : totalCount}건</strong>
                   </SpaceStatText>
                   {/* 정렬 선택 */}
                   <SpaceFilterButton
@@ -833,6 +852,7 @@ function MySpace() {
                     onClick={() => {
                       // 정렬 버튼을 누를 때 등록일과 가격 기준을 순서대로 전환합니다.
                       const sortOptions = ["최근 등록순", "오래된 등록순", "가격 높은 순", "가격 낮은 순"];
+                      setCurrentPage(1);
                       setActiveSort((prev) => sortOptions[(sortOptions.indexOf(prev) + 1) % sortOptions.length]);
                     }}
                   >
@@ -853,7 +873,7 @@ function MySpace() {
                 {!isLoading && !error && sortedLands.length === 0 ? (
                   <p role="status">{searchKeyword ? "검색 결과가 없습니다." : "등록한 토지가 없습니다."}</p>
                 ) : null}
-                {sortedLands.map((item) => (
+                {pageLands.map((item) => (
                 <SpaceCard key={item.id}>
                   <SpaceCardRow>
                     <SpaceCardImage $accent={item.accent}>
@@ -941,6 +961,32 @@ function MySpace() {
                 </SpaceCard>
                 ))}
               </SpaceContainer>
+              {totalPages > 1 ? (
+                <SpacePagination aria-label="내 토지 페이지 이동">
+                  <SpacePageButton
+                    type="button"
+                    onClick={() => setCurrentPage(safeCurrentPage - 1)}
+                    disabled={safeCurrentPage === 1}
+                    aria-label="이전 페이지"
+                  >이전</SpacePageButton>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <SpacePageButton
+                      key={page}
+                      type="button"
+                      $active={page === safeCurrentPage}
+                      aria-current={page === safeCurrentPage ? "page" : undefined}
+                      aria-label={`${page}페이지`}
+                      onClick={() => setCurrentPage(page)}
+                    >{page}</SpacePageButton>
+                  ))}
+                  <SpacePageButton
+                    type="button"
+                    onClick={() => setCurrentPage(safeCurrentPage + 1)}
+                    disabled={safeCurrentPage === totalPages}
+                    aria-label="다음 페이지"
+                  >다음</SpacePageButton>
+                </SpacePagination>
+              ) : null}
             </PageLoading>
           </SpaceInner>
         </SpacePage>

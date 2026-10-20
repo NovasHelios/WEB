@@ -20,6 +20,43 @@ const FILTERS = [
   { label: "사업 희망", value: "BUSINESS_HOPE" },
 ];
 
+// 내 토지 목록의 모든 페이지를 조회해 상담 선택 목록에서 누락되지 않게 합니다.
+const fetchAllMyLands = async (signal) => {
+  const allLands = new Map();
+  const pageSignatures = new Set();
+  let page = 0;
+
+  while (true) {
+    const params = new URLSearchParams({ page: String(page), sort: "n" });
+    const response = await authFetch(`${Api.MyLands}?${params.toString()}`, { signal });
+    const payload = await readApiResponse(response, "등록한 토지 목록을 불러오지 못했습니다.");
+    const pageData = payload?.data ?? payload;
+    const pageLands = extractLandArray(payload);
+    const isPagedResponse = Array.isArray(pageData?.content);
+    const pageItems = pageLands
+      .filter((land) => land.id ?? land.landId)
+      .map((land) => ({ ...land, id: land.id ?? land.landId, address: land.address || "주소 정보 없음" }));
+
+    // 서버가 같은 페이지를 반복 반환하면 중복 요청을 멈춥니다.
+    const signature = pageItems.map((land) => String(land.id)).join(",");
+    if (signature && pageSignatures.has(signature)) break;
+    if (signature) pageSignatures.add(signature);
+    pageItems.forEach((land) => allLands.set(String(land.id), land));
+
+    if (!isPagedResponse || pageItems.length === 0) break;
+    const totalPages = Number(pageData.totalPages);
+    const hasNext = typeof pageData.hasNext === "boolean"
+      ? pageData.hasNext
+      : Number.isFinite(totalPages)
+        ? page + 1 < totalPages
+        : pageItems.length >= 20;
+    if (!hasNext) break;
+    page += 1;
+  }
+
+  return Array.from(allLands.values());
+};
+
 // 내 토지를 골라 사업자와 상담을 시작하는 선택 창입니다.
 export default function LandSelectionModal({ business, onClose, onCreated }) {
   const [lands, setLands] = useState([]);
@@ -34,24 +71,18 @@ export default function LandSelectionModal({ business, onClose, onCreated }) {
   useEffect(() => {
     // 창을 열 때 로그인 사용자의 토지 목록을 불러옵니다.
     let cancelled = false;
+    const controller = new AbortController();
     void (async () => {
       try {
-        const response = await authFetch(Api.MyLands);
-        const payload = await readApiResponse(response, "등록한 토지 목록을 불러오지 못했습니다.");
-        if (!cancelled) setLands(extractLandArray(payload)
-          .filter((land) => land.id ?? land.landId)
-          .map((land) => ({
-            ...land,
-            id: land.id ?? land.landId,
-            address: land.address || "주소 정보 없음",
-          })));
+        const result = await fetchAllMyLands(controller.signal);
+        if (!cancelled) setLands(result);
       } catch (err) {
-        if (!cancelled) setError(err.message || "등록한 토지 목록을 불러오지 못했습니다.");
+        if (!cancelled && err.name !== "AbortError") setError(err.message || "등록한 토지 목록을 불러오지 못했습니다.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, []);
 
   useEffect(() => {
