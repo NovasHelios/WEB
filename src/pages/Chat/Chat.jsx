@@ -429,7 +429,6 @@ function ChatSession({ token }) {
     sendingRef.current = true;
     setIsSending(true);
     setError("");
-    setStatusMessage("메시지를 전송하는 중입니다.");
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {

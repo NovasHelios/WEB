@@ -44,6 +44,7 @@ const formatTransactionType = (value) => {
     LEASE: "임대",
     MONTHLY_RENT: "월세",
     SHORT_TERM: "단기임대",
+    BUSINESS_HOPE: "사업희망",
   };
 
   // 등록된 변환값이 없으면 서버 값을 그대로 사용합니다.

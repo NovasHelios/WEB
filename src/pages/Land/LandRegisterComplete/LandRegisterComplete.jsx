@@ -10,6 +10,7 @@ import {
 import NavBar from "@/components/layout/box/NavBar";
 import { RegisterStaticMap, useRequireLogin } from "../shared";
 import { useLandRegister } from "@/contexts/LandRegisterContext";
+import { formatExactKoreanMoneyFromManwon } from "@/utils/priceFormat";
 import {
   CompleteCardBody,
   CompleteCardButton,
@@ -78,8 +79,9 @@ const formatRegisteredPrice = (value, transactionType) => {
   const numeric = Number(String(value || "").replace(/[^\d]/g, ""));
   if (!numeric || Number.isNaN(numeric)) return "-";
 
-  const formatted = numeric.toLocaleString("ko-KR");
-  return transactionType === "rent" ? `월 ${formatted}만원` : `${formatted}만원`;
+  // 입력된 만원 단위 값을 원 단위로 환산해 억과 만원 단위로 표시합니다.
+  const formatted = formatExactKoreanMoneyFromManwon(numeric * 10000);
+  return transactionType === "rent" ? `월 ${formatted}` : formatted;
 };
 
 function LandRegisterComplete() {
