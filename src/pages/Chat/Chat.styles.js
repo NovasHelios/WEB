@@ -124,9 +124,12 @@ export const ChatEmpty = styled.div`
   justify-content: center;
   height: 100%;
   min-height: 240px;
-  color: #111111;
-  font-size: var(--font-xl);
+  padding: ${({ $compact }) => ($compact ? "20px 16px" : "24px")};
+  color: #6f685e;
+  font-size: ${({ $compact }) => ($compact ? "var(--font-sm)" : "var(--font-lg)")};
   font-weight: var(--font-medium);
+  line-height: 1.6;
+  text-align: center;
 `;
 
 // 중앙 채팅 영역입니다.

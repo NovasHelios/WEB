@@ -546,7 +546,11 @@ function ChatSession({ token }) {
           </ChatListHeader>
 
           <ChatRoomList>
-            {!isLoading && filteredRooms.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
+            {!isLoading && filteredRooms.length === 0 ? (
+              <ChatEmpty $compact>
+                {rooms.length ? "검색 결과가 없습니다." : "아직 채팅방이 없습니다."}
+              </ChatEmpty>
+            ) : null}
             {filteredRooms.map((room) => (
               <ChatRoomItem
                 key={room.roomId}
@@ -567,7 +571,11 @@ function ChatSession({ token }) {
 
         <ChatMain>
           {!selectedRoom ? (
-            <ChatEmpty>찾을 수 없습니다</ChatEmpty>
+            <ChatEmpty>
+              {rooms.length
+                ? "대화를 선택하면 여기서 확인할 수 있어요."
+                : "채팅방이 생기면 대화가 여기에 표시돼요."}
+            </ChatEmpty>
           ) : (
             <>
               <ChatRoomHeader>
@@ -603,7 +611,7 @@ function ChatSession({ token }) {
                     <span>{error}</span>
                   </ChatErrorNotice>
                 ) : null}
-                {!isMessageLoading && messages.length === 0 ? <ChatEmpty>찾을 수 없습니다</ChatEmpty> : null}
+                {!isMessageLoading && messages.length === 0 ? <ChatEmpty>아직 메시지가 없습니다. 첫 메시지를 보내보세요.</ChatEmpty> : null}
                 {messages.map((message) => {
                   const mine = message.senderEmail === myEmail;
                   const attachmentUrl = resolveFileUrl(message.attachmentUrl);
@@ -657,7 +665,7 @@ function ChatSession({ token }) {
           )}
         </ChatMain>
 
-        {isLandPanelOpen ? <ChatLandPanel>
+        {selectedRoom && selectedLand && isLandPanelOpen ? <ChatLandPanel>
           <ChatLandHeader>
             <h2>토지 정보</h2>
             <ChatLandCloseButton
@@ -669,8 +677,7 @@ function ChatSession({ token }) {
             </ChatLandCloseButton>
           </ChatLandHeader>
 
-          {selectedLand ? (
-            <>
+          <>
               <ChatLandImage $image={resolveLandImageUrl(selectedLand.landImagePaths?.[0])} />
               <ChatLandInfo>
                 <h3>{selectedLand.address || selectedRoom?.landAddress || "-"}</h3>
@@ -692,10 +699,7 @@ function ChatSession({ token }) {
                 <LogOut size={15} />
                 채팅방 삭제
               </ChatLeaveButton>
-            </>
-          ) : (
-            <ChatEmpty>찾을 수 없습니다</ChatEmpty>
-          )}
+          </>
         </ChatLandPanel> : null}
       </ChatShell>
       </PageLoading>
