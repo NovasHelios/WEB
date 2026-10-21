@@ -20,7 +20,7 @@ const FILTERS = [
   { label: "사업 희망", value: "BUSINESS_HOPE" },
 ];
 
-// 내 토지 목록의 모든 페이지를 조회해 상담 선택 목록에서 누락되지 않게 합니다.
+// 사업자 상담이 가능한 내 토지 목록의 모든 페이지를 조회합니다.
 const fetchAllMyLands = async (signal) => {
   const allLands = new Map();
   const pageSignatures = new Set();
@@ -28,7 +28,7 @@ const fetchAllMyLands = async (signal) => {
 
   while (true) {
     const params = new URLSearchParams({ page: String(page), sort: "n" });
-    const response = await authFetch(`${Api.MyLands}?${params.toString()}`, { signal });
+    const response = await authFetch(`${Api.EligibleMyLands}?${params.toString()}`, { signal });
     const payload = await readApiResponse(response, "등록한 토지 목록을 불러오지 못했습니다.");
     const pageData = payload?.data ?? payload;
     const pageLands = extractLandArray(payload);

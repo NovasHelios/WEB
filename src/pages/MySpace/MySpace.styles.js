@@ -294,6 +294,13 @@ export const SpaceInfoRow = styled.div`
   }
 `;
 
+// 적합도 버튼을 거래 방식과 희망 가격 정보 블록의 높이에 맞춥니다.
+export const SpaceSuitabilityAction = styled.div`
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+`;
+
 export const SpaceCardFooter = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -319,6 +326,107 @@ export const SpaceActionColumn = styled.div`
   }
 `;
 
+// 하단 정보 행에서 전체 분석 팝업을 여는 점수 버튼입니다.
+export const SpaceSuitabilityScore = styled.button`
+  display: flex;
+  width: 100%;
+  max-width: 170px;
+  min-height: 44px;
+  margin: 0;
+  padding: 7px 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  /* 다른 카드 액션 버튼과 동일한 진한 테두리를 적용합니다. */
+  border: 1px solid #a87a00;
+  border-radius: 2px;
+  background: #fffaf1;
+  cursor: pointer;
+
+  span {
+    color: #7b7365;
+    /* 다른 카드 액션 버튼과 같은 글자 크기를 사용합니다. */
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
+  }
+
+  strong {
+    color: #9a7400;
+    /* 점수 문구도 버튼 글자 크기와 동일하게 맞춥니다. */
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
+  }
+
+  &:hover { border-color: #a87a00; background: #fff6df; }
+  &:focus-visible { outline: 2px solid #8a6800; outline-offset: 2px; }
+`;
+
+// 적합도 분석 팝업을 화면 중앙에 표시하는 배경 레이어입니다.
+export const SpaceSuitabilityOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(31, 28, 23, 0.5);
+  box-sizing: border-box;
+`;
+
+// 두 분석 영역을 담고 내용이 길어지면 내부에서 스크롤되는 팝업입니다.
+export const SpaceSuitabilityDialog = styled.section`
+  width: min(1200px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid #e1cfaa;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(37, 29, 14, 0.28);
+
+  @media (max-width: 760px) {
+    max-height: calc(100vh - 24px);
+  }
+`;
+
+// 팝업 제목과 닫기 버튼을 스크롤 중에도 상단에서 확인할 수 있게 합니다.
+export const SpaceSuitabilityHeader = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #eadfc8;
+  background: #ffffff;
+
+  h2 {
+    margin: 0;
+    color: #1f1c17;
+    font-size: var(--font-xl);
+    font-weight: var(--font-bold);
+  }
+
+  button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #655f55;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  button:hover { background: #f7f2e9; }
+  button:focus-visible { outline: 2px solid #8a6800; outline-offset: 2px; }
+`;
+
 export const SpaceActionButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -326,13 +434,213 @@ export const SpaceActionButton = styled.button`
   gap: 6px;
   min-width: 130px;
   height: 36px;
-  border: 1px solid ${(props) => (props.$danger ? "#d5bfa0" : props.$secondary ? "#d5bfa0" : "#a87a00")};
+  /* 등록·수정·삭제 버튼도 상세보기 버튼과 같은 테두리 색을 사용합니다. */
+  border: 1px solid #a87a00;
   border-radius: 2px;
-  background: ${(props) => (props.$danger ? "#f7f2e9" : props.$secondary ? "#fffaf1" : "#fffdf5")};
-  color: ${(props) => (props.$danger ? "#8f7a58" : "#8a6800")};
+  background: ${(props) => (props.$register ? "#d9aa1f" : props.$danger ? "#f7f2e9" : props.$secondary ? "#fffaf1" : "#fffdf5")};
+  color: ${(props) => (props.$register ? "#1f1c17" : props.$danger ? "#8f7a58" : "#8a6800")};
   font-size: var(--font-sm);
   font-weight: var(--font-bold);
   cursor: pointer;
+
+  /* 백엔드 등록 기능이 준비되기 전에도 버튼 형태와 배치는 확인할 수 있게 유지합니다. */
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+`;
+
+// 토지 게시 결제 팝업을 화면 중앙에 표시하는 배경입니다.
+export const SpacePaymentOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 115;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(31, 28, 23, 0.56);
+  box-sizing: border-box;
+`;
+
+// 주문 상품부터 결제 동의까지 담는 실제 결제 형태의 팝업입니다.
+export const SpacePaymentDialog = styled.section`
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid #d7c49a;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #25211b;
+  box-shadow: 0 28px 80px rgba(31, 24, 12, 0.3);
+  box-sizing: border-box;
+`;
+
+// 결제 목적과 닫기 버튼을 팝업 상단에 배치합니다.
+export const SpacePaymentHeader = styled.header`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  > div > span { color: #9a7400; font-size: var(--font-xs); font-weight: var(--font-bold); }
+  h2 { margin: 6px 0 0; font-size: var(--font-xl); font-weight: var(--font-bold); }
+  p { margin: 8px 0 0; color: #756d61; font-size: var(--font-sm); line-height: 1.55; }
+
+  > button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #655f55;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  > button:hover { background: #f4f1eb; }
+`;
+
+// 결제 대상 토지 주소를 한눈에 확인하는 상품 영역입니다.
+export const SpacePaymentProduct = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #e4ded2;
+  border-radius: 7px;
+  background: #faf9f7;
+
+  > div { min-width: 0; }
+  > div span { display: block; color: #81796d; font-size: var(--font-xs); }
+  > div strong { display: block; margin-top: 5px; overflow-wrap: anywhere; font-size: var(--font-md); }
+`;
+
+// 토지를 게시했을 때 얻는 주요 이점을 짧은 체크 목록으로 표시합니다.
+export const SpacePaymentBenefits = styled.section`
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #e6dfd2;
+  border-radius: 7px;
+  background: #fffdf8;
+
+  h3 { margin: 0; font-size: var(--font-md); font-weight: var(--font-bold); }
+  ul { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; }
+  li { display: flex; align-items: flex-start; gap: 8px; color: #5f584d; font-size: var(--font-sm); line-height: 1.45; }
+  li svg { flex: 0 0 auto; margin-top: 2px; color: #9a7400; stroke-width: 2.5; }
+`;
+
+// 주문 상세 없이 최종 결제 금액만 표시하는 요약입니다.
+export const SpacePaymentSummary = styled.section`
+  margin-top: 22px;
+`;
+
+// 주문 요약의 항목명과 금액을 양 끝에 배치합니다.
+export const SpacePaymentRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: ${({ $total }) => ($total ? "16px 0 0" : "10px 0 16px")};
+  border-top: ${({ $total }) => ($total ? "1px solid #d8c9aa" : "0")};
+  color: ${({ $total }) => ($total ? "#1f1c17" : "#6f685d")};
+  font-size: ${({ $total }) => ($total ? "var(--font-md)" : "var(--font-sm)")};
+
+  strong {
+    color: ${({ $total }) => ($total ? "#9a7400" : "#2f2a23")};
+    font-size: ${({ $total }) => ($total ? "var(--font-xl)" : "var(--font-md)")};
+    font-weight: var(--font-bold);
+  }
+`;
+
+// 카드와 간편결제를 두 개의 선택 버튼으로 표시합니다.
+export const SpacePaymentMethodGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 9px;
+`;
+
+// 선택한 결제 수단을 진한 테두리와 배경으로 구분합니다.
+export const SpacePaymentMethodButton = styled.button`
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid ${({ $active }) => ($active ? "#9a7400" : "#d9d3c8")};
+  border-radius: 6px;
+  background: ${({ $active }) => ($active ? "#fff7dc" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#6f5300" : "#514b42")};
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+`;
+
+// 사용자가 결제 내용에 동의했는지 확인하는 필수 체크 영역입니다.
+export const SpacePaymentAgreement = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  color: #514b42;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  cursor: pointer;
+
+  input { width: 17px; height: 17px; margin: 2px 0 0; accent-color: #9a7400; }
+`;
+
+// 결제 정보 처리 안내를 과도하게 강조하지 않고 표시합니다.
+export const SpacePaymentSecurity = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 14px 0 0;
+  color: #777066;
+  font-size: var(--font-xs);
+`;
+
+// 취소와 결제 명령을 팝업 하단에 나란히 배치합니다.
+export const SpacePaymentActions = styled.footer`
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 24px;
+`;
+
+// 결제 팝업을 닫는 보조 버튼입니다.
+export const SpacePaymentCancelButton = styled.button`
+  height: 48px;
+  border: 1px solid #d7d0c4;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #514b42;
+  font: inherit;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+`;
+
+// 선택한 토지의 4,900원 결제를 완료하는 기본 버튼입니다.
+export const SpacePaymentSubmitButton = styled.button`
+  height: 48px;
+  border: 1px solid #9a7400;
+  border-radius: 6px;
+  background: #d9aa1f;
+  color: #211c0f;
+  font: inherit;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+
+  &:disabled { border-color: #d8d1c4; background: #e7e3dc; color: #9a9389; cursor: not-allowed; }
 `;
 
 export const SpaceModalOverlay = styled.div`

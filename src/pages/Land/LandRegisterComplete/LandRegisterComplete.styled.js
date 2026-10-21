@@ -165,6 +165,24 @@ export const CompleteSection = styled.section`
   align-items: center;
 `;
 
+// 생성된 인허가 적합도와 AI 분석 보고서를 표시하는 결과 영역입니다.
+export const CompleteAnalysisSection = styled.section`
+  width: 100%;
+  min-width: 0;
+  margin: 20px 0 28px;
+`;
+
+// 등록 응답에서 토지 ID를 확인할 수 없을 때 표시하는 안내 문구입니다.
+export const CompleteAnalysisMessage = styled.p`
+  margin: 0;
+  padding: 48px 24px;
+  border: 1px solid #e6d8ac;
+  border-radius: 8px;
+  color: #b42318;
+  font-size: var(--font-md);
+  text-align: center;
+`;
+
 export const CompleteHero = styled.div`
   display: flex;
   flex-direction: column;
@@ -271,6 +289,11 @@ export const CompleteSummaryWrap = styled.div`
   align-items: stretch;
   gap: 28px;
   flex-wrap: wrap;
+
+  /* 태블릿 이하에서는 지도와 상세 정보를 위아래로 배치합니다. */
+  @media (max-width: 760px) {
+    flex-direction: column;
+  }
 `;
 
 export const CompleteCardImage = styled.div`
@@ -278,6 +301,12 @@ export const CompleteCardImage = styled.div`
   flex-direction: column;
   gap: 16px;
   flex: 0 0 296px;
+
+  /* 좁은 화면에서는 지도 영역이 컨테이너 너비를 사용합니다. */
+  @media (max-width: 760px) {
+    flex-basis: auto;
+    width: 100%;
+  }
 `;
 
 export const CompleteCardImageFrame = styled.div`
@@ -366,6 +395,13 @@ export const CompleteCardInfo = styled.div`
   gap: 44px 112px;
   padding: 8px 0 0;
   box-sizing: border-box;
+
+  /* 모바일에서는 상세 정보 항목을 한 열로 정렬합니다. */
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
 `;
 
 export const CompleteCardInfoItem = styled.div`
@@ -373,6 +409,9 @@ export const CompleteCardInfoItem = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  /* 긴 주소도 카드 너비를 넘어가지 않게 합니다. */
+  overflow-wrap: anywhere;
 `;
 
 export const CompleteCardInfoLabel = styled.p`

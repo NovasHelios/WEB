@@ -292,7 +292,8 @@ function LandRegisterCondition() {
         transactionType: selected,
       }));
 
-      navigate("/land/register/complete");
+      // 등록이 완료되면 별도 완료 페이지를 거치지 않고 내 공간으로 이동합니다.
+      navigate("/space", { replace: true });
     } catch (err) {
       // 서버 또는 사전 확인에서 중복을 발견하면 주소 안내 영역으로 오류를 전달합니다.
       if (isDuplicateLandError(err)) {
@@ -420,7 +421,8 @@ function LandRegisterCondition() {
             이전 단계로
           </ConditionPrimaryButton>
           <ConditionPrimaryButton type="button" onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "등록 중..." : "등록"}
+            {/* 등록 완료 후 내 공간으로 이동하는 동작을 사용자에게 명확히 안내합니다. */}
+            {isLoading ? "등록 중..." : "등록하고 내 공간으로 이동"}
           </ConditionPrimaryButton>
         </ConditionFooterButtons>
       </ConditionTopShell>

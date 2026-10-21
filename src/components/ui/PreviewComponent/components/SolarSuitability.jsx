@@ -79,7 +79,7 @@ const hasZeroScore = (analysis) =>
   );
 
 // 선택한 토지의 태양광 적합도와 플랜에 맞는 AI 보고서를 표시합니다.
-function ReportContent({ landId, isReportLocked = false }) {
+export function ReportContent({ landId, isReportLocked = false, splitLayout = false }) {
   // 서버에서 받은 개발 적합도 분석 결과입니다.
   const [analysis, setAnalysis] = useState(null);
   // 개발 적합도 분석을 요청하고 있는지 나타냅니다.
@@ -220,7 +220,11 @@ function ReportContent({ landId, isReportLocked = false }) {
     // 분석 조회 상태, 점수, 보고서, 오류 복구 동작을 표시합니다.
     <AnalysisContent aria-live="polite" aria-busy={isLoading}>
       {/* 로딩 중에는 기존 점수 카드와 보고서를 함께 흐리게 표시합니다. */}
-      <AnalysisBlurLayer $loading={isLoading} aria-hidden={isLoading}>
+      <AnalysisBlurLayer
+        $loading={isLoading}
+        $splitLayout={splitLayout}
+        aria-hidden={isLoading}
+      >
         {/* 데이터 상태와 관계없이 점수 카드 UI를 먼저 표시합니다. */}
         <AnalysisCard>
         <AnalysisCardTitle>인허가 적합도 분석</AnalysisCardTitle>
@@ -305,8 +309,7 @@ function ReportContent({ landId, isReportLocked = false }) {
 
       {/* 보고서 UI도 먼저 표시하고 내부 문구만 요청 상태에 따라 교체합니다. */}
       <AnalysisReportSection>
-        <AnalysisReportTitle>AI 분석 보고서</AnalysisReportTitle>
-        {/* 무료 플랜에서는 실제 보고서 대신 블러 처리된 잠금 안내를 표시합니다. */}
+        {/* PERSONAL 플랜에서는 실제 보고서 대신 블러 처리된 잠금 안내를 표시합니다. */}
         {isReportLocked ? (
           <ReportAccessGate requiresLogin={false} compact />
         ) : (
@@ -369,13 +372,14 @@ function ReportContent({ landId, isReportLocked = false }) {
 }
 
 // 로그인·플랜 확인이 끝난 경우에만 보고서 컴포넌트를 마운트해 API를 호출합니다.
-export default function SolarSuitability({ landId }) {
+export default function SolarSuitability({ landId, splitLayout = false }) {
   const { isLoggedIn, user, accountError, isAccountLoading, retryAccount } = useAccount();
   const token = useAuthToken();
   if (!isLoggedIn) return <ReportAccessGate requiresLogin />;
   if (isAccountLoading) return <p role="status">계정 정보를 확인하고 있어요.</p>;
   if (accountError || !user) return <div role="alert"><p>{accountError || "계정 정보를 확인할 수 없습니다."}</p><button type="button" onClick={retryAccount}>다시 확인</button></div>;
-  // 지원하는 모든 플랜에서 점수 분석은 표시하고 무료 플랜의 보고서만 잠급니다.
-  if (!["FREE", "PRO", "BUSINESS"].includes(user.plan)) return <p role="status">이용 중인 플랜을 확인할 수 없습니다. 프로필에서 플랜을 확인해 주세요.</p>;
-  return <ReportContent key={`${token}:${landId}`} landId={landId} isReportLocked={user.plan === "FREE"} />;
+  // 지원하는 두 플랜에서 점수 분석은 표시하고 PERSONAL 플랜의 보고서만 잠급니다.
+  if (!["PERSONAL", "BUSINESS"].includes(user.plan)) return <p role="status">이용 중인 플랜을 확인할 수 없습니다. 프로필에서 플랜을 확인해 주세요.</p>;
+  // 팝업에서는 인허가 분석과 AI 보고서를 좌우로 배치할 수 있도록 옵션을 전달합니다.
+  return <ReportContent key={`${token}:${landId}`} landId={landId} isReportLocked={user.plan === "PERSONAL"} splitLayout={splitLayout} />;
 }

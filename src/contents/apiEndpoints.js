@@ -23,7 +23,9 @@ export const Api = {
     AiLandReport: `${BASE}/api/ai/report`, // GET 토지 투자 가치 AI 보고서
   Lands: `${BASE}/api/lands`,                                                        // GET 전체조회 / POST 등록 (multipart)
   MyLands: `${BASE}/api/lands/me`,                                                    // GET 내가 등록한 토지 목록
+  EligibleMyLands: `${BASE}/api/lands/me/eligible`,                                   // GET 사업자 상담이 가능한 내 토지 목록
   Land: (landId) => `${BASE}/api/lands/${landId}`,                                   // GET 상세 / PATCH 수정 / DELETE 삭제
+  LandPayment: (landId) => `${BASE}/api/lands/${encodeURIComponent(landId)}/payment`, // POST 토지 게시 결제
   LandImage: (landId) => `${BASE}/api/lands/${landId}/image`,                        // PATCH 이미지 추가·교체
   LandApprove: (landId) => `${BASE}/api/lands/${landId}/approve`,                    // PATCH 소유자 승인
   LandReject: (landId) => `${BASE}/api/lands/${landId}/reject`,                      // PATCH 소유자 거절

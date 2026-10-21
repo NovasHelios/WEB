@@ -107,9 +107,9 @@ export default function ReportAccessGate({
               lockedDescription
             ) : (
               <>
-                무료 플랜에서는 AI 분석 보고서를 열람할 수 없어요.
+                Personal 플랜에서는 AI 분석 보고서를 열람할 수 없어요.
                 <br />
-                프로·비즈니스 플랜의 제공 기능을 확인해 보세요.
+                Business 플랜의 제공 기능을 확인해 보세요.
               </>
             )}
           </p>

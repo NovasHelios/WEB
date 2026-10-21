@@ -80,11 +80,13 @@ export const PlanBillingBadge = styled.span`
   font-size: var(--font-xs);
 `;
 
-// 플랜 카드를 화면 너비에 맞게 배치합니다.
+// 퍼스널과 비즈니스 두 플랜 카드를 화면 중앙에 균형 있게 배치합니다.
 export const PlanGrid = styled.section`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(24px, 7vw, 96px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  max-width: 1200px;
+  gap: clamp(24px, 6vw, 80px);
   margin: 66px auto 0;
 
   @media (max-width: 900px) {

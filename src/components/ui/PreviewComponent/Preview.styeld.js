@@ -324,6 +324,10 @@ export const AnalysisContent = styled.section`
 // 로딩 중 기존 분석 화면을 유지하면서 흐리게 표시합니다.
 export const AnalysisBlurLayer = styled.div`
   display: grid;
+  /* 등록 완료 화면에서만 인허가 분석과 AI 보고서를 좌우로 배치합니다. */
+  grid-template-columns: ${({ $splitLayout }) =>
+    $splitLayout ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)"};
+  align-items: start;
   gap: 28px;
   filter: ${({ $loading }) => ($loading ? "blur(4px)" : "none")};
   opacity: ${({ $loading }) => ($loading ? 0.55 : 1)};
@@ -331,6 +335,11 @@ export const AnalysisBlurLayer = styled.div`
   transition:
     filter 180ms ease,
     opacity 180ms ease;
+
+  /* 좁은 화면에서는 두 분석 영역을 읽기 쉬운 세로 배치로 전환합니다. */
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 // 점 형태 로더를 시계 방향으로 회전시킵니다.
