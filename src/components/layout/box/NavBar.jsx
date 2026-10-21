@@ -60,9 +60,9 @@ const NavBar = ({
   const { isLoggedIn, user } = useAccount();
   const displayName = formatDisplayName(user?.name || user?.email);
   const isBusinessAccount = isLoggedIn && user?.plan === "BUSINESS";
-  // 확인된 계정 플랜만 표시하고 로딩 중에는 무료 플랜으로 추정하지 않습니다.
+  // 확인된 PERSONAL 또는 BUSINESS 플랜만 사용자용 명칭으로 표시합니다.
   const currentPlanLabel = isLoggedIn
-    ? { FREE: "무료", PRO: "프로", BUSINESS: "비즈니스" }[user?.plan]
+    ? { PERSONAL: "Personal", BUSINESS: "Business" }[user?.plan]
     : null;
 
   // 프로필 버튼을 눌렀을 때 로그인 상태에 따라 이동합니다.

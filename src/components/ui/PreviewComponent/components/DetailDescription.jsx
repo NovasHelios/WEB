@@ -25,11 +25,11 @@ import {
   DetailDescriptionTitle,
 } from "../Preview.styeld";
 
-// AI 종합 평가 API를 사용할 수 있는 유료 플랜 목록입니다.
-const ANALYSIS_PLANS = ["PRO", "BUSINESS"];
+// AI 종합 평가 API를 사용할 수 있는 BUSINESS 플랜 목록입니다.
+const ANALYSIS_PLANS = ["BUSINESS"];
 
 // 등록자 설명과 개발 적합도 분석의 AI 종합 평가를 표시합니다.
-export default function DetailDescription({ landId, description }) {
+export default function DetailDescription({ landId, description, showDescription = true }) {
   // 현재 계정의 로그인, 플랜, 오류 상태를 가져옵니다.
   const { isLoggedIn, user, accountError, isAccountLoading, retryAccount } =
     useAccount();
@@ -117,15 +117,17 @@ export default function DetailDescription({ landId, description }) {
 
   return (
     <DetailDescriptionContent>
-      {/* 토지 등록자가 작성한 상세 설명을 표시합니다. */}
-      <DetailDescriptionSection>
-        <DetailDescriptionTitle>설명글</DetailDescriptionTitle>
-        <DetailDescriptionBox>
-          <DetailDescriptionText>
-            {description || "등록된 설명글이 없습니다."}
-          </DetailDescriptionText>
-        </DetailDescriptionBox>
-      </DetailDescriptionSection>
+      {/* 상세보기처럼 설명 영역이 이미 있는 화면에서는 AI 종합 평가만 표시합니다. */}
+      {showDescription ? (
+        <DetailDescriptionSection>
+          <DetailDescriptionTitle>설명글</DetailDescriptionTitle>
+          <DetailDescriptionBox>
+            <DetailDescriptionText>
+              {description || "등록된 설명글이 없습니다."}
+            </DetailDescriptionText>
+          </DetailDescriptionBox>
+        </DetailDescriptionSection>
+      ) : null}
 
       {/* 개발 적합도 API에서 받은 분석 근거를 AI 종합 평가로 표시합니다. */}
       <DetailDescriptionSection>
@@ -134,8 +136,8 @@ export default function DetailDescription({ landId, description }) {
           aria-live="polite"
           aria-busy={isEvaluationLoading}
         >
-          {/* 무료 또는 비로그인 사용자는 실제 평가 대신 공통 잠금 안내를 확인합니다. */}
-          {!isAccountLoading && (!isLoggedIn || user?.plan === "FREE") ? (
+          {/* PERSONAL 또는 비로그인 사용자는 실제 평가 대신 공통 잠금 안내를 확인합니다. */}
+          {!isAccountLoading && (!isLoggedIn || user?.plan === "PERSONAL") ? (
             <ReportAccessGate requiresLogin={!isLoggedIn} compact />
           ) : (
             <>
@@ -168,7 +170,7 @@ export default function DetailDescription({ landId, description }) {
               user &&
               !accountError &&
               !ANALYSIS_PLANS.includes(user.plan) &&
-              user.plan !== "FREE" && (
+              user.plan !== "PERSONAL" && (
                 <AnalysisStatusMessage $compact>
                   이용 중인 플랜을 확인할 수 없습니다.
                 </AnalysisStatusMessage>

@@ -1,9 +1,11 @@
-import { AlertTriangle, ChevronDown, CalendarDays, Plus, Shapes, SquarePen, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, CalendarDays, CreditCard, Plus, Shapes, ShieldCheck, Smartphone, SquarePen, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavBar from "@/components/layout/box/NavBar";
 import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import Specific from "@/components/ui/SpecificPopUp/Specific";
+// 적합도 팝업은 미리보기의 분석 UI와 플랜별 잠금 정책을 그대로 재사용합니다.
+import SolarSuitability from "@/components/ui/PreviewComponent/components/SolarSuitability";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import { formatKoreanMoneyFromManwon } from "@/utils/priceFormat";
@@ -14,9 +16,16 @@ import { formatLandDate, landTimestamp } from "@/utils/landList";
 import { withRequestTimeout, forEachConcurrent } from "@/utils/asyncRequests";
 import { readApiResponse } from "@/utils/apiResponse";
 import { mergeLandImages } from "@/utils/landImages";
+// 내 공간의 각 토지 카드에 표시할 개발 적합도 점수를 조회합니다.
+import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
 import {
   SpaceActionButton,
   SpaceActionColumn,
+  SpaceSuitabilityScore,
+  SpaceSuitabilityDialog,
+  SpaceSuitabilityHeader,
+  SpaceSuitabilityOverlay,
+  SpaceSuitabilityAction,
   SpaceBadge,
   SpaceBadgeRow,
   SpaceCard,
@@ -57,6 +66,20 @@ import {
   SpaceModalFileButton,
   SpaceModalFileInput,
   SpaceModalOverlay,
+  SpacePaymentActions,
+  SpacePaymentAgreement,
+  SpacePaymentBenefits,
+  SpacePaymentCancelButton,
+  SpacePaymentDialog,
+  SpacePaymentHeader,
+  SpacePaymentMethodButton,
+  SpacePaymentMethodGrid,
+  SpacePaymentOverlay,
+  SpacePaymentProduct,
+  SpacePaymentRow,
+  SpacePaymentSecurity,
+  SpacePaymentSubmitButton,
+  SpacePaymentSummary,
   SpaceDeleteOverlay,
   SpaceDeleteDialog,
   SpaceDeleteIcon,
@@ -93,6 +116,12 @@ const MY_LANDS_SORT_CODES = {
   "오래된 등록순": "o",
   "가격 높은 순": "pd",
   "가격 낮은 순": "pa",
+};
+
+// 서버와 임시 화면 상태에서 전달될 수 있는 결제 완료 값을 동일하게 판별합니다.
+const isLandPaid = (land) => {
+  const paid = land?.raw?.paid ?? land?.paid;
+  return paid === true || paid === 1 || paid === "1" || paid === "true" || paid === "Y";
 };
 
 const resolveImageUrl = (path, revision) => {
@@ -335,6 +364,8 @@ function MySpace() {
   const [pageInfo, setPageInfo] = useState({ totalElements: 0, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  // 토지별 적합도 조회 상태와 종합 점수를 카드 표시용으로 보관합니다.
+  const [suitabilityByLandId, setSuitabilityByLandId] = useState({});
   const [editingLand, setEditingLand] = useState(null);
   const [editForm, setEditForm] = useState({
     address: "",
@@ -359,6 +390,16 @@ function MySpace() {
   const [landPendingDelete, setLandPendingDelete] = useState(null);
   const [selectedLand, setSelectedLand] = useState(null);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
+  // 적합도 점수 버튼으로 연 분석 팝업의 토지 ID를 보관합니다.
+  const [selectedSuitabilityLandId, setSelectedSuitabilityLandId] = useState(null);
+  // 게시 결제를 진행할 현재 토지와 사용자가 선택한 결제 정보를 보관합니다.
+  const [landPendingPayment, setLandPendingPayment] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("CARD");
+  const [isPaymentAgreed, setIsPaymentAgreed] = useState(false);
+  // 결제 요청의 중복 실행을 막고 진행 상태를 버튼에 표시합니다.
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  // 결제 API 실패 사유를 팝업 안에서 안내합니다.
+  const [paymentError, setPaymentError] = useState("");
 
   useEffect(() => {
     if (!landPendingDelete) return undefined;
@@ -369,6 +410,26 @@ function MySpace() {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [landPendingDelete, deletingId]);
+
+  useEffect(() => {
+    if (!selectedSuitabilityLandId) return undefined;
+    // 분석 팝업은 Escape 키로도 닫을 수 있게 합니다.
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setSelectedSuitabilityLandId(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedSuitabilityLandId]);
+
+  useEffect(() => {
+    if (!landPendingPayment) return undefined;
+    // 결제 처리 중이 아닐 때만 Escape 키로 팝업을 닫습니다.
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !isPaymentProcessing) setLandPendingPayment(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [landPendingPayment, isPaymentProcessing]);
 
   const fetchMyLands = useCallback(async (signal) => {
     // 로그인하지 않은 사용자는 내 공간을 볼 수 없으므로 로그인으로 보냅니다.
@@ -404,7 +465,47 @@ function MySpace() {
       });
       // 현재 페이지 목록만 먼저 표시하고 누락된 정보만 도착하는 순서대로 보완합니다.
       setLands(list.map(normalizeLand));
+      // 새 목록을 조회할 때 이전 페이지의 적합도 점수가 남지 않도록 초기화합니다.
+      setSuitabilityByLandId({});
       setIsLoading(false);
+      // 카드가 먼저 표시된 뒤 적합도 점수는 최대 네 건씩 별도로 불러옵니다.
+      void forEachConcurrent(list, async (land) => {
+        const landId = land.landId ?? land.id;
+        if (!landId || signal?.aborted) return;
+
+        // 현재 토지의 점수 조회가 진행 중임을 카드에 먼저 표시합니다.
+        setSuitabilityByLandId((prev) => ({
+          ...prev,
+          [landId]: { isLoading: true, score: null },
+        }));
+
+        try {
+          const analysis = await fetchLandDevelopmentAnalysis(landId, { signal });
+          if (signal?.aborted) return;
+          // 빈 점수와 실제 0점을 구분한 뒤 숫자 값만 카드 점수로 사용합니다.
+          const rawScore = analysis?.totalScore;
+          const score = rawScore === null || rawScore === undefined || rawScore === ""
+            ? null
+            : Number(rawScore);
+          // 비어 있거나 숫자가 아닌 점수는 평가 불가 상태로 구분합니다.
+          setSuitabilityByLandId((prev) => ({
+            ...prev,
+            [landId]: {
+              isLoading: false,
+              score: score !== null && Number.isFinite(score)
+                ? Math.min(100, Math.max(0, score))
+                : null,
+            },
+          }));
+        } catch {
+          if (signal?.aborted) return;
+          // 조회 실패 시 카드 전체를 막지 않고 점수만 평가 불가로 표시합니다.
+          setSuitabilityByLandId((prev) => ({
+            ...prev,
+            [landId]: { isLoading: false, score: null },
+          }));
+        }
+      });
       await forEachConcurrent(list, async (land, index) => {
           if (signal?.aborted) return;
           // 목록 응답에 없는 등록일·희망 면적을 상세 API에서 보완합니다.
@@ -795,6 +896,65 @@ function MySpace() {
     }
   };
 
+  // 선택한 토지의 게시 결제 팝업을 초기 상태로 엽니다.
+  const handleOpenPayment = (land) => {
+    // 적합도 점수가 확인되지 않았거나 70점 미만인 토지는 결제창 진입을 차단합니다.
+    const suitabilityState = suitabilityByLandId[land?.id];
+    if (
+      !land?.id ||
+      isLandPaid(land) ||
+      suitabilityState?.isLoading ||
+      !Number.isFinite(suitabilityState?.score) ||
+      suitabilityState.score < 70
+    ) return;
+    setPaymentMethod("CARD");
+    setIsPaymentAgreed(false);
+    setPaymentError("");
+    setLandPendingPayment(land);
+  };
+
+  // 결제를 취소하고 입력 상태를 초기화한 뒤 팝업을 닫습니다.
+  const closePayment = () => {
+    setLandPendingPayment(null);
+    setPaymentMethod("CARD");
+    setIsPaymentAgreed(false);
+    setPaymentError("");
+  };
+
+  // 선택한 토지의 결제 API를 호출하고 성공한 경우에만 게시 완료 상태로 갱신합니다.
+  const handlePayment = async () => {
+    if (!landPendingPayment?.id || !isPaymentAgreed || isPaymentProcessing) return;
+
+    setIsPaymentProcessing(true);
+    setPaymentError("");
+
+    try {
+      // 인증된 사용자의 선택 토지를 결제 완료 상태로 변경합니다.
+      const response = await authFetch(Api.LandPayment(landPendingPayment.id), {
+        method: "POST",
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.data?.message || "결제 처리에 실패했습니다. 다시 시도해주세요.");
+      }
+
+      // 서버 결제 성공 결과를 현재 카드에도 즉시 반영합니다.
+      setLands((previous) => previous.map((land) => (
+        land.id === landPendingPayment.id
+          ? { ...land, paid: true, raw: { ...(land.raw || {}), paid: true } }
+          : land
+      )));
+      closePayment();
+    } catch (error) {
+      // 실패한 결제창은 유지해 사용자가 오류를 확인하고 다시 시도할 수 있게 합니다.
+      setPaymentError(error.message || "결제 처리에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsPaymentProcessing(false);
+    }
+  };
+
   return (
     <SpaceWrapper>
       {/* 상단 네비게이션 */}
@@ -928,6 +1088,16 @@ function MySpace() {
                           <SpaceCardMetaLabel>희망 가격</SpaceCardMetaLabel>
                           <SpaceCardMetaValue $highlight>{item.price}</SpaceCardMetaValue>
                         </div>
+                        {/* 거래 방식·희망 가격과 같은 행의 세 번째 칸에서 분석 팝업을 엽니다. */}
+                        <SpaceSuitabilityAction>
+                          <SpaceSuitabilityScore
+                            type="button"
+                            onClick={() => setSelectedSuitabilityLandId(item.id)}
+                            aria-label={`${item.title} 태양광 적합도 분석 보기`}
+                          >
+                            <span>적합도 점수</span>
+                          </SpaceSuitabilityScore>
+                        </SpaceSuitabilityAction>
                       </SpaceInfoRow>
 
                       <SpaceCardFooter />
@@ -937,6 +1107,27 @@ function MySpace() {
                       {/* 카드별 액션 버튼 */}
                       <SpaceActionButton type="button" onClick={() => handleOpenDetail(item)}>
                         {detailLoadingId === item.id ? "불러오는 중" : "토지 상세 보기"}
+                      </SpaceActionButton>
+                      {/* 적합도 70점 이상인 미결제 토지만 게시 결제를 진행할 수 있습니다. */}
+                      <SpaceActionButton
+                        type="button"
+                        $register
+                        disabled={
+                          isLandPaid(item) ||
+                          suitabilityByLandId[item.id]?.isLoading ||
+                          !Number.isFinite(suitabilityByLandId[item.id]?.score) ||
+                          suitabilityByLandId[item.id].score < 70
+                        }
+                        onClick={() => handleOpenPayment(item)}
+                      >
+                        {/* 점수 조회 상태와 70점 기준에 맞는 결제 가능 여부를 표시합니다. */}
+                        {isLandPaid(item)
+                          ? "게시 완료"
+                          : suitabilityByLandId[item.id]?.isLoading || !suitabilityByLandId[item.id]
+                            ? "점수 확인 중"
+                            : !Number.isFinite(suitabilityByLandId[item.id]?.score) || suitabilityByLandId[item.id].score < 70
+                              ? "결제 불가"
+                              : "등록하기"}
                       </SpaceActionButton>
                       <SpaceActionButton
                         type="button"
@@ -991,6 +1182,147 @@ function MySpace() {
           </SpaceInner>
         </SpacePage>
       </SpaceMain>
+
+      {selectedSuitabilityLandId ? (
+        // 기존 미리보기 분석 화면을 재사용해 두 분석 영역을 나란히 표시합니다.
+        <SpaceSuitabilityOverlay
+          onMouseDown={(event) => {
+            // 팝업 바깥의 어두운 배경을 눌렀을 때만 닫습니다.
+            if (event.target === event.currentTarget) setSelectedSuitabilityLandId(null);
+          }}
+        >
+          <SpaceSuitabilityDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="suitability-dialog-title"
+          >
+            <SpaceSuitabilityHeader>
+              <h2 id="suitability-dialog-title">태양광 적합도</h2>
+              <button
+                type="button"
+                aria-label="태양광 적합도 닫기"
+                onClick={() => setSelectedSuitabilityLandId(null)}
+              >
+                ×
+              </button>
+            </SpaceSuitabilityHeader>
+            {/* 인허가 적합도 분석과 AI 분석 보고서를 가로로 배치합니다. */}
+            <SolarSuitability landId={selectedSuitabilityLandId} splitLayout />
+          </SpaceSuitabilityDialog>
+        </SpaceSuitabilityOverlay>
+      ) : null}
+
+      {landPendingPayment ? (
+        // 선택한 토지를 게시하기 위한 결제 팝업입니다.
+        <SpacePaymentOverlay
+          onMouseDown={(event) => {
+            // 결제 처리 중이 아닐 때 배경을 누르면 결제창을 닫습니다.
+            if (event.target === event.currentTarget && !isPaymentProcessing) closePayment();
+          }}
+        >
+          <SpacePaymentDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="land-payment-title"
+          >
+            <SpacePaymentHeader>
+              <div>
+                <span>LAND PUBLISHING</span>
+                <h2 id="land-payment-title">토지 게시 결제</h2>
+                <p>결제를 완료하면 선택한 토지를 바로 게시할 수 있습니다.</p>
+              </div>
+              <button type="button" aria-label="결제창 닫기" onClick={closePayment} disabled={isPaymentProcessing}>×</button>
+            </SpacePaymentHeader>
+
+            {/* 결제 대상 토지와 게시 상품을 확인하는 주문 상품 영역입니다. */}
+            <SpacePaymentProduct>
+              <div>
+                <span>게시 대상</span>
+                <strong>{landPendingPayment.title}</strong>
+              </div>
+            </SpacePaymentProduct>
+
+            {/* 게시 후 이용할 수 있는 주요 이점을 짧은 목록으로 안내합니다. */}
+            <SpacePaymentBenefits>
+              <h3>게시하면 이런 점이 좋아요</h3>
+              <ul>
+                <li><Check size={16} aria-hidden="true" /><span>적합도·AI 분석으로 활용 가능성 확인</span></li>
+                <li><Check size={16} aria-hidden="true" /><span>관심 있는 태양광 사업자에게 후보지 노출</span></li>
+                <li><Check size={16} aria-hidden="true" /><span>사진·서류·조건을 통한 빠른 사전 검토</span></li>
+                <li><Check size={16} aria-hidden="true" /><span>채팅으로 사업자와 직접 상담</span></li>
+                <li><Check size={16} aria-hidden="true" /><span>적합도 70점 이상이면 기간 제한 없이 게시</span></li>
+              </ul>
+            </SpacePaymentBenefits>
+
+            {/* 주문 상세 항목 없이 최종 결제 금액만 간결하게 표시합니다. */}
+            <SpacePaymentSummary aria-label="최종 결제 금액">
+              <SpacePaymentRow $total>
+                <span>총 결제 금액</span>
+                <strong>4,900원</strong>
+              </SpacePaymentRow>
+            </SpacePaymentSummary>
+
+            {/* 결제 API 연결 전에도 사용자가 결제 수단을 선택할 수 있게 합니다. */}
+            <div>
+              <SpaceCardMetaLabel>결제 수단</SpaceCardMetaLabel>
+              <SpacePaymentMethodGrid role="radiogroup" aria-label="결제 수단 선택">
+                <SpacePaymentMethodButton
+                  type="button"
+                  role="radio"
+                  aria-checked={paymentMethod === "CARD"}
+                  $active={paymentMethod === "CARD"}
+                  disabled={isPaymentProcessing}
+                  onClick={() => setPaymentMethod("CARD")}
+                >
+                  <CreditCard size={20} aria-hidden="true" />
+                  <span>신용·체크카드</span>
+                </SpacePaymentMethodButton>
+                <SpacePaymentMethodButton
+                  type="button"
+                  role="radio"
+                  aria-checked={paymentMethod === "EASY_PAY"}
+                  $active={paymentMethod === "EASY_PAY"}
+                  disabled={isPaymentProcessing}
+                  onClick={() => setPaymentMethod("EASY_PAY")}
+                >
+                  <Smartphone size={20} aria-hidden="true" />
+                  <span>간편결제</span>
+                </SpacePaymentMethodButton>
+              </SpacePaymentMethodGrid>
+            </div>
+
+            {/* 필수 결제 동의를 완료해야 결제 버튼을 누를 수 있습니다. */}
+            <SpacePaymentAgreement>
+              <input
+                type="checkbox"
+                checked={isPaymentAgreed}
+                disabled={isPaymentProcessing}
+                onChange={(event) => setIsPaymentAgreed(event.target.checked)}
+              />
+              <span>상품 정보와 결제 금액을 확인했으며 결제 진행에 동의합니다.</span>
+            </SpacePaymentAgreement>
+
+            <SpacePaymentSecurity>
+              <ShieldCheck size={18} aria-hidden="true" />
+              <span>결제 정보는 결제 연동 시 안전한 방식으로 처리됩니다.</span>
+            </SpacePaymentSecurity>
+
+            {/* 결제 API 오류는 팝업을 닫지 않고 결제 버튼 위에 표시합니다. */}
+            {paymentError ? <SpaceModalError role="alert">{paymentError}</SpaceModalError> : null}
+
+            <SpacePaymentActions>
+              <SpacePaymentCancelButton type="button" onClick={closePayment} disabled={isPaymentProcessing}>취소</SpacePaymentCancelButton>
+              <SpacePaymentSubmitButton
+                type="button"
+                disabled={!isPaymentAgreed || isPaymentProcessing}
+                onClick={handlePayment}
+              >
+                {isPaymentProcessing ? "결제 처리 중..." : "4,900원 결제하기"}
+              </SpacePaymentSubmitButton>
+            </SpacePaymentActions>
+          </SpacePaymentDialog>
+        </SpacePaymentOverlay>
+      ) : null}
 
       {editingLand ? (
         <SpaceModalOverlay>

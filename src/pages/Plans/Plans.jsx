@@ -26,21 +26,15 @@ import {
 
 const planOptions = [
   {
-    id: "FREE", name: "무료 플랜",
+    // 서버의 PERSONAL 플랜 코드를 화면 선택값과 변경 요청에 동일하게 사용합니다.
+    id: "PERSONAL", name: "Personal 플랜",
     description: "서비스를 체험해보세요",
     monthly: "0",
     yearly: "0",
     features: ["기본 토지 정보 열람", "상담 요청 및 채팅"],
   },
   {
-    id: "PRO", name: "프로 플랜",
-    description: "더 많은 정보와 기회를 얻으세요",
-    monthly: "9,900",
-    yearly: "89,000",
-    features: ["기본 토지 정보 열람", "자동 조회 정보 열람", "상담 요청 및 채팅", "AI 분석 리포트"],
-  },
-  {
-    id: "BUSINESS", name: "비즈니스 플랜",
+    id: "BUSINESS", name: "Business 플랜",
     description: "전문적인 분석으로 성공 확률을 높이세요",
     monthly: "14,900",
     yearly: "119,000",
