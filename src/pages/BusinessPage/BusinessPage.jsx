@@ -5,6 +5,7 @@ import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
+import useHiddenPageScrollbar from "@/hooks/useHiddenPageScrollbar";
 import BusinessCard from "./component/BusinessCard";
 import BusinessDetail from "./component/BusinessDetail";
 import LandSelectionModal from "./component/LandSelectionModal";
@@ -128,6 +129,8 @@ function BusinessList({ token }) {
 }
 
 export default function BusinessPage() {
+  // 사업 연결에서는 페이지 스크롤은 유지하고 스크롤바 UI만 숨깁니다.
+  useHiddenPageScrollbar();
   const token = useAuthToken();
   return <BusinessList key={token || "anonymous"} token={token} />;
 }

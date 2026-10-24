@@ -68,8 +68,8 @@ export const createLandFilterBody = (filters, map) => {
     // 면적 최소 조건입니다. 시작점이면 null을 전달합니다.
     minArea: normalizeMinValue(filters.area.min, 0),
 
-    // 면적 최대 조건입니다. 끝점이면 null을 전달합니다.
-    maxArea: normalizeMaxValue(filters.area.max, 500),
+    // 면적 최대 조건입니다. 5,000㎡ 끝점이면 조건 없음으로 null을 전달합니다.
+    maxArea: normalizeMaxValue(filters.area.max, 5000),
 
     // 선택된 시도 이름입니다.
     sido: selectedRegion.sido?.name || null,

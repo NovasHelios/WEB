@@ -179,8 +179,8 @@ const getAreaFilterLabel = (filters) => {
   // 최소 면적이 기본 최소값이면 전체 조건으로 보기 위해 null로 변환합니다.
   const minArea = area.min === 0 ? null : area.min;
 
-  // 최대 면적이 기본 최대값이면 전체 조건으로 보기 위해 null로 변환합니다.
-  const maxArea = area.max === 500 ? null : area.max;
+  // 최대 면적이 설정된 슬라이더 끝값이면 전체 조건으로 보기 위해 null로 변환합니다.
+  const maxArea = area.max === rangeConfig.area.max ? null : area.max;
 
   // 최소/최대 면적이 모두 없으면 기본 버튼명을 표시합니다.
   if (minArea === null && maxArea === null) {
@@ -420,6 +420,11 @@ function Filter({ filters, onApplyFilters }) {
   const handleChangeDirectInput = (filterKey, side, value) => {
     // 숫자가 아닌 문자는 제거합니다.
     const numericValue = value.replace(/[^0-9]/g, "");
+    // 가격 입력창은 만원 단위이므로 서버 필터에서 사용하는 원 단위로 변환합니다.
+    const isPriceFilter = filterKey === "salePrice" || filterKey === "rentPrice";
+    const storedValue = numericValue === ""
+      ? null
+      : Number(numericValue) * (isPriceFilter ? 10000 : 1);
 
     // 사용자가 입력 중인 값은 그대로 임시 필터에 저장합니다.
     setDraftFilters((prev) => ({
@@ -429,8 +434,8 @@ function Filter({ filters, onApplyFilters }) {
       [filterKey]: {
         ...prev[filterKey],
 
-        // 빈 문자열은 null로 저장하고, 숫자가 있으면 숫자로 저장합니다.
-        [side]: numericValue === "" ? null : Number(numericValue),
+        // 빈 문자열은 null, 가격은 원 단위, 면적은 입력한 숫자 그대로 저장합니다.
+        [side]: storedValue,
       },
     }));
   };
@@ -785,7 +790,8 @@ function Filter({ filters, onApplyFilters }) {
 
         {/* 면적 필터 패널입니다. */}
         {activeFilter === "area" && (
-          <DropdownPanel $width="452px">
+          // 면적 기준 라벨이 겹치지 않도록 패널과 슬라이더의 가로 공간을 넓힙니다.
+          <DropdownPanel $width="520px">
             {/* 면적 범위 필터 영역입니다. */}
             <RangeBlock>
               <RangeTitleRow>

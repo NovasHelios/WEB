@@ -8,6 +8,7 @@ import Specific from "@/components/ui/SpecificPopUp/Specific";
 import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch, getValidAccessToken } from "@/lib/auth";
+import useHiddenPageScrollbar from "@/hooks/useHiddenPageScrollbar";
 import { useNavigate } from "react-router-dom";
 import {
   formatMoney,
@@ -58,6 +59,8 @@ const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
 const ITEMS_PER_PAGE = 6;
 
 function LandFavorites() {
+  // 관심 토지에서는 페이지 스크롤은 유지하고 스크롤바 UI만 숨깁니다.
+  useHiddenPageScrollbar();
   const navigate = useNavigate();
   // 찜 목록 필터 상태
   const [activeFilter, setActiveFilter] = useState("all");

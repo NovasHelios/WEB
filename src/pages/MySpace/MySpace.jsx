@@ -16,6 +16,7 @@ import { formatLandDate, landTimestamp } from "@/utils/landList";
 import { withRequestTimeout, forEachConcurrent } from "@/utils/asyncRequests";
 import { readApiResponse } from "@/utils/apiResponse";
 import { mergeLandImages } from "@/utils/landImages";
+import useHiddenPageScrollbar from "@/hooks/useHiddenPageScrollbar";
 // 내 공간의 각 토지 카드에 표시할 개발 적합도 점수를 조회합니다.
 import { fetchLandDevelopmentAnalysis } from "@/pages/Main/landApi";
 import {
@@ -354,6 +355,8 @@ const normalizeLand = (land, index) => {
 };
 
 function MySpace() {
+  // 내 공간에서는 페이지 스크롤은 유지하고 스크롤바 UI만 숨깁니다.
+  useHiddenPageScrollbar();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchKeyword = (searchParams.get("keyword") || "").trim().toLowerCase();

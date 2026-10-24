@@ -25,6 +25,21 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* 지정된 페이지에서는 스크롤 동작을 유지하면서 Firefox와 구형 Edge의 막대만 숨깁니다. */
+  html.helios-hide-page-scrollbar,
+  body.helios-hide-page-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* 지정된 페이지에서 Chrome과 Safari의 스크롤바 UI를 숨깁니다. */
+  html.helios-hide-page-scrollbar::-webkit-scrollbar,
+  body.helios-hide-page-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   button,
   input,
   textarea,
