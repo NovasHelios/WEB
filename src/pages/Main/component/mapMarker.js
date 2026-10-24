@@ -497,7 +497,9 @@ export const updateLandLayerByZoom = ({
   }
 };
 
-export const formatPrice = (price) => {
+export const formatPrice = (price, transactionType) => {
+  // 사업 희망 토지는 가격 대신 거래 목적을 명확하게 표시합니다.
+  if (getTransactionCountKey(transactionType) === "businessHope") return "사업희망";
   // 지도 마커 가격도 서버 기준인 원 단위로 표시합니다.
   return formatCompactKoreanMoneyFromManwon(price, "가격 없음");
 };
@@ -801,6 +803,7 @@ export const renderLandMarkers = async ({
       land.lon,
       land.desiredPrice,
       land.desiredArea,
+      land.transactionType,
       listingCount,
       land.address,
       duplicateCounts.lease,
@@ -827,7 +830,7 @@ export const renderLandMarkers = async ({
       const markerImageUrl = listingCount > 1
         ? createDuplicateMarkerImage({ address: land.address, counts: duplicateCounts })
         : createLandMarkerImage({
-          priceText: formatPrice(land.desiredPrice),
+          priceText: formatPrice(land.desiredPrice, land.transactionType),
           areaText,
           markerBackground,
           listingCount,

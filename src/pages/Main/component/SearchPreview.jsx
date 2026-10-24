@@ -84,7 +84,11 @@ const formatArea = (value) => {
 };
 
 // 토지 희망 가격을 검색 카드에 맞는 짧은 형식으로 표시합니다.
-const formatPrice = (value) => {
+const formatPrice = (value, transactionType) => {
+  // BUSINESS_HOPE와 같은 표기 변형을 정규화해 가격 대신 사업희망을 표시합니다.
+  const normalizedType = String(transactionType || "").replace(/[\s_-]/g, "").toUpperCase();
+  if (normalizedType === "BUSINESSHOPE") return "사업희망";
+
   // 값이 없거나 숫자가 아니면 정보 없음으로 표시합니다.
   if (value === null || value === undefined || value === "") return "정보 없음";
 
@@ -171,7 +175,7 @@ const SearchResultCard = memo(function SearchResultCard({ land, isSelected, onSe
         {/* 현재 필터 응답에 예상 용량이 없으므로 가짜 값을 표시하지 않습니다. */}
         <ResultPriceRow>
           <span>{getPriceLabel(land?.transactionType)}</span>
-          <ResultPrice>{formatPrice(land?.desiredPrice)}</ResultPrice>
+          <ResultPrice>{formatPrice(land?.desiredPrice, land?.transactionType)}</ResultPrice>
         </ResultPriceRow>
       </ResultCardBody>
     </ResultCard>

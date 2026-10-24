@@ -4,6 +4,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+// 토지 등록 요청 중 공통 회전 로딩 애니메이션을 표시합니다.
+import PageLoading from "@/components/ui/PageLoading/PageLoading";
 import { RegisterWorkflowSidebar, useRequireLogin } from "../shared";
 import { Api } from "@/contents/apiEndpoints";
 import { authFetch } from "@/lib/auth";
@@ -315,7 +317,9 @@ function LandRegisterCondition() {
   };
 
   return (
-    <ConditionPage>
+    // 등록 API가 처리되는 동안 전체 입력 화면을 흐리게 하고 중앙에 진행 상태를 표시합니다.
+    <PageLoading isLoading={isLoading} fullScreen loadingText="등록 중">
+      <ConditionPage>
       {/* 공통 헤더 */}
       <NavBar
         keyword=""
@@ -421,15 +425,16 @@ function LandRegisterCondition() {
             이전 단계로
           </ConditionPrimaryButton>
           <ConditionPrimaryButton type="button" onClick={handleSubmit} disabled={isLoading}>
-            {/* 등록 완료 후 내 공간으로 이동하는 동작을 사용자에게 명확히 안내합니다. */}
-            {isLoading ? "등록 중..." : "등록하고 내 공간으로 이동"}
+            {/* 진행 상태는 중앙 로딩 애니메이션에서 안내하므로 버튼명은 유지합니다. */}
+            등록하고 내 공간으로 이동
           </ConditionPrimaryButton>
         </ConditionFooterButtons>
       </ConditionTopShell>
 
       {/* 진행 단계 사이드바 */}
       <RegisterWorkflowSidebar activeStep={5} />
-    </ConditionPage>
+      </ConditionPage>
+    </PageLoading>
   );
 }
 
