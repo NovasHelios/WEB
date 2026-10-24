@@ -5,6 +5,8 @@ import { authFetch, AUTH_CHANGED_EVENT } from "@/lib/auth";
 import useAuthToken from "@/hooks/useAuthToken";
 import { Check } from "lucide-react";
 import NavBar from "@/components/layout/box/NavBar";
+// 플랜 변경 페이지에서 스크롤 기능은 유지하고 스크롤바 UI만 숨깁니다.
+import useHiddenPageScrollbar from "@/hooks/useHiddenPageScrollbar";
 import {
   PlanBillingSwitch,
   PlanBillingToggle,
@@ -44,6 +46,7 @@ const planOptions = [
 ];
 
 function Plans() {
+  useHiddenPageScrollbar();
   const token = useAuthToken();
   return <PlansContent key={token} token={token} />;
 }

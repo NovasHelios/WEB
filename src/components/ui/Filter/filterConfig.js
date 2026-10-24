@@ -37,18 +37,18 @@ export const rangeConfig = {
     ],
   },
 
-  // 면적은 최소/최대 끝값을 조건 없음으로 해석합니다.
+  // 면적은 0~5,000㎡ 범위를 100㎡ 단위로 이동하고 양 끝값은 조건 없음으로 해석합니다.
   area: {
     min: 0,
-    max: 500,
-    step: 10,
+    max: 5000,
+    step: 100,
     labels: [
       { label: "최소", value: 0 },
-      { label: "100㎡", value: 100 },
-      { label: "200㎡", value: 200 },
-      { label: "300㎡", value: 300 },
-      { label: "400㎡", value: 400 },
-      { label: "최대", value: 500 },
+      { label: "1,000㎡", value: 1000 },
+      { label: "2,000㎡", value: 2000 },
+      { label: "3,000㎡", value: 3000 },
+      { label: "4,000㎡", value: 4000 },
+      { label: "최대", value: 5000 },
     ],
   },
 };
