@@ -108,8 +108,9 @@ export default function SameLandListingsModal({ lands, selectedId, onClose, onSe
             const id = land.id ?? land.landId;
             const type = getTransactionType(land);
             const typeLabel = type === "LEASE" ? "임대" : type === "BUSINESS_HOPE" ? "사업 희망" : "매매";
+            // 사업 희망 토지는 가격 협의 대신 거래 목적과 같은 사업희망 문구로 통일합니다.
             const price = type === "BUSINESS_HOPE"
-              ? "조건 협의"
+              ? "사업희망"
               : formatKoreanMoneyFromManwon(land.desiredPrice, "가격 협의");
 
             return (

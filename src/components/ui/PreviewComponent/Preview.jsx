@@ -85,7 +85,10 @@ const PREVIEW_TABS = [
 ];
 
 // 숫자 값을 가격 표기로 변환합니다.
-const formatPrice = (value) => {
+const formatPrice = (value, transactionType) => {
+  // 사업 희망 토지는 가격 유무와 관계없이 사업희망 문구를 표시합니다.
+  const normalizedType = String(transactionType || "").replace(/[\s_-]/g, "").toUpperCase();
+  if (normalizedType === "BUSINESSHOPE") return "사업희망";
   // 상세 패널 가격은 서버 기준인 원 단위로 표시합니다.
   return formatKoreanMoneyFromManwon(value, "가격 없음");
 };
@@ -477,7 +480,7 @@ function Preview({ land }) {
                 category={category}
                 transactionType={transactionType}
                 formattedArea={formatArea(land.area)}
-                formattedPrice={formatPrice(land.desiredPrice)}
+                formattedPrice={formatPrice(land.desiredPrice, transactionType)}
               />
             )}
             {/* 태양광 적합도 탭을 선택하면 현재 토지의 개발 적합도를 조회합니다. */}

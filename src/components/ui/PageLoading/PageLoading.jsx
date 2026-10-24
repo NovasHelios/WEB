@@ -58,8 +58,8 @@ const PageLoadingText = styled.strong`
   font-weight: var(--font-medium);
 `;
 
-// 페이지의 기존 내용을 유지하면서 공통 로딩 애니메이션을 표시합니다.
-export default function PageLoading({ isLoading, children, fullScreen = false }) {
+// 페이지의 기존 내용을 유지하면서 화면별 안내 문구를 포함한 공통 로딩 애니메이션을 표시합니다.
+export default function PageLoading({ isLoading, children, fullScreen = false, loadingText = "로딩 중" }) {
   return (
     // 전역 여부에 맞는 높이를 확보한 뒤 기존 로딩 애니메이션을 재사용합니다.
     <PageLoadingFrame
@@ -76,7 +76,8 @@ export default function PageLoading({ isLoading, children, fullScreen = false })
       {isLoading && (
         <PageLoadingOverlay role="status" aria-label="페이지 정보 로딩 중">
           <PageLoadingSpinner aria-hidden="true" />
-          <PageLoadingText>로딩 중</PageLoadingText>
+          {/* 호출 화면에서 지정한 로딩 안내 문구를 애니메이션 아래에 표시합니다. */}
+          <PageLoadingText>{loadingText}</PageLoadingText>
         </PageLoadingOverlay>
       )}
     </PageLoadingFrame>
